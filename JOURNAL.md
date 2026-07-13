@@ -264,3 +264,13 @@ v0.9.1→v0.9.6 (not re-copied); provenance swept to `ba6f16d`/v0.9.6.
 
 **FORBIDDEN respected:** no payment/break-glass issuing (that is OPS-1b) · no
 franc moves · the audit-log append-only spine is untouched.
+
+### WO-OPS-1a — packet refresh: RED-PROOF artifact added (CTO hold, self-executing)
+
+CTO held WO-OPS-1a on one missing artifact: the DoD claimed "RED captured before
+impl" but the packet carried no failing-run capture. Added
+`_review/WO-OPS-1a-review/logs/red-proof.txt` — the moderation adversarial test
+run at BASE (origin/main 36907a0, before a77f993) with ONLY the test files copied
+in and the implementation absent: vitest fails to load `../src/moderation/decide`
+(1 failed, no tests). Proves the tests bite — non-vacuous. Code head unchanged
+(a77f993); this is a packet-refresh (_review/ + JOURNAL only).
