@@ -1,0 +1,10 @@
+SELF-ANCHORING — local HEAD vs origin (WO-OPS-1c)
+=================================================
+git rev-parse HEAD  : d3b670fdd6982ecdc00130cf7822b04c3ea9ba64
+
+git ls-remote origin claude/platform-ops-console-90txec :
+d3b670fdd6982ecdc00130cf7822b04c3ea9ba64	refs/heads/claude/platform-ops-console-90txec
+
+canon pin (this slice) : 67bda02646019cb4ab28a16fadf388b522da2799 (v0.9.8)
+prior pin              : ba6f16d78a2a5a13ff6877237cef6d77d35d8d65 (v0.9.6)
+branch restarted from merged main (WO-OPS-1b merge) : 298f67fa083a92cbba62c5bcc4c6ccddd48788f5

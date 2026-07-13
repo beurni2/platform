@@ -1,0 +1,322 @@
+diff --git a/JOURNAL.md b/JOURNAL.md
+index 6160b07..e74c2f0 100644
+--- a/JOURNAL.md
++++ b/JOURNAL.md
+@@ -336,3 +336,62 @@ packet (`logs/red-proof.txt`: `Failed to load url ../src/breakglass/issue`).
+ inside the operators' payload (it never leaves) · audit-log append-only spine
+ untouched · no payout/refund lever · moderation desk untouched beyond shared
+ plumbing.
++
++---
++
++## WO-OPS-1c — THE INTERIM'S EXECUTIONER: delegate the payment-operator allow-list to canon — TIER: 🟠 AMBER — **IN REVIEW (do NOT merge — founder review)**
++
++WO-OPS-1b was ruled **PASS (RED)** and **MERGED (`298f67f`)** — a `--no-ff`
++merge onto the 1a head (`5ef51cb`). This slice restarts the branch from that
++merged `main` and does the MENUM arc, exactly: the app-side allow-list interim
++from 1b is now retired because canon owns the constraint.
++
++**Gate verified by own fetch (not trusted from the relay).** Canon
++`origin/main` carries `67bda02` (v0.9.8 release merge — "the payment-operator
++namespace: `ops:payment:*` allow-list; `authorizedBy` constrained"). Built
++contracts prints `0.9.8` and exports **`PaymentOperatorActorSchema`**
++(`packages/contracts/src/shapes/custody.ts`), which is the **same schema that
++types `HandoffAuthorizationSchema.authorizedBy`**. Its regex is
++`/^ops:payment:[A-Za-z0-9._:-]+$/` — **byte-identical** to the founder ruling
++the 1b interim carried; so the delegation is a semantics-preserving move of the
++guard down to the contract layer, not a re-interpretation. Confirmed at runtime:
++parses `ops:payment:sanou`, refuses `supplier:aicha`, refuses empty suffix.
++
++**(1) The one re-pin — `ba6f16d`/v0.9.6 → `67bda02`/v0.9.8.** Six live pin
++sites (`package.json` ×3, `pnpm-workspace.yaml` overrides ×3) swapped;
++`apps/ops-console/package.json` ×3; provenance strings swept in `README.md` and
++the `pnpm-workspace.yaml` comment. Lockfile **regenerated** by `pnpm install`
++(not hand-edited): old-sha 0 · new-sha 28 · `git@github.com:` 0. Docs: the canon
++manifest did **not** move for platform — the 11 mirrored specs are byte-identical
++between v0.9.6 and v0.9.8 (only `packageVersion` bumped; canon's changed docs
++`derivations/QR-DIMENSIONS.md` + `design/tokens.json` are not in platform's
++mirrored set), so **no `/docs` re-sync** was required. drift-check confirms:
++`11 canonical docs match manifest (packageVersion 0.9.8)`, version DERIVED.
++
++**(2) The delegation — `src/breakglass/issue.ts`.** The exported app-side
++`PAYMENT_OPERATOR_PATTERN` regex is **removed**; `assertPaymentOperator` now
++delegates to `PaymentOperatorActorSchema.safeParse(id)` at BOTH halves (still
++throwing `BreakGlassActorError` so the app's error contract is unchanged).
++Because the guarded identity is the actor that would populate
++`HandoffAuthorization.authorizedBy`, and it is now validated by the very schema
++that types that field, **a non-`ops:payment` authorizedBy is unconstructable at
++the contract layer**. Change was imports + the delegation only — no test needed
++editing (per CTO's STOP-AND-FLAG condition; not triggered).
++
++**(3) ⏳→✅ NAMED INTERIM DEBT (from WO-OPS-1b) — CLOSED.** "app-side
++enforcement is temporary; executioner = the re-pin after canon WO-5.12 lands."
++**This slice is that executioner.** The pattern is no longer maintained in app
++code; it lives once, in canon.
++
++**(4) Refusal fixtures unchanged and green.** `test/breakglass-issue.test.ts`
++still refuses supplier · **`logistics-service:dispatch`** (sera's real
++dispatcher literal) · `ops:moderation:diallo` · empty-suffix `ops:payment:` at
++both halves — now against canon's schema. 41 tests + typecheck (incl. the
++compile-guard type-test) green; zero-hardcode · copy-lint · lockfile URL-form ·
++drift-check (derived 0.9.8) · Playwright 5/5; every negative exit 1.
++
++**FORBIDDEN respected:** no new command, surface, or franc · maker-checker,
++audit-log, moderation, and the break-glass request/board shapes untouched
++(delegation is guard-internal) · the fourth secret still absent · no `/docs`
++edit beyond what canon dictates (none) · the ssh-url negative fixture left
++frozen (it tests URL form, not pin currency).
+diff --git a/README.md b/README.md
+index c8a896b..00ac487 100644
+--- a/README.md
++++ b/README.md
+@@ -43,15 +43,17 @@ another domain's database.**
+ ## Canon pin
+ 
+ All `@platform/*` packages are pinned to platform-contracts
+-**`ba6f16d78a2a5a13ff6877237cef6d77d35d8d65`** (canon **v0.9.6** — the
+-moderation decision shapes; its canon commit message records "founder review
+-passed"). Founder-supplied in-session (WO-OPS-1a gate). Pin history:
++**`67bda02646019cb4ab28a16fadf388b522da2799`** (canon **v0.9.8** — the
++payment-operator namespace: `ops:payment:*` allow-list, `authorizedBy`
++constrained; its canon commit message records "founder review passed").
++Founder-supplied in-session (WO-OPS-1c gate). Pin history:
+ `4440ce0`/v0.9.1 (WO-OPS-0) → `04af4b5`/v0.9.4 (WO-OPS-0.1) → `ba6f16d`/v0.9.6
+-(WO-OPS-1a). This repo consumes that pin; it never edits canon. Moving the pin
+-is a deliberate, reviewed change across `apps/ops-console/package.json` +
+-`pnpm-workspace.yaml` + the `/docs` copy, in one PR (see `CONSUMING.md` in
+-platform-contracts) — the drift-check's `--pinned-version` is derived from the
+-installed package so the doc anchor follows the sha automatically.
++(WO-OPS-1a) → `67bda02`/v0.9.8 (WO-OPS-1c). This repo consumes that pin; it
++never edits canon. Moving the pin is a deliberate, reviewed change across
++`apps/ops-console/package.json` + `pnpm-workspace.yaml` + the `/docs` copy, in
++one PR (see `CONSUMING.md` in platform-contracts) — the drift-check's
++`--pinned-version` is derived from the installed package so the doc anchor
++follows the sha automatically.
+ 
+ ## Layout
+ 
+diff --git a/apps/ops-console/package.json b/apps/ops-console/package.json
+index 64965e1..275b71d 100644
+--- a/apps/ops-console/package.json
++++ b/apps/ops-console/package.json
+@@ -15,9 +15,9 @@
+     "gen:icons": "node scripts/gen-icons.mjs"
+   },
+   "dependencies": {
+-    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts",
+-    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n",
+-    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens"
++    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/contracts",
++    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/i18n",
++    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/ui-tokens"
+   },
+   "devDependencies": {
+     "@playwright/test": "^1.57.0",
+diff --git a/apps/ops-console/src/breakglass/issue.ts b/apps/ops-console/src/breakglass/issue.ts
+index 9853652..99e28f3 100644
+--- a/apps/ops-console/src/breakglass/issue.ts
++++ b/apps/ops-console/src/breakglass/issue.ts
+@@ -23,8 +23,12 @@
+  *   "at BOTH halves, only an actor matching ^ops:payment:[A-Za-z0-9._:-]+$
+  *    validates; every other actor — supplier, dispatcher, ops:moderation:*,
+  *    anything — is refused by non-match. No block-list exists to maintain."
+- *   INTERIM: canon will encode this (WO-5.12); until that pin, PLATFORM enforces
+- *   the pattern app-side. Executioner of the interim: the re-pin after WO-5.12.
++ *   CANON NOW OWNS IT (WO-OPS-1c): canon v0.9.8 (67bda02) encodes the ruling as
++ *   `PaymentOperatorActorSchema` — the SAME schema that types
++ *   `HandoffAuthorization.authorizedBy`. The guard below delegates to it, so the
++ *   identity that would authorize a break-glass handoff is constrained at the
++ *   contract layer (a non-ops:payment authorizedBy is unconstructable). The
++ *   app-side regex interim (WO-OPS-1b) is retired; this slice is its executioner.
+  *
+  * THE FOURTH SECRET: this slice models request→approve ONLY. provider_confirmed/
+  * issued/consumed are E3-gated and render « en attente » (not modeled here). The
+@@ -36,6 +40,7 @@ import {
+   IdSchema,
+   IsoTimestampSchema,
+   mintCommandId,
++  PaymentOperatorActorSchema,
+   type EventEnvelope,
+ } from '@platform/contracts';
+ import {
+@@ -49,9 +54,6 @@ import {
+ } from '../maker-checker';
+ import { OPS_ACTION_BREAKGLASS_ISSUE } from '../ops-action';
+ 
+-/** Founder ruling (Beurni, 2026-07-13), verbatim — the payment-operator allow-list. */
+-export const PAYMENT_OPERATOR_PATTERN = /^ops:payment:[A-Za-z0-9._:-]+$/;
+-
+ export class BreakGlassActorError extends Error {
+   constructor(message: string) {
+     super(message);
+@@ -66,9 +68,14 @@ export class BreakGlassRequestError extends Error {
+   }
+ }
+ 
+-/** Allow-list guard — the ONLY actors that validate are ops:payment:*. */
++/**
++ * Allow-list guard — the ONLY actors that validate are ops:payment:*. Delegated
++ * to canon `PaymentOperatorActorSchema` (v0.9.8), the same schema that types
++ * `HandoffAuthorization.authorizedBy`: the authorizing identity is constrained
++ * at the contract layer, not by an app-side copy of the pattern.
++ */
+ function assertPaymentOperator(id: string, half: 'maker' | 'checker'): void {
+-  if (!PAYMENT_OPERATOR_PATTERN.test(id)) {
++  if (!PaymentOperatorActorSchema.safeParse(id).success) {
+     throw new BreakGlassActorError(
+       `${half} "${id}" is not an ops:payment:* actor — break-glass issuance validates by allow-list; supplier, dispatcher, ops:moderation:*, and every other actor are refused`,
+     );
+diff --git a/package.json b/package.json
+index 1942134..d0fa8e9 100644
+--- a/package.json
++++ b/package.json
+@@ -16,9 +16,9 @@
+     "gates": "bash scripts/run-gates.sh"
+   },
+   "dependencies": {
+-    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts",
+-    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n",
+-    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens"
++    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/contracts",
++    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/i18n",
++    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/ui-tokens"
+   },
+   "devDependencies": {
+     "@types/node": "^22.20.1",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index d042c16..cd4c8c5 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -5,23 +5,23 @@ settings:
+   excludeLinksFromLockfile: false
+ 
+ overrides:
+-  '@platform/contracts': git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
+-  '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types
+-  '@platform/ui-tokens': git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
++  '@platform/contracts': git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/contracts
++  '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/kernel-types
++  '@platform/ui-tokens': git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/ui-tokens
+ 
+ importers:
+ 
+   .:
+     dependencies:
+       '@platform/contracts':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
+-        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
++        specifier: git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/contracts
++        version: git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/contracts
+       '@platform/i18n':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n
+-        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n
++        specifier: git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/i18n
++        version: git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/i18n
+       '@platform/ui-tokens':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
+-        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
++        specifier: git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/ui-tokens
++        version: git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/ui-tokens
+     devDependencies:
+       '@types/node':
+         specifier: ^22.20.1
+@@ -39,14 +39,14 @@ importers:
+   apps/ops-console:
+     dependencies:
+       '@platform/contracts':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
+-        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
++        specifier: git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/contracts
++        version: git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/contracts
+       '@platform/i18n':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n
+-        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n
++        specifier: git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/i18n
++        version: git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/i18n
+       '@platform/ui-tokens':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
+-        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
++        specifier: git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/ui-tokens
++        version: git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/ui-tokens
+     devDependencies:
+       '@playwright/test':
+         specifier: ^1.57.0
+@@ -225,23 +225,23 @@ packages:
+   '@jridgewell/sourcemap-codec@1.5.5':
+     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
+ 
+-  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts':
+-    resolution: {commit: ba6f16d78a2a5a13ff6877237cef6d77d35d8d65, path: packages/contracts, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+-    version: 0.9.6
++  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/contracts':
++    resolution: {commit: 67bda02646019cb4ab28a16fadf388b522da2799, path: packages/contracts, repo: https://github.com/beurni2/platform-contracts.git, type: git}
++    version: 0.9.8
+     hasBin: true
+ 
+-  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n':
+-    resolution: {commit: ba6f16d78a2a5a13ff6877237cef6d77d35d8d65, path: packages/i18n, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+-    version: 0.9.6
++  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/i18n':
++    resolution: {commit: 67bda02646019cb4ab28a16fadf388b522da2799, path: packages/i18n, repo: https://github.com/beurni2/platform-contracts.git, type: git}
++    version: 0.9.8
+     hasBin: true
+ 
+-  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types':
+-    resolution: {commit: ba6f16d78a2a5a13ff6877237cef6d77d35d8d65, path: packages/kernel-types, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+-    version: 0.9.6
++  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/kernel-types':
++    resolution: {commit: 67bda02646019cb4ab28a16fadf388b522da2799, path: packages/kernel-types, repo: https://github.com/beurni2/platform-contracts.git, type: git}
++    version: 0.9.8
+ 
+-  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens':
+-    resolution: {commit: ba6f16d78a2a5a13ff6877237cef6d77d35d8d65, path: packages/ui-tokens, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+-    version: 0.9.6
++  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/ui-tokens':
++    resolution: {commit: 67bda02646019cb4ab28a16fadf388b522da2799, path: packages/ui-tokens, repo: https://github.com/beurni2/platform-contracts.git, type: git}
++    version: 0.9.8
+ 
+   '@playwright/test@1.61.1':
+     resolution: {integrity: sha512-8nKv6+0RJSL9FE4jYOEGXnPeM/Hg12qZpmqzZjRh3qM0Y7c3z1mrOTfFLids72RDQYVh9WpLEfR5WdpNX4fkig==}
+@@ -783,20 +783,20 @@ snapshots:
+ 
+   '@jridgewell/sourcemap-codec@1.5.5': {}
+ 
+-  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts':
++  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/contracts':
+     dependencies:
+-      '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types
++      '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/kernel-types
+       zod: 4.4.3
+ 
+-  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n':
++  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/i18n':
+     dependencies:
+       zod: 4.4.3
+ 
+-  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types':
++  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/kernel-types':
+     dependencies:
+       zod: 4.4.3
+ 
+-  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens': {}
++  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/ui-tokens': {}
+ 
+   '@playwright/test@1.61.1':
+     dependencies:
+diff --git a/pnpm-workspace.yaml b/pnpm-workspace.yaml
+index 17f56a0..2fc2da5 100644
+--- a/pnpm-workspace.yaml
++++ b/pnpm-workspace.yaml
+@@ -12,8 +12,8 @@ onlyBuiltDependencies:
+ 
+ # Inter-package version-deps exist on no registry: @platform/contracts →
+ # @platform/kernel-types. Route every transitive resolution through the same
+-# pinned release sha (ba6f16d — canon v0.9.6) so nothing drifts off-pin.
++# pinned release sha (67bda02 — canon v0.9.8) so nothing drifts off-pin.
+ overrides:
+-  "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts"
+-  "@platform/kernel-types": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types"
+-  "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens"
++  "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/contracts"
++  "@platform/kernel-types": "git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/kernel-types"
++  "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/ui-tokens"
