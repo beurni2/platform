@@ -12,7 +12,7 @@ onlyBuiltDependencies:
 
 # Inter-package version-deps exist on no registry: @platform/contracts →
 # @platform/kernel-types. Route every transitive resolution through the same
-# pinned release sha (4440ce0 — canon v0.9.1) so nothing drifts off-pin.
+# pinned release sha (04af4b5 — canon v0.9.4) so nothing drifts off-pin.
 overrides:
   "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts"
   "@platform/kernel-types": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types"

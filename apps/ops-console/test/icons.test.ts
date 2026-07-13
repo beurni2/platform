@@ -5,7 +5,8 @@ import { describe, it, expect } from 'vitest';
 import { opsIcon, OPS_ICON_NAMES } from '../src/icons';
 
 /**
- * The ops console consumes canon's 29-icon set (pin 4440ce0 / v0.9.1) as inline
+ * The ops console consumes canon's 29-icon set (pin 04af4b5 / v0.9.4; byte-identical
+ * across v0.9.1→v0.9.4) as inline
  * SVG strings. This proves the embedded glyphs are BYTE-IDENTICAL to canon: each
  * embedded string's sha256 equals assets/icons/icons.manifest.json, whose entries
  * are canon's own. No hand-editing can drift a glyph without turning this red.
