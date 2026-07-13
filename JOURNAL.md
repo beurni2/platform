@@ -160,3 +160,45 @@ Deps pin the SHA (`4440ce0`); `scripts/run-gates.sh` pins the STRING
 will. Derive the version from the pinned sha, or assert they match, or a re-pin
 silently drifts the docs check. Same class as the MAP/OWNED_GROUPS gate-coverage
 hole being closed in CANON WO-5.7.
+
+---
+
+## WO-OPS-0.1 — the one re-pin (canon v0.9.1 → v0.9.4) — TIER: AMBER — **IN REVIEW (do NOT merge — founder review)**
+
+CTO directive 2026-07-13. A first re-pin takes the CURRENT canon release: **pin
+`04af4b5266d53866a2b6d5800e270d3fffac2b35` (canon v0.9.4** — "the lockfile
+URL-form gate (standing law; SSH-form URLs forbidden); founder review passed";
+canon moved twice since v0.9.1, this is one re-pin to the current release).
+
+- **DO-FIRST assertion:** `grep -c 'git@github.com:' pnpm-lock.yaml` at 4440ce0
+  = **0** (all-https, as the CTO read — asserted, not assumed).
+- **Re-pinned** `@platform/{contracts,i18n,ui-tokens}` deps (root + app) AND the
+  `pnpm-workspace.yaml` overrides (contracts/kernel-types/ui-tokens) to
+  `04af4b5`. Lockfile regenerated. **GUARD (DoD):**
+  `node -p "require('@platform/contracts/package.json').version"` → **`0.9.4`**
+  (ui-tokens + i18n also 0.9.4). Lockfile: 0 `git@github.com:`, 0 proxy leakage.
+- **/docs refreshed** from canon@04af4b5: only **ECOSYSTEM-MASTER-REFERENCE.md**
+  and **Ecosystem-Engineering-Execution-Contract.md** moved (D22 rename era);
+  both now match the v0.9.4 manifest sha256 exactly. Drift-check green at 0.9.4.
+- **Lockfile URL-form gate (NEW, permanent):** `scripts/gates/no-ssh-git-url.mjs`
+  — zero SSH-form git URLs (`git@github.com:` / `ssh://git@`) in the committed
+  lockfile, with a planted negative fixture that fires (2 hits, exit 1).
+  **Relationship:** canon **v0.9.4 carries the STANDING-LAW, authoritative
+  version** of this gate; this repo's copy is **defense in depth** on its own
+  lockfile — not a redefinition of canon.
+- **NAMED DEBT ③ — CLOSED.** The drift-check's version anchor is now DERIVED from
+  the installed `@platform/contracts` version (which the sha pin determines):
+  `--pinned-version "$(node -p "…version")"`. No hand-kept string. The CLI
+  already refuses when `pinnedVersion !== manifest.packageVersion`
+  (drift-check.ts L34), so a mismatch fires — **proven** by the planted-mismatch
+  negative: `--pinned-version 0.0.0-planted-mismatch` → *"pinned package version
+  0.0.0-planted-mismatch does not match manifest packageVersion 0.9.4"* (exit 1).
+- **Gates green** (all positives; every negative fires exit 1): typecheck (ui-tokens
+  v0.9.4 is additive — consumption unbroken) · 20 tests · zero-hardcode · copy-lint
+  · lockfile URL-form · drift-check (derived 0.9.4) · Playwright.
+
+**UNTOUCHED (by CTO direction):** debts ① (literal-only type guard) and ②
+(`approve()` maker-envelope re-check) wait for the first-real-ops-command slice —
+not fixed early. The spine (`maker-checker.ts`, `audit-log.ts`) is unchanged.
+Icons were not refreshed (repo assets, not the pinned package; out of this
+slice's scope).

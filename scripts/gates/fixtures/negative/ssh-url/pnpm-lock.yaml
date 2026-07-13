@@ -1,0 +1,8 @@
+# NEGATIVE FIXTURE for the lockfile URL-form gate — this planted lockfile
+# snippet INTENTIONALLY carries an SSH-form git URL. The gate must flag it.
+importers:
+  .:
+    dependencies:
+      '@platform/contracts':
+        specifier: git@github.com:beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
+        version: 'git@github.com:beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts'
