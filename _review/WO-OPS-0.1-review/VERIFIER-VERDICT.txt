@@ -1,0 +1,50 @@
+FRESH-CONTEXT VERIFIER — VERDICT (verbatim) — WO-OPS-0.1
+========================================================
+Dispatched with no memory of the build (CLAUDE.md §6bis). Verified at commit
+518667d (the re-pin). It attempted the checks itself and reported what it ran.
+
+A. THE PIN RESOLVES TO v0.9.4 — PASS. All three pin sites carry
+   04af4b5266d53866a2b6d5800e270d3fffac2b35 with zero stale 4440ce0 in any pin
+   value. Installed proof: node -p "require('@platform/contracts/package.json').version"
+   → 0.9.4; ui-tokens → 0.9.4; i18n → 0.9.4.
+   Sub-finding (cosmetic): stale "4440ce0 / v0.9.1" text lingered in a
+   pnpm-workspace.yaml comment and three icon-provenance comments — "worth a
+   follow-up tidy, but not a pin, gate, or invariant defect."
+
+B. LOCKFILE HYGIENE + THE NEW GATE — PASS. grep -c 'git@github.com:'
+   pnpm-lock.yaml → 0; deps resolve https://…#04af4b5. no-ssh-git-url.mjs: real
+   lockfile exit 0; planted-fixture exit 1 (both lines reported).
+
+C. DEBT ③ DRIFT-CHECK COUPLING — PASS. run-gates.sh derives PIN_VERSION from
+   the installed package (no hardcoded string). --pinned-version
+   0.0.0-planted-mismatch → exit 1 ("does not match manifest packageVersion
+   0.9.4"); derived 0.9.4 → exit 0.
+
+D. /docs REFRESHED TO v0.9.4 — PASS. Installed manifest packageVersion 0.9.4;
+   ECOSYSTEM-MASTER-REFERENCE.md (4fd065c…) and Ecosystem-Engineering-Execution-
+   Contract.md (069cd35…) match byte-for-byte; all 11 docs match the manifest.
+
+E. DEBTS ① AND ② UNTOUCHED — PASS. The spine was not in the re-pin diff.
+   approve() still does NOT re-assert command.envelope.actor === command.maker.id
+   (debt ② intentionally open). Runtime same-identity guard still throws; type
+   guard still bites. Nothing fixed.
+
+F. FULL GATES GREEN — PASS. run-gates.sh ends "ALL GATES GREEN"; all five
+   negative fixtures fail exit 1 (zero-hardcode, copy-lint, lockfile-ssh,
+   drift-tampered-doc, drift-version-mismatch).
+
+OVERALL: PASS. The pin genuinely moved to 04af4b5 / v0.9.4 (proven by the
+installed package version, not prose); the lockfile carries zero SSH URLs and
+the new gate enforces it; the drift-check version anchor is derived and its
+coupling demonstrably fires on mismatch; all 11 /docs match the v0.9.4 manifest;
+the maker-checker spine (debts ①/②) was left untouched. Working tree clean.
+
+── RESOLUTION OF THE COSMETIC SUB-FINDING (post-verdict) ──────────────────────
+The stale-comment sub-finding was fixed in follow-on commits 7e01831 (the
+pnpm-workspace.yaml comment + the icon module/generator/test provenance
+comments) and e7fbff7 (the README "Canon pin" section). The 29-icon set is
+byte-identical across v0.9.1→v0.9.4 (canon icons.manifest.json unchanged), so
+the icons were not re-copied — only their provenance note. A comprehensive
+stale-scan confirms no code/config/README current-state claim references the old
+pin; remaining 4440ce0/v0.9.1 mentions are JOURNAL/README history only. Behaviour
+is comment/doc-only and re-proven green at e7fbff7 (COLD-PROOF.txt).

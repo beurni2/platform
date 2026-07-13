@@ -1,0 +1,434 @@
+# git diff origin/main...HEAD -- . ':(exclude)_review'  (WO-OPS-0.1 delta from merged main d04be60)
+# code under review: commit e7fbff79bf73c1718872536979ffb51c7d23b571
+
+diff --git a/JOURNAL.md b/JOURNAL.md
+index 0cb393b..f633834 100644
+--- a/JOURNAL.md
++++ b/JOURNAL.md
+@@ -160,3 +160,45 @@ Deps pin the SHA (`4440ce0`); `scripts/run-gates.sh` pins the STRING
+ will. Derive the version from the pinned sha, or assert they match, or a re-pin
+ silently drifts the docs check. Same class as the MAP/OWNED_GROUPS gate-coverage
+ hole being closed in CANON WO-5.7.
++
++---
++
++## WO-OPS-0.1 — the one re-pin (canon v0.9.1 → v0.9.4) — TIER: AMBER — **IN REVIEW (do NOT merge — founder review)**
++
++CTO directive 2026-07-13. A first re-pin takes the CURRENT canon release: **pin
++`04af4b5266d53866a2b6d5800e270d3fffac2b35` (canon v0.9.4** — "the lockfile
++URL-form gate (standing law; SSH-form URLs forbidden); founder review passed";
++canon moved twice since v0.9.1, this is one re-pin to the current release).
++
++- **DO-FIRST assertion:** `grep -c 'git@github.com:' pnpm-lock.yaml` at 4440ce0
++  = **0** (all-https, as the CTO read — asserted, not assumed).
++- **Re-pinned** `@platform/{contracts,i18n,ui-tokens}` deps (root + app) AND the
++  `pnpm-workspace.yaml` overrides (contracts/kernel-types/ui-tokens) to
++  `04af4b5`. Lockfile regenerated. **GUARD (DoD):**
++  `node -p "require('@platform/contracts/package.json').version"` → **`0.9.4`**
++  (ui-tokens + i18n also 0.9.4). Lockfile: 0 `git@github.com:`, 0 proxy leakage.
++- **/docs refreshed** from canon@04af4b5: only **ECOSYSTEM-MASTER-REFERENCE.md**
++  and **Ecosystem-Engineering-Execution-Contract.md** moved (D22 rename era);
++  both now match the v0.9.4 manifest sha256 exactly. Drift-check green at 0.9.4.
++- **Lockfile URL-form gate (NEW, permanent):** `scripts/gates/no-ssh-git-url.mjs`
++  — zero SSH-form git URLs (`git@github.com:` / `ssh://git@`) in the committed
++  lockfile, with a planted negative fixture that fires (2 hits, exit 1).
++  **Relationship:** canon **v0.9.4 carries the STANDING-LAW, authoritative
++  version** of this gate; this repo's copy is **defense in depth** on its own
++  lockfile — not a redefinition of canon.
++- **NAMED DEBT ③ — CLOSED.** The drift-check's version anchor is now DERIVED from
++  the installed `@platform/contracts` version (which the sha pin determines):
++  `--pinned-version "$(node -p "…version")"`. No hand-kept string. The CLI
++  already refuses when `pinnedVersion !== manifest.packageVersion`
++  (drift-check.ts L34), so a mismatch fires — **proven** by the planted-mismatch
++  negative: `--pinned-version 0.0.0-planted-mismatch` → *"pinned package version
++  0.0.0-planted-mismatch does not match manifest packageVersion 0.9.4"* (exit 1).
++- **Gates green** (all positives; every negative fires exit 1): typecheck (ui-tokens
++  v0.9.4 is additive — consumption unbroken) · 20 tests · zero-hardcode · copy-lint
++  · lockfile URL-form · drift-check (derived 0.9.4) · Playwright.
++
++**UNTOUCHED (by CTO direction):** debts ① (literal-only type guard) and ②
++(`approve()` maker-envelope re-check) wait for the first-real-ops-command slice —
++not fixed early. The spine (`maker-checker.ts`, `audit-log.ts`) is unchanged.
++Icons were not refreshed (repo assets, not the pinned package; out of this
++slice's scope).
+diff --git a/README.md b/README.md
+index d6068b1..9dd6dc7 100644
+--- a/README.md
++++ b/README.md
+@@ -37,13 +37,15 @@ another domain's database.**
+ ## Canon pin
+ 
+ All `@platform/*` packages are pinned to platform-contracts
+-**`4440ce0f217372051d9876cf6aaefda8d006a3ba`** (canon **v0.9.1**; its canon
+-commit message records "founder review passed"). The WO reserved the pin pick
+-to the founder, so rather than guess I stopped and asked — the sha was supplied
+-in-session as a **CTO ruling (2026-07-13)**, not a founder paste. This repo
+-consumes that pin; it never edits canon. Moving the pin is a deliberate,
+-reviewed change across `apps/ops-console/package.json` + `pnpm-workspace.yaml` +
+-the `/docs` copy, in one PR (see `CONSUMING.md` in platform-contracts).
++**`04af4b5266d53866a2b6d5800e270d3fffac2b35`** (canon **v0.9.4**; its canon
++commit message records "founder review passed"). The pin was supplied by the
++CTO in-session (**CTO ruling, 2026-07-13** — WO-OPS-0.1 re-pin; the original
++WO-OPS-0 pin was `4440ce0` / v0.9.1). This repo consumes that pin; it never
++edits canon. Moving the pin is a deliberate, reviewed change across
++`apps/ops-console/package.json` + `pnpm-workspace.yaml` + the `/docs` copy, in
++one PR (see `CONSUMING.md` in platform-contracts) — the drift-check's
++`--pinned-version` is derived from the installed package so the doc anchor
++follows the sha automatically.
+ 
+ ## Layout
+ 
+diff --git a/apps/ops-console/package.json b/apps/ops-console/package.json
+index 8b4b769..84ca0b8 100644
+--- a/apps/ops-console/package.json
++++ b/apps/ops-console/package.json
+@@ -15,9 +15,9 @@
+     "gen:icons": "node scripts/gen-icons.mjs"
+   },
+   "dependencies": {
+-    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/contracts",
+-    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/i18n",
+-    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/ui-tokens"
++    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts",
++    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n",
++    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens"
+   },
+   "devDependencies": {
+     "@playwright/test": "^1.57.0",
+diff --git a/apps/ops-console/scripts/gen-icons.mjs b/apps/ops-console/scripts/gen-icons.mjs
+index d528a51..8861240 100644
+--- a/apps/ops-console/scripts/gen-icons.mjs
++++ b/apps/ops-console/scripts/gen-icons.mjs
+@@ -1,6 +1,7 @@
+ #!/usr/bin/env node
+ // GENERATE apps/ops-console/src/icons.ts from the canon icon set copied into
+-// assets/icons/ (byte-faithful to platform-contracts@4440ce0 / canon v0.9.1).
++// assets/icons/ (byte-faithful to platform-contracts@04af4b5 / canon v0.9.4;
++// the 29-icon set is byte-identical across v0.9.1→v0.9.4 — the icons did not move).
+ // The names and bytes are canon's; icons.test.ts proves each embedded glyph's
+ // sha256 equals assets/icons/icons.manifest.json. Re-run after any icon bump:
+ //   pnpm --filter @platform/ops-console gen:icons
+@@ -22,7 +23,7 @@ const entries = names
+   .join('\n');
+ 
+ const out = `// GENERATED by scripts/gen-icons.mjs from assets/icons/ — DO NOT EDIT BY HAND.
+-// The 29 Grand Teint glyphs (canon v0.9.1, pin 4440ce0) as inline SVG strings
++// The 29 Grand Teint glyphs (canon v0.9.4, pin 04af4b5) as inline SVG strings
+ // (zero deps). Each is byte-verbatim from canon; icons.test.ts proves sha256
+ // fidelity to assets/icons/icons.manifest.json. currentColor is driven by the
+ // element's CSS \`color\`; size is set in CSS (the SVGs are viewBox-only).
+diff --git a/apps/ops-console/src/icons.ts b/apps/ops-console/src/icons.ts
+index adcde9c..bdc62a6 100644
+--- a/apps/ops-console/src/icons.ts
++++ b/apps/ops-console/src/icons.ts
+@@ -1,5 +1,5 @@
+ // GENERATED by scripts/gen-icons.mjs from assets/icons/ — DO NOT EDIT BY HAND.
+-// The 29 Grand Teint glyphs (canon v0.9.1, pin 4440ce0) as inline SVG strings
++// The 29 Grand Teint glyphs (canon v0.9.4, pin 04af4b5) as inline SVG strings
+ // (zero deps). Each is byte-verbatim from canon; icons.test.ts proves sha256
+ // fidelity to assets/icons/icons.manifest.json. currentColor is driven by the
+ // element's CSS `color`; size is set in CSS (the SVGs are viewBox-only).
+diff --git a/apps/ops-console/test/icons.test.ts b/apps/ops-console/test/icons.test.ts
+index e9bdc76..c09cffe 100644
+--- a/apps/ops-console/test/icons.test.ts
++++ b/apps/ops-console/test/icons.test.ts
+@@ -5,7 +5,8 @@ import { describe, it, expect } from 'vitest';
+ import { opsIcon, OPS_ICON_NAMES } from '../src/icons';
+ 
+ /**
+- * The ops console consumes canon's 29-icon set (pin 4440ce0 / v0.9.1) as inline
++ * The ops console consumes canon's 29-icon set (pin 04af4b5 / v0.9.4; byte-identical
++ * across v0.9.1→v0.9.4) as inline
+  * SVG strings. This proves the embedded glyphs are BYTE-IDENTICAL to canon: each
+  * embedded string's sha256 equals assets/icons/icons.manifest.json, whose entries
+  * are canon's own. No hand-editing can drift a glyph without turning this red.
+diff --git a/docs/ECOSYSTEM-MASTER-REFERENCE.md b/docs/ECOSYSTEM-MASTER-REFERENCE.md
+index ad1303d..5706e6b 100644
+--- a/docs/ECOSYSTEM-MASTER-REFERENCE.md
++++ b/docs/ECOSYSTEM-MASTER-REFERENCE.md
+@@ -512,7 +512,7 @@ Pickup dwell **over 2–4 min is an ops signal** (a supplier who is slow to veri
+ 
+ # PART 9 — THE PLATFORM OPS CONSOLE (the back-office — and an honest gap)
+ 
+-> **⚠ FOUNDER DECISION REQUIRED.** The ops **roles** are defined across all three specs (Boutik+: "verification/moderation operator — Ops only"; Séra: payment operator, fleet manager, HR/payroll maker-checker). But the repo topology we locked — three apps + `platform-contracts` — **gives the cross-app Ops surface no home.** Protection Fund solvency, claims adjudication, and provider reconciliation are *inherently cross-domain*: they cannot live inside any one app without that app becoming a de-facto platform brain. **Recommendation: a fifth repo, `platform-ops`** — its own deployable, consuming the same pinned `platform-contracts`, reading through the authoritative services and **never writing to another domain's database.** (Alternatives: scatter admin screens per-app — but then the fund and reconciliation have no owner; or fold Ops into `platform-contracts` — rejected, contracts must stay a pure package, not a deployable.)
++> **⚠ FOUNDER DECISION REQUIRED.** The ops **roles** are defined across all three specs (Boutik+: "verification/moderation operator — Ops only"; Séra: payment operator, fleet manager, HR/payroll maker-checker). But the repo topology we locked — three apps + `platform-contracts` — **gives the cross-app Ops surface no home.** Protection Fund solvency, claims adjudication, and provider reconciliation are *inherently cross-domain*: they cannot live inside any one app without that app becoming a de-facto platform brain. **Recommendation: a fifth repo, `platform`** (github.com/beurni2/platform) — its own deployable, consuming the same pinned `platform-contracts`, reading through the authoritative services and **never writing to another domain's database.** (Alternatives: scatter admin screens per-app — but then the fund and reconciliation have no owner; or fold Ops into `platform-contracts` — rejected, contracts must stay a pure package, not a deployable.)
+ 
+ ## 9.1 The iron rule of Ops
+ > **Ops never edits the ledger. No human ever "just fixes" money.**
+@@ -709,7 +709,7 @@ Performance budgets are named at E0 and enforced: 60fps feel on a 1GB device, sk
+ | Tax / invoice / record retention | Launch | Retain everything |
+ | **PackLab:** the three ceiling values · restock multiple · upgrade score · platform-as-owner legal structure | B+9 | Gate closed |
+ | **Cercle:** campaign-allocation structure at the partner · MoMo top-up legality · moderation SLA | SP9 | Gate closed |
+-| **⚠ Where the platform Ops console lives** (recommend a fifth repo `platform-ops`) — see Part 9 | Fund, claims, reconciliation, moderation, T&S, kill-switches | **Undecided — ops functions are specified but homeless** |
++| **⚠ Where the platform Ops console lives** (recommend a fifth repo `platform`) — see Part 9 | Fund, claims, reconciliation, moderation, T&S, kill-switches | **Undecided — ops functions are specified but homeless** |
+ | Dispatcher/incident-response staffing SLA | Pilot | Contract E-exit requires it |
+ 
+ **The discipline:** an open decision is **never** closed by an agent or by convenience. It is implemented at its documented safest default, flagged, and escalated to the founder.
+diff --git a/docs/Ecosystem-Engineering-Execution-Contract.md b/docs/Ecosystem-Engineering-Execution-Contract.md
+index aa41f84..ca1499e 100644
+--- a/docs/Ecosystem-Engineering-Execution-Contract.md
++++ b/docs/Ecosystem-Engineering-Execution-Contract.md
+@@ -93,6 +93,17 @@ Boutik+ (supply)     Séra (custody/delivery)     Shop+ (reseller + buyer + chec
+ 
+ ---
+ 
++## 3.1 Tiered review — RED · AMBER · GREEN (founder-ruled 2026-07-12)
++**Every work order declares its TIER in its first line. The CTO assigns it; the session obeys it. A session may NEVER self-assign a tier.** The tier sets the ceremony a slice must clear before it merges — never the care taken building it.
++
++- 🔴 **RED** — money · custody · secrets · attribution · canon shapes · safety (SOS, break-glass, maker-checker) · **anything that could move a franc or orphan a package.** Full ceremony: packet · fresh-context verifier · CTO line-by-line · founder ruling · **merge only on an explicit paste.** NEVER accelerated. A rubber-stamped money slice destroys the only asset this project has.
++- 🟠 **AMBER** — multi-screen UX on **frozen semantics** · consoles · ops surfaces · canon docs/tokens. Packet + fresh-context verifier + CTO review, but **BATCHED**: the CTO may approve several at once, and a session may **start the next slice while the previous is in review**. **Merge still requires the CTO's paste.**
++- 🟢 **GREEN** — pure restyles on frozen semantics · gallery/docs refreshes · string-catalog updates · lint/test hygiene. The session runs its own fresh-context verifier and, on a full-green verdict, **MERGES ITSELF** and reports one paragraph. The CTO audits; it does not gate. **GREEN IS FORFEIT ON SIGHT:** any surprise — a semantic change, a failing gate, a dropped state, an invented value — reverts the slice to AMBER and it **stays there**.
++
++**UNCHANGED AND ABSOLUTE IN ALL TIERS:** packet-primacy · derive-never-invent · self-anchoring guards · the isolation-evidence law · no state dropped to fit a design · STOP-and-flag over guess.
++
++---
++
+ ## 4. Schema & event migration standard
+ - **Expand → migrate → contract.** No destructive schema change may ship in the **same release** that introduces its replacement.
+ - **Backfills** are **resumable + idempotent**, with a written plan and a verification step. **Financial and custody records are verified post-migration** against the immutable event log.
+diff --git a/package.json b/package.json
+index 52aa6ea..115c561 100644
+--- a/package.json
++++ b/package.json
+@@ -16,9 +16,9 @@
+     "gates": "bash scripts/run-gates.sh"
+   },
+   "dependencies": {
+-    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/contracts",
+-    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/i18n",
+-    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/ui-tokens"
++    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts",
++    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n",
++    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens"
+   },
+   "devDependencies": {
+     "@types/node": "^22.20.1",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 959b1f5..14fa767 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -5,23 +5,23 @@ settings:
+   excludeLinksFromLockfile: false
+ 
+ overrides:
+-  '@platform/contracts': git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/contracts
+-  '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/kernel-types
+-  '@platform/ui-tokens': git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/ui-tokens
++  '@platform/contracts': git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
++  '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types
++  '@platform/ui-tokens': git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
+ 
+ importers:
+ 
+   .:
+     dependencies:
+       '@platform/contracts':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/contracts
+-        version: git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/contracts
++        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
++        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
+       '@platform/i18n':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/i18n
+-        version: git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/i18n
++        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n
++        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n
+       '@platform/ui-tokens':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/ui-tokens
+-        version: git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/ui-tokens
++        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
++        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
+     devDependencies:
+       '@types/node':
+         specifier: ^22.20.1
+@@ -39,14 +39,14 @@ importers:
+   apps/ops-console:
+     dependencies:
+       '@platform/contracts':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/contracts
+-        version: git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/contracts
++        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
++        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
+       '@platform/i18n':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/i18n
+-        version: git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/i18n
++        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n
++        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n
+       '@platform/ui-tokens':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/ui-tokens
+-        version: git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/ui-tokens
++        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
++        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
+     devDependencies:
+       '@playwright/test':
+         specifier: ^1.57.0
+@@ -225,23 +225,23 @@ packages:
+   '@jridgewell/sourcemap-codec@1.5.5':
+     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
+ 
+-  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/contracts':
+-    resolution: {commit: 4440ce0f217372051d9876cf6aaefda8d006a3ba, path: packages/contracts, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+-    version: 0.9.1
++  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts':
++    resolution: {commit: 04af4b5266d53866a2b6d5800e270d3fffac2b35, path: packages/contracts, repo: https://github.com/beurni2/platform-contracts.git, type: git}
++    version: 0.9.4
+     hasBin: true
+ 
+-  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/i18n':
+-    resolution: {commit: 4440ce0f217372051d9876cf6aaefda8d006a3ba, path: packages/i18n, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+-    version: 0.9.1
++  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n':
++    resolution: {commit: 04af4b5266d53866a2b6d5800e270d3fffac2b35, path: packages/i18n, repo: https://github.com/beurni2/platform-contracts.git, type: git}
++    version: 0.9.4
+     hasBin: true
+ 
+-  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/kernel-types':
+-    resolution: {commit: 4440ce0f217372051d9876cf6aaefda8d006a3ba, path: packages/kernel-types, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+-    version: 0.9.1
++  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types':
++    resolution: {commit: 04af4b5266d53866a2b6d5800e270d3fffac2b35, path: packages/kernel-types, repo: https://github.com/beurni2/platform-contracts.git, type: git}
++    version: 0.9.4
+ 
+-  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/ui-tokens':
+-    resolution: {commit: 4440ce0f217372051d9876cf6aaefda8d006a3ba, path: packages/ui-tokens, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+-    version: 0.9.1
++  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens':
++    resolution: {commit: 04af4b5266d53866a2b6d5800e270d3fffac2b35, path: packages/ui-tokens, repo: https://github.com/beurni2/platform-contracts.git, type: git}
++    version: 0.9.4
+ 
+   '@playwright/test@1.61.1':
+     resolution: {integrity: sha512-8nKv6+0RJSL9FE4jYOEGXnPeM/Hg12qZpmqzZjRh3qM0Y7c3z1mrOTfFLids72RDQYVh9WpLEfR5WdpNX4fkig==}
+@@ -783,20 +783,20 @@ snapshots:
+ 
+   '@jridgewell/sourcemap-codec@1.5.5': {}
+ 
+-  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/contracts':
++  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts':
+     dependencies:
+-      '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/kernel-types
++      '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types
+       zod: 4.4.3
+ 
+-  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/i18n':
++  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n':
+     dependencies:
+       zod: 4.4.3
+ 
+-  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/kernel-types':
++  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types':
+     dependencies:
+       zod: 4.4.3
+ 
+-  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/ui-tokens': {}
++  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens': {}
+ 
+   '@playwright/test@1.61.1':
+     dependencies:
+diff --git a/pnpm-workspace.yaml b/pnpm-workspace.yaml
+index b1f5401..71481eb 100644
+--- a/pnpm-workspace.yaml
++++ b/pnpm-workspace.yaml
+@@ -12,8 +12,8 @@ onlyBuiltDependencies:
+ 
+ # Inter-package version-deps exist on no registry: @platform/contracts →
+ # @platform/kernel-types. Route every transitive resolution through the same
+-# pinned release sha (4440ce0 — canon v0.9.1) so nothing drifts off-pin.
++# pinned release sha (04af4b5 — canon v0.9.4) so nothing drifts off-pin.
+ overrides:
+-  "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/contracts"
+-  "@platform/kernel-types": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/kernel-types"
+-  "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/ui-tokens"
++  "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts"
++  "@platform/kernel-types": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types"
++  "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens"
+diff --git a/scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml b/scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml
+new file mode 100644
+index 0000000..2bbdda0
+--- /dev/null
++++ b/scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml
+@@ -0,0 +1,8 @@
++# NEGATIVE FIXTURE for the lockfile URL-form gate — this planted lockfile
++# snippet INTENTIONALLY carries an SSH-form git URL. The gate must flag it.
++importers:
++  .:
++    dependencies:
++      '@platform/contracts':
++        specifier: git@github.com:beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
++        version: 'git@github.com:beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts'
+diff --git a/scripts/gates/no-ssh-git-url.mjs b/scripts/gates/no-ssh-git-url.mjs
+new file mode 100644
+index 0000000..2b73469
+--- /dev/null
++++ b/scripts/gates/no-ssh-git-url.mjs
+@@ -0,0 +1,34 @@
++#!/usr/bin/env node
++// WO-OPS-0.1 — lockfile URL-form gate (DEFENSE IN DEPTH). Canon v0.9.4 carries
++// the STANDING-LAW version of this gate (the authoritative one, in
++// platform-contracts); this repo asserts it again on its own committed
++// pnpm-lock.yaml. pnpm can rewrite git-dep URLs to scp/ssh forms, which then
++// need SSH credentials CI does not have and which hide the pinned https ref.
++// Every git dep must stay https. Zero SSH-form git URLs.
++//   usage: node scripts/gates/no-ssh-git-url.mjs [lockfile]
++import { readFileSync } from 'node:fs';
++import { dirname, join } from 'node:path';
++import { fileURLToPath } from 'node:url';
++
++const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
++const target = process.argv[2] ?? join(root, 'pnpm-lock.yaml');
++const text = readFileSync(target, 'utf8');
++
++const forbidden = [
++  { name: 'scp-form git@github.com:', re: /git@github\.com:/ },
++  { name: 'ssh:// git url', re: /ssh:\/\/git@/ },
++];
++
++const hits = [];
++text.split('\n').forEach((line, i) => {
++  for (const f of forbidden) {
++    if (f.re.test(line)) hits.push(`${target}:${i + 1}: ${f.name} — ${line.trim()}`);
++  }
++});
++
++if (hits.length) {
++  console.error(`lockfile URL-form gate FAILED — SSH-form git URLs are forbidden (${hits.length}):`);
++  for (const h of hits) console.error('  - ' + h);
++  process.exit(1);
++}
++console.log(`lockfile URL-form gate OK: ${target} carries zero SSH-form git URLs (all https)`);
+diff --git a/scripts/run-gates.sh b/scripts/run-gates.sh
+index e56668d..e6dd004 100644
+--- a/scripts/run-gates.sh
++++ b/scripts/run-gates.sh
+@@ -52,16 +52,30 @@ capture copy-lint-positive pass pnpm exec copy-lint apps/ops-console/i18n/catalo
+ log "gate: French Voice copy-lint — NEGATIVE FIXTURE (veuillez/séquestre + marketing-in-money, must fail)"
+ capture copy-lint-negative fail pnpm exec copy-lint scripts/gates/fixtures/negative/catalog.negative.json
+ 
+-log "gate: contracts drift-check — pinned /docs copy vs canon manifest v0.9.1 (must pass)"
+-capture drift-check-positive pass pnpm exec drift-check docs --pinned-version 0.9.1
++log "gate: lockfile URL-form — zero SSH-form git URLs in the committed lockfile (defense in depth; canon v0.9.4 standing law) (must pass)"
++capture lockfile-url-form-positive pass node scripts/gates/no-ssh-git-url.mjs
++
++log "gate: lockfile URL-form — NEGATIVE FIXTURE (planted git@github.com: url, must fail)"
++capture lockfile-url-form-negative fail node scripts/gates/no-ssh-git-url.mjs scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml
++
++# DEBT ③ CLOSED: the drift-check's version anchor is DERIVED from the installed
++# @platform/contracts (which the sha pin determines) — no hand-kept string. The
++# CLI already refuses when --pinned-version != the manifest's packageVersion, so
++# a stale or mismatched version fires (proven by the negative below).
++PIN_VERSION="$(node -p "require('@platform/contracts/package.json').version")"
++log "gate: contracts drift-check — /docs vs canon manifest at the INSTALLED version ($PIN_VERSION, DERIVED — debt ③) (must pass)"
++capture drift-check-positive pass pnpm exec drift-check docs --pinned-version "$PIN_VERSION"
+ 
+ log "gate: contracts drift-check — TAMPERED consumer doc (must fail)"
+ DRIFT_TMP="$(mktemp -d)"
+ cp -r docs "$DRIFT_TMP/docs"
+ printf '\nrogue edit — this consumer copy drifted from canon\n' >> "$DRIFT_TMP/docs/ECOSYSTEM-MASTER-REFERENCE.md"
+-capture drift-check-negative fail pnpm exec drift-check "$DRIFT_TMP/docs" --pinned-version 0.9.1
++capture drift-check-negative fail pnpm exec drift-check "$DRIFT_TMP/docs" --pinned-version "$PIN_VERSION"
+ rm -rf "$DRIFT_TMP"
+ 
++log "gate: drift-check version coupling (debt ③) — NEGATIVE (planted version mismatch vs installed, must fail)"
++capture drift-check-version-mismatch-negative fail pnpm exec drift-check docs --pinned-version 0.0.0-planted-mismatch
++
+ log "ops console — Playwright harness (eight routes render honest empty states)"
+ capture playwright-e2e pass pnpm --filter @platform/ops-console test:e2e
+ 
