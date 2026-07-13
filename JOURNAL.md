@@ -118,3 +118,45 @@ pnpm store + frozen lockfile ran **ALL GATES GREEN**. Evidence packet:
 
 Wiring any desk to real data · any command that moves money · defining canon ·
 writing another repo's DB · inventing an event name. None were done.
+
+---
+
+## WO-OPS-0 — CTO RULING 2026-07-13: **PASS (AMBER) · MERGED**
+
+The CTO read `maker-checker.ts` and `audit-log.ts` line by line and ruled PASS,
+authorizing merge under the standard guards (heads agree · not behind main ·
+closing commit · packet positively present). Merged to `main` as the closing
+commit. Pin `4440ce0` rides (CTO-authorized: the v0.9.2 delta is
+packageVersion-only + purely additive ui-tokens — nothing consumed moved; re-pin
+next slice). Three findings are recorded as **NAMED DEBTS** — **none fixed in
+this slice, by CTO direction.**
+
+**NAMED DEBT ① — the type guard does not survive a service boundary.**
+*Executioner: the slice that defines the FIRST real ops command.*
+`DistinctChecker<M,C>` bites only when `M` and `C` are LITERAL types. Real ops
+actor ids arrive from a session token as `string`, and `string extends string`
+is true, so `DistinctChecker<string,string>` collapses to `never` and **every
+real call must cast** — after which the RUNTIME check is the ONLY guard. It is
+sound, but there is **ONE layer in production, not two.** Correction of the
+record: the earlier packet/message framing of "two layers in production" was an
+overclaim — the compile-time impossibility is a test/literal-type guarantee, not
+a runtime-id guarantee. A future slice must not assume the compiler is watching
+when it is not.
+
+**NAMED DEBT ② — `approve()` trusts an invariant it never re-checks.**
+*Fix in the same slice as ①.*
+`IssuedCommand` is an exported interface; anyone can build one as an object
+literal, bypassing `issue()`. `approve()` checks `envelope.actor === checker.id`
+but never re-asserts `command.envelope.actor === command.maker.id`, so a
+hand-built command carrying a lying maker envelope passes. One line closes it:
+`if (command.envelope.actor !== command.maker.id) throw new MakerCheckerError(…)`.
+An invariant established by a constructor and not preserved by the type is not an
+invariant.
+
+**NAMED DEBT ③ — the drift-check has two anchors and nothing couples them.**
+*Executioner: the next canon re-pin (v0.9.2, next slice).*
+Deps pin the SHA (`4440ce0`); `scripts/run-gates.sh` pins the STRING
+(`--pinned-version 0.9.1`). They agree today by hand; nothing asserts they still
+will. Derive the version from the pinned sha, or assert they match, or a re-pin
+silently drifts the docs check. Same class as the MAP/OWNED_GROUPS gate-coverage
+hole being closed in CANON WO-5.7.
