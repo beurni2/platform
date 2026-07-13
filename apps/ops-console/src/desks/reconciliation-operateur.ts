@@ -9,8 +9,10 @@ import type { Desk } from './types';
 
 /**
  * Desk 5 — Provider reconciliation (ECOSYSTEM-MASTER-REFERENCE.md §9.2). The
- * ledger's obligations vs the provider's truth (the webhooks). On divergence:
- * open a case, alert, protect existing customer promises. Not wired to data.
+ * authorized payment operator's desk (§9.3). LIVE since WO-OPS-1b: the router
+ * (main.ts) renders the payment operator's break-glass ISSUING surface
+ * (breakglass:issue) — request→approve, two operators, canon HandoffAuthorization
+ * machinery. This descriptor stays a pure record.
  */
 export const reconciliationOperateur: Desk = {
   id: 'reconciliation-operateur',

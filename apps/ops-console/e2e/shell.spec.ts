@@ -1,5 +1,16 @@
 import { expect, test } from '@playwright/test';
-import { sharedColour } from '@platform/ui-tokens';
+import { sharedColour, money } from '@platform/ui-tokens';
+
+/** Mirror src/breakglass/board-view.ts formatFcfa — verify the rendered amount. */
+function fcfa(amount: number): string {
+  const digits = String(amount);
+  let grouped = '';
+  for (let i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 === 0) grouped += money.groupSeparator;
+    grouped += digits[i];
+  }
+  return grouped + money.currencySuffix;
+}
 
 /**
  * WO-OPS-0 / WO-OPS-1a DoD. Drives the REAL built console in a real Chromium.
@@ -13,12 +24,11 @@ function hexToRgb(hex: string): string {
   return `rgb(${parseInt(n.slice(0, 2), 16)}, ${parseInt(n.slice(2, 4), 16)}, ${parseInt(n.slice(4, 6), 16)})`;
 }
 
-// The seven desks that stay honest shells (everything except moderation).
+// The six desks that stay honest shells (everything except moderation + reconciliation-operateur).
 const SHELL_DESKS: ReadonlyArray<{ slug: string; title: string }> = [
   { slug: 'fonds-de-protection', title: 'Fonds de protection' },
   { slug: 'reclamations', title: 'Réclamations' },
   { slug: 'confiance-securite', title: 'Confiance & sécurité' },
-  { slug: 'reconciliation-operateur', title: 'Réconciliation opérateur' },
   { slug: 'echelle-de-refus', title: 'Échelle de refus' },
   { slug: 'flags-kill-switches', title: 'Flags & kill-switches' },
   { slug: 'journal-audit', title: "Journal d'audit" },
@@ -36,16 +46,42 @@ test('the shell boots on the shared/neutral palette with catalog strings', async
   await expect(page.locator('nav .desk-link .glyph svg')).toHaveCount(8);
 });
 
-test('the seven non-moderation desks stay honest empty shells (no queue leaks in)', async ({
+test('the six remaining desks stay honest empty shells (no live surface leaks in)', async ({
   page,
 }) => {
   for (const desk of SHELL_DESKS) {
     await page.goto(`/#/${desk.slug}`);
     await expect(page.locator('.desk-title')).toHaveText(desk.title);
     await expect(page.locator('.empty-state')).toHaveText(EMPTY);
-    // Desk 3 going live must not have leaked into any other desk.
+    // neither live desk (moderation queue, break-glass board) may leak in.
     await expect(page.locator('.mod-queue')).toHaveCount(0);
+    await expect(page.locator('.bg-case')).toHaveCount(0);
   }
+});
+
+test('DESK 5 (reconciliation-operateur) is live — the break-glass case: both operators, amount, « en attente » downstream', async ({
+  page,
+}) => {
+  await page.goto('/#/reconciliation-operateur');
+  await expect(page.locator('.desk-title')).toHaveText('Réconciliation opérateur');
+  await expect(page.locator('.empty-state')).toHaveCount(0);
+  await expect(page.locator('.mod-queue')).toHaveCount(0);
+  await expect(page.locator('.bg-case')).toHaveCount(1);
+
+  // both operators named (maker-checker — two different people)
+  await expect(page.locator('.bg-requested-by .bg-value')).toHaveText('ops:payment:sanou');
+  await expect(page.locator('.bg-approved-by .bg-value')).toHaveText('ops:payment:zerbo');
+  // the operator-verified amount (canon money format; it never leaves this console)
+  await expect(page.locator('.bg-amount .bg-value')).toHaveText(fcfa(12500));
+
+  // request→approve reached; provider-confirm / issuance / consumption are « en attente »
+  await expect(page.locator('.bg-step-status--current')).toHaveText('En cours');
+  const pending = page.locator('.bg-step-status--pending');
+  await expect(pending).toHaveCount(3); // provider_confirmed, issued, consumed
+  await expect(pending.first()).toHaveText('En attente');
+
+  // THE FOURTH SECRET is never rendered
+  await expect(page.getByText(/signature/i)).toHaveCount(0);
 });
 
 test('DESK 3 (moderation) is live — renders the queue: pending / decided, reasons verbatim', async ({

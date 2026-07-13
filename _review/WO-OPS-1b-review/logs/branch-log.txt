@@ -1,0 +1,15 @@
+dc86e8a WO-OPS-1b: the issuing half of break-glass (breakglass:issue) — Desk 5 live
+ JOURNAL.md                                         |  62 ++++++++
+ apps/ops-console/e2e/shell.spec.ts                 |  46 +++++-
+ apps/ops-console/i18n/catalog.json                 | 102 +++++++++++++
+ apps/ops-console/src/breakglass/board-view.ts      |  89 ++++++++++++
+ apps/ops-console/src/breakglass/board.ts           |  72 +++++++++
+ apps/ops-console/src/breakglass/issue.ts           | 161 +++++++++++++++++++++
+ apps/ops-console/src/breakglass/sandbox.ts         |  37 +++++
+ .../src/desks/reconciliation-operateur.ts          |   6 +-
+ apps/ops-console/src/main.ts                       |  52 +++++++
+ apps/ops-console/src/ops-action.ts                 |  17 ++-
+ .../test-d/breakglass-issue.type-test.ts           |  37 +++++
+ apps/ops-console/test/breakglass-issue.test.ts     | 115 +++++++++++++++
+ apps/ops-console/test/desk-isolation.test.ts       |  26 +++-
+ 13 files changed, 803 insertions(+), 19 deletions(-)

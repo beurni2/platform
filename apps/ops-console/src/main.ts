@@ -13,6 +13,8 @@ import { opsIcon } from './icons';
 import { t } from './i18n';
 import { buildSandboxQueue } from './moderation/sandbox';
 import { renderModerationQueue } from './moderation/queue-view';
+import { buildSandboxBreakGlass } from './breakglass/sandbox';
+import { renderBreakGlassBoard } from './breakglass/board-view';
 
 /**
  * WO-OPS-0 / WO-OPS-1a — the platform ops console SHELL. The eight desks (canon
@@ -211,6 +213,53 @@ style.textContent = `
     letter-spacing: var(--ls-label);
     text-transform: uppercase;
   }
+  .bg-case {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: var(--surface-muted);
+    border: var(--hair) solid var(--hairline);
+    border-radius: var(--radius-btn);
+  }
+  .bg-field { display: flex; flex-direction: column; gap: var(--space-xs); }
+  .bg-amount { grid-column: 1 / -1; }
+  .bg-label {
+    color: var(--muted);
+    font-size: var(--type-label);
+    font-weight: ${typo.scale.label.wght};
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+  }
+  .bg-value {
+    color: var(--ink);
+    font-size: var(--type-row);
+    font-weight: ${typo.scale.row.wght};
+  }
+  .bg-amount .bg-value { font-size: var(--type-title); font-weight: ${typo.scale.title.wght}; }
+  .bg-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-xs); }
+  .bg-step {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: var(--space-sm) var(--space-md);
+    border: var(--hair) solid var(--hairline);
+    border-radius: var(--radius-btn);
+  }
+  .bg-step-name {
+    color: var(--body);
+    font-size: var(--type-row);
+    font-weight: ${typo.scale.row.wght};
+  }
+  .bg-step-status {
+    font-size: var(--type-label);
+    font-weight: ${typo.scale.label.wght};
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+  }
+  .bg-step-status--done { color: var(--success); }
+  .bg-step-status--current { color: var(--ink); }
+  .bg-step-status--pending { color: var(--muted); }
 `;
 document.head.appendChild(style);
 
@@ -287,6 +336,9 @@ function render(): void {
       buildSandboxQueue(new Date().toISOString()),
       ribbon.sandbox.label,
     );
+  } else if (desk.id === 'reconciliation-operateur') {
+    // Desk 5 — the payment operator's break-glass issuing surface (WO-OPS-1b).
+    renderBreakGlassBoard(contentHost, buildSandboxBreakGlass(new Date().toISOString()));
   } else {
     renderEmptyShell();
   }

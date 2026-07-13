@@ -1,0 +1,986 @@
+# git diff origin/main...HEAD -- . ':(exclude)_review'  (WO-OPS-1b delta from merged main 5ef51cb)
+# code under review: commit dc86e8a8db7c7fee520c409288324b13b7ccf77a
+
+diff --git a/JOURNAL.md b/JOURNAL.md
+index 502391c..6160b07 100644
+--- a/JOURNAL.md
++++ b/JOURNAL.md
+@@ -274,3 +274,65 @@ run at BASE (origin/main 36907a0, before a77f993) with ONLY the test files copie
+ in and the implementation absent: vitest fails to load `../src/moderation/decide`
+ (1 failed, no tests). Proves the tests bite — non-vacuous. Code head unchanged
+ (a77f993); this is a packet-refresh (_review/ + JOURNAL only).
++
++---
++
++## WO-OPS-1b — THE ISSUING HALF OF BREAK-GLASS — TIER: 🔴 RED — **IN REVIEW (do NOT merge — founder review)**
++
++The last platform slice of E4. Branched from the merged 1a head (5ef51cb); NO
++re-pin (canon v0.9.6 / ba6f16d already carries the machinery). Self-anchored the
++canon surface before writing: `HandoffAuthorizationSchema` (exactAmount [Fcfa] ·
++authorizationSource [`provider_webhook`|`break_glass`] · breakGlassCaseId
++[required for break_glass] · signature [the fourth secret] · state [7-state
++enum]), consumed via `IdSchema`/`FcfaSchema`/`IsoTimestampSchema`/`mintCommandId`.
++Sera's D5 (WO-6.9-e, merged) confirmed the premise: its dispatcher `BreakGlassView`
++has no issuing lever and omits signature + franc; issuing is this console's.
++
++**THE ACTOR BOUNDARY — FOUNDER RULING (Beurni, 2026-07-13), quoted verbatim:**
++> "The payment-operator actor pattern is ops:payment:* … Break-glass issuance
++> validates by ALLOW-LIST: at BOTH halves, only an actor matching
++> ^ops:payment:[A-Za-z0-9._:-]+$ validates; every other actor — supplier,
++> dispatcher, ops:moderation:*, anything — is refused by non-match. No block-list
++> exists to maintain. Canon will encode this constraint (WO-5.12); until that pin
++> exists, PLATFORM enforces the pattern app-side, quoted verbatim from this ruling."
++
++Implemented as `PAYMENT_OPERATOR_PATTERN` in `src/breakglass/issue.ts`, applied at
++issue AND approve. **⏳ NAMED INTERIM DEBT:** app-side enforcement is temporary —
++**executioner = the re-pin after canon WO-5.12 lands**, at which point the guard
++delegates to canon's constraint (the A1→MENUM arc repeated). Journaled per CTO.
++
++**The command — `breakglass:issue`** (`OpsActionType`'s second member): a first
++payment operator requests issuance for a named break-glass case (orderId, riderId,
++buyerRef, exactAmount, providerTransactionReference, breakGlassCaseId, reason);
++a SECOND payment operator approves (maker-checker seam). command_id minted by
++canon `mintCommandId`. Refusal fixtures are REAL, not guessed: supplier ·
++**`logistics-service:dispatch`** (sera's shipped dispatcher actor literal,
++grepped) · `ops:moderation:*` (cross-domain ops refused) · empty-suffix
++`ops:payment:` — all refused at both halves.
++
++**The fourth secret stays operator-side.** This slice models request→approve
++only; `provider_confirmed`/`issued`/`consumed` are E3-gated and render « en
++attente » — transitions NOT modeled (per CTO confirmation; the certified
++provider-confirm mock is a later slice's). The `signature` is not in this slice's
++data at all — `BreakGlassRequest`/board carry none — proven structurally
++(`test/desk-isolation.test.ts`: no `signature` in break-glass code, no logging).
++
++**Desk 5 (reconciliation-operateur — the authorized payment operator's desk,
++§9.3) is LIVE:** renders the case honestly (state machine with « en attente »
++downstream, both operators named, the operator-verified `exactAmount` in canon
++money format — it never leaves the console). The other **six** desks stay honest
++shells; moderation (Desk 3) untouched beyond shared plumbing. Absence proven
++structurally (only two router branches: moderation, reconciliation-operateur) and
++in the e2e (six shells show zero `.mod-queue`/`.bg-case`).
++
++**RED ceremony:** the adversarial test (`test/breakglass-issue.test.ts`, 8 tests)
++was written and run RED before implementation — the failing run is captured in the
++packet (`logs/red-proof.txt`: `Failed to load url ../src/breakglass/issue`).
++41 tests + typecheck (incl. the compile-guard type-test) green; zero-hardcode
++(23 files) · copy-lint (39 entries) · lockfile URL-form · drift-check (derived
++0.9.6) · Playwright (5/5); every negative exit 1.
++
++**FORBIDDEN respected:** no franc computed/displayed beyond canon's `exactAmount`
++inside the operators' payload (it never leaves) · audit-log append-only spine
++untouched · no payout/refund lever · moderation desk untouched beyond shared
++plumbing.
+diff --git a/apps/ops-console/e2e/shell.spec.ts b/apps/ops-console/e2e/shell.spec.ts
+index 4d52e62..f262770 100644
+--- a/apps/ops-console/e2e/shell.spec.ts
++++ b/apps/ops-console/e2e/shell.spec.ts
+@@ -1,5 +1,16 @@
+ import { expect, test } from '@playwright/test';
+-import { sharedColour } from '@platform/ui-tokens';
++import { sharedColour, money } from '@platform/ui-tokens';
++
++/** Mirror src/breakglass/board-view.ts formatFcfa — verify the rendered amount. */
++function fcfa(amount: number): string {
++  const digits = String(amount);
++  let grouped = '';
++  for (let i = 0; i < digits.length; i++) {
++    if (i > 0 && (digits.length - i) % 3 === 0) grouped += money.groupSeparator;
++    grouped += digits[i];
++  }
++  return grouped + money.currencySuffix;
++}
+ 
+ /**
+  * WO-OPS-0 / WO-OPS-1a DoD. Drives the REAL built console in a real Chromium.
+@@ -13,12 +24,11 @@ function hexToRgb(hex: string): string {
+   return `rgb(${parseInt(n.slice(0, 2), 16)}, ${parseInt(n.slice(2, 4), 16)}, ${parseInt(n.slice(4, 6), 16)})`;
+ }
+ 
+-// The seven desks that stay honest shells (everything except moderation).
++// The six desks that stay honest shells (everything except moderation + reconciliation-operateur).
+ const SHELL_DESKS: ReadonlyArray<{ slug: string; title: string }> = [
+   { slug: 'fonds-de-protection', title: 'Fonds de protection' },
+   { slug: 'reclamations', title: 'Réclamations' },
+   { slug: 'confiance-securite', title: 'Confiance & sécurité' },
+-  { slug: 'reconciliation-operateur', title: 'Réconciliation opérateur' },
+   { slug: 'echelle-de-refus', title: 'Échelle de refus' },
+   { slug: 'flags-kill-switches', title: 'Flags & kill-switches' },
+   { slug: 'journal-audit', title: "Journal d'audit" },
+@@ -36,18 +46,44 @@ test('the shell boots on the shared/neutral palette with catalog strings', async
+   await expect(page.locator('nav .desk-link .glyph svg')).toHaveCount(8);
+ });
+ 
+-test('the seven non-moderation desks stay honest empty shells (no queue leaks in)', async ({
++test('the six remaining desks stay honest empty shells (no live surface leaks in)', async ({
+   page,
+ }) => {
+   for (const desk of SHELL_DESKS) {
+     await page.goto(`/#/${desk.slug}`);
+     await expect(page.locator('.desk-title')).toHaveText(desk.title);
+     await expect(page.locator('.empty-state')).toHaveText(EMPTY);
+-    // Desk 3 going live must not have leaked into any other desk.
++    // neither live desk (moderation queue, break-glass board) may leak in.
+     await expect(page.locator('.mod-queue')).toHaveCount(0);
++    await expect(page.locator('.bg-case')).toHaveCount(0);
+   }
+ });
+ 
++test('DESK 5 (reconciliation-operateur) is live — the break-glass case: both operators, amount, « en attente » downstream', async ({
++  page,
++}) => {
++  await page.goto('/#/reconciliation-operateur');
++  await expect(page.locator('.desk-title')).toHaveText('Réconciliation opérateur');
++  await expect(page.locator('.empty-state')).toHaveCount(0);
++  await expect(page.locator('.mod-queue')).toHaveCount(0);
++  await expect(page.locator('.bg-case')).toHaveCount(1);
++
++  // both operators named (maker-checker — two different people)
++  await expect(page.locator('.bg-requested-by .bg-value')).toHaveText('ops:payment:sanou');
++  await expect(page.locator('.bg-approved-by .bg-value')).toHaveText('ops:payment:zerbo');
++  // the operator-verified amount (canon money format; it never leaves this console)
++  await expect(page.locator('.bg-amount .bg-value')).toHaveText(fcfa(12500));
++
++  // request→approve reached; provider-confirm / issuance / consumption are « en attente »
++  await expect(page.locator('.bg-step-status--current')).toHaveText('En cours');
++  const pending = page.locator('.bg-step-status--pending');
++  await expect(pending).toHaveCount(3); // provider_confirmed, issued, consumed
++  await expect(pending.first()).toHaveText('En attente');
++
++  // THE FOURTH SECRET is never rendered
++  await expect(page.getByText(/signature/i)).toHaveCount(0);
++});
++
+ test('DESK 3 (moderation) is live — renders the queue: pending / decided, reasons verbatim', async ({
+   page,
+ }) => {
+diff --git a/apps/ops-console/i18n/catalog.json b/apps/ops-console/i18n/catalog.json
+index 73e0916..b1fb02c 100644
+--- a/apps/ops-console/i18n/catalog.json
++++ b/apps/ops-console/i18n/catalog.json
+@@ -130,5 +130,107 @@
+     "fr": "Doute sur l'authenticité",
+     "register": "neutral",
+     "screenClass": "label"
++  },
++  {
++    "key": "breakglass.sandbox_note",
++    "fr": "Aperçu — autorisation exceptionnelle",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.case",
++    "fr": "Dossier",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.order",
++    "fr": "Commande",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.rider",
++    "fr": "Livreur",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.amount",
++    "fr": "Montant à vérifier",
++    "register": "money",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.requested_by",
++    "fr": "Demandé par",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.approved_by",
++    "fr": "Validé par",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.state_requested",
++    "fr": "Demande",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.state_verifying",
++    "fr": "Vérification opérateur",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.state_provider",
++    "fr": "Confirmation réseau",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.state_issued",
++    "fr": "Autorisation émise",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.state_consumed",
++    "fr": "Autorisation utilisée",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.state_expired",
++    "fr": "Expirée",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.state_voided",
++    "fr": "Annulée",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.status_done",
++    "fr": "Fait",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.status_current",
++    "fr": "En cours",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "breakglass.status_pending",
++    "fr": "En attente",
++    "register": "neutral",
++    "screenClass": "label"
+   }
+ ]
+diff --git a/apps/ops-console/src/breakglass/board-view.ts b/apps/ops-console/src/breakglass/board-view.ts
+new file mode 100644
+index 0000000..84525c2
+--- /dev/null
++++ b/apps/ops-console/src/breakglass/board-view.ts
+@@ -0,0 +1,89 @@
++import { money } from '@platform/ui-tokens';
++import type { HandoffAuthorizationState } from '@platform/contracts';
++import { t } from '../i18n';
++import type { BreakGlassCaseBoard, BreakGlassStep } from './board';
++
++/**
++ * Desk 5 break-glass view (WO-OPS-1b). Renders the case honestly: the case id,
++ * both operators named (maker-checker), the operator-verified `exactAmount`
++ * (canon money format — narrow-space group + « F »; it never leaves), and the
++ * state machine with `provider_confirmed`/`issued`/`consumed` shown « en
++ * attente ». Renders NO signature — the fourth secret is not in the data.
++ * Class-only styling (token-driven classes live in main.ts) → no literals here.
++ */
++const STEP_KEY: Record<HandoffAuthorizationState, string> = {
++  requested: 'breakglass.state_requested',
++  operator_verifying: 'breakglass.state_verifying',
++  provider_confirmed: 'breakglass.state_provider',
++  issued: 'breakglass.state_issued',
++  consumed: 'breakglass.state_consumed',
++  expired: 'breakglass.state_expired',
++  voided: 'breakglass.state_voided',
++};
++
++const STATUS_KEY: Record<BreakGlassStep['status'], string> = {
++  done: 'breakglass.status_done',
++  current: 'breakglass.status_current',
++  pending: 'breakglass.status_pending', // « en attente »
++};
++
++/** Canon money format: narrow-space group separator + « F » suffix (tokens). */
++function formatFcfa(amount: number): string {
++  const digits = String(amount);
++  let grouped = '';
++  for (let i = 0; i < digits.length; i++) {
++    if (i > 0 && (digits.length - i) % 3 === 0) grouped += money.groupSeparator;
++    grouped += digits[i];
++  }
++  return grouped + money.currencySuffix;
++}
++
++function field(labelKey: string, value: string, cls: string): HTMLElement {
++  const row = document.createElement('div');
++  row.className = `bg-field ${cls}`;
++  const label = document.createElement('span');
++  label.className = 'bg-label';
++  label.textContent = t(labelKey);
++  const val = document.createElement('span');
++  val.className = 'bg-value';
++  val.textContent = value;
++  row.append(label, val);
++  return row;
++}
++
++export function renderBreakGlassBoard(host: HTMLElement, board: BreakGlassCaseBoard): void {
++  host.replaceChildren();
++
++  const ribbon = document.createElement('p');
++  ribbon.className = 'mod-ribbon';
++  ribbon.textContent = t('breakglass.sandbox_note');
++
++  const grid = document.createElement('div');
++  grid.className = 'bg-case';
++  grid.append(
++    field('breakglass.case', board.caseId, 'bg-case-id'),
++    field('breakglass.order', board.orderId, 'bg-order'),
++    field('breakglass.rider', board.riderId, 'bg-rider'),
++    field('breakglass.amount', formatFcfa(board.exactAmount), 'bg-amount'),
++    field('breakglass.requested_by', board.requestedBy, 'bg-requested-by'),
++    field('breakglass.approved_by', board.approvedBy, 'bg-approved-by'),
++  );
++
++  const steps = document.createElement('ol');
++  steps.className = 'bg-steps';
++  for (const step of board.steps) {
++    const li = document.createElement('li');
++    li.className = 'bg-step';
++    li.dataset['status'] = step.status;
++    const name = document.createElement('span');
++    name.className = 'bg-step-name';
++    name.textContent = t(STEP_KEY[step.state]);
++    const status = document.createElement('span');
++    status.className = `bg-step-status bg-step-status--${step.status}`;
++    status.textContent = t(STATUS_KEY[step.status]);
++    li.append(name, status);
++    steps.append(li);
++  }
++
++  host.append(ribbon, grid, steps);
++}
+diff --git a/apps/ops-console/src/breakglass/board.ts b/apps/ops-console/src/breakglass/board.ts
+new file mode 100644
+index 0000000..d5f834d
+--- /dev/null
++++ b/apps/ops-console/src/breakglass/board.ts
+@@ -0,0 +1,72 @@
++/*
++ * OPS NE MODIFIE JAMAIS LE REGISTRE. Aucun humain ne « corrige » l'argent.
++ * Chaque action est une commande permissionnée, événementielle et auditée.
++ * Maker-checker — deux personnes différentes — sur tout ce qui touche à
++ * l'argent ou à la garde. Si un humain peut déplacer un franc en silence,
++ * toutes les promesses de ce système sont du théâtre.
++ */
++
++/**
++ * Desk 5 break-glass board (WO-OPS-1b). The OPERATOR-facing projection of an
++ * approved break-glass request: the case, both operators named, and the state
++ * machine. It carries `exactAmount` — the operators VERIFY it — but NO
++ * `signature` (the fourth secret is not in this slice's data). request→approve
++ * reaches `operator_verifying`; `provider_confirmed`/`issued`/`consumed` are
++ * E3-gated and render « en attente » — this console never advances them.
++ *
++ * (A projection TOWARD SERA would additionally omit `exactAmount` — sera's
++ * BreakGlassView already does; this slice emits no such projection.)
++ */
++import type { HandoffAuthorizationState } from '@platform/contracts';
++import type { ApprovedBreakGlassCommand } from './issue';
++
++/** The lifecycle the desk displays; steps past operator_verifying are « en attente ». */
++const HAPPY_PATH: readonly HandoffAuthorizationState[] = [
++  'requested',
++  'operator_verifying',
++  'provider_confirmed',
++  'issued',
++  'consumed',
++];
++
++/** The state the two-operator seam reaches; provider-confirm onward is not ours. */
++const SEAM_STATE: HandoffAuthorizationState = 'operator_verifying';
++
++export interface BreakGlassStep {
++  readonly state: HandoffAuthorizationState;
++  /** 'pending' renders « en attente » — provider-confirm/issuance are not this console's to reach. */
++  readonly status: 'done' | 'current' | 'pending';
++}
++
++export interface BreakGlassCaseBoard {
++  readonly caseId: string;
++  readonly orderId: string;
++  readonly riderId: string;
++  /** operator-side; verified here, never projected. */
++  readonly exactAmount: number;
++  /** both operators named — maker-checker, two different people. */
++  readonly requestedBy: string;
++  readonly approvedBy: string;
++  readonly steps: readonly BreakGlassStep[];
++}
++
++/**
++ * Derive the read-only board from an approved break-glass command. Pure: no
++ * write, no clock, no signature, no state advance beyond the seam.
++ */
++export function deriveBreakGlassBoard(approved: ApprovedBreakGlassCommand): BreakGlassCaseBoard {
++  const currentIndex = HAPPY_PATH.indexOf(SEAM_STATE);
++  const steps: BreakGlassStep[] = HAPPY_PATH.map((state, i) => ({
++    state,
++    status: i < currentIndex ? 'done' : i === currentIndex ? 'current' : 'pending',
++  }));
++  return {
++    caseId: approved.request.breakGlassCaseId,
++    orderId: approved.request.orderId,
++    riderId: approved.request.riderId,
++    exactAmount: approved.request.exactAmount,
++    requestedBy: approved.command.command.maker.id,
++    approvedBy: approved.command.checker.id,
++    steps,
++  };
++}
+diff --git a/apps/ops-console/src/breakglass/issue.ts b/apps/ops-console/src/breakglass/issue.ts
+new file mode 100644
+index 0000000..9853652
+--- /dev/null
++++ b/apps/ops-console/src/breakglass/issue.ts
+@@ -0,0 +1,161 @@
++/*
++ * OPS NE MODIFIE JAMAIS LE REGISTRE. Aucun humain ne « corrige » l'argent.
++ * Chaque action est une commande permissionnée, événementielle et auditée.
++ * Maker-checker — deux personnes différentes — sur tout ce qui touche à
++ * l'argent ou à la garde. Si un humain peut déplacer un franc en silence,
++ * toutes les promesses de ce système sont du théâtre.
++ */
++
++/**
++ * DESK 5 — THE ISSUING HALF OF BREAK-GLASS: breakglass:issue (WO-OPS-1b).
++ *
++ * The payment operator's half of the seam sera's D5 defined (sera's dispatcher
++ * holds the GROUND half only; its issuing lever is structurally absent). Two
++ * DIFFERENT payment operators: the FIRST requests issuance for a named break-
++ * glass case; a SECOND approves. Everything canon-owned is CONSUMED, never
++ * redefined:
++ *   - request fields validated by canon `IdSchema` / `FcfaSchema` /
++ *     `IsoTimestampSchema`; break_glass ALWAYS carries a `breakGlassCaseId`
++ *     (mandatory incident review) — enforced by requiring the id;
++ *   - `command_id` minted by canon `mintCommandId` (v0.9.5 rule).
++ *
++ * ACTOR BOUNDARY — FOUNDER RULING (Beurni, 2026-07-13), quoted verbatim:
++ *   "at BOTH halves, only an actor matching ^ops:payment:[A-Za-z0-9._:-]+$
++ *    validates; every other actor — supplier, dispatcher, ops:moderation:*,
++ *    anything — is refused by non-match. No block-list exists to maintain."
++ *   INTERIM: canon will encode this (WO-5.12); until that pin, PLATFORM enforces
++ *   the pattern app-side. Executioner of the interim: the re-pin after WO-5.12.
++ *
++ * THE FOURTH SECRET: this slice models request→approve ONLY. provider_confirmed/
++ * issued/consumed are E3-gated and render « en attente » (not modeled here). The
++ * `signature` (fourth secret) is NOT in this slice's data — `BreakGlassRequest`
++ * carries none, so there is nothing to render, log, or project.
++ */
++import {
++  FcfaSchema,
++  IdSchema,
++  IsoTimestampSchema,
++  mintCommandId,
++  type EventEnvelope,
++} from '@platform/contracts';
++import {
++  approve,
++  issue,
++  type Actor,
++  type ActorId,
++  type ApprovedCommand,
++  type DistinctChecker,
++  type IssuedCommand,
++} from '../maker-checker';
++import { OPS_ACTION_BREAKGLASS_ISSUE } from '../ops-action';
++
++/** Founder ruling (Beurni, 2026-07-13), verbatim — the payment-operator allow-list. */
++export const PAYMENT_OPERATOR_PATTERN = /^ops:payment:[A-Za-z0-9._:-]+$/;
++
++export class BreakGlassActorError extends Error {
++  constructor(message: string) {
++    super(message);
++    this.name = 'BreakGlassActorError';
++  }
++}
++
++export class BreakGlassRequestError extends Error {
++  constructor(message: string) {
++    super(message);
++    this.name = 'BreakGlassRequestError';
++  }
++}
++
++/** Allow-list guard — the ONLY actors that validate are ops:payment:*. */
++function assertPaymentOperator(id: string, half: 'maker' | 'checker'): void {
++  if (!PAYMENT_OPERATOR_PATTERN.test(id)) {
++    throw new BreakGlassActorError(
++      `${half} "${id}" is not an ops:payment:* actor — break-glass issuance validates by allow-list; supplier, dispatcher, ops:moderation:*, and every other actor are refused`,
++    );
++  }
++}
++
++/** The operator-facing break-glass request. Carries NO signature (see header). */
++export interface BreakGlassRequest {
++  readonly orderId: string;
++  readonly riderId: string;
++  readonly buyerRef: string;
++  /** canon Fcfa — the operators VERIFY it; it never leaves this console. */
++  readonly exactAmount: number;
++  readonly providerTransactionReference: string;
++  /** break_glass ALWAYS carries a case id (mandatory incident review). */
++  readonly breakGlassCaseId: string;
++  readonly reason: string;
++  readonly authorizationExpiresAt: string;
++}
++
++function validateRequest(r: BreakGlassRequest): BreakGlassRequest {
++  IdSchema.parse(r.orderId);
++  IdSchema.parse(r.riderId);
++  IdSchema.parse(r.buyerRef);
++  IdSchema.parse(r.breakGlassCaseId); // '' fails → break_glass requires a case
++  FcfaSchema.parse(r.exactAmount);
++  IsoTimestampSchema.parse(r.authorizationExpiresAt);
++  if (r.providerTransactionReference.length === 0) {
++    throw new BreakGlassRequestError('providerTransactionReference must be non-empty');
++  }
++  if (r.reason.length === 0) {
++    throw new BreakGlassRequestError('reason must be non-empty');
++  }
++  return r;
++}
++
++export interface IssuedBreakGlassCommand<M extends ActorId = ActorId> {
++  readonly command: IssuedCommand<M>;
++  readonly request: BreakGlassRequest;
++}
++
++export interface ApprovedBreakGlassCommand<M extends ActorId = ActorId, C extends ActorId = ActorId> {
++  readonly command: ApprovedCommand<M, C>;
++  readonly request: BreakGlassRequest;
++}
++
++/** Half one: a payment operator requests break-glass issuance for a named case. */
++export function issueBreakGlass<M extends ActorId>(
++  maker: Actor<M>,
++  input: BreakGlassRequest & { readonly correlationId: string; readonly serverTime: string },
++): IssuedBreakGlassCommand<M> {
++  assertPaymentOperator(maker.id, 'maker');
++  const { correlationId, serverTime, ...requestFields } = input;
++  const request = validateRequest(requestFields);
++  const envelope: EventEnvelope = {
++    command_id: mintCommandId(),
++    correlation_id: correlationId,
++    aggregateVersion: 0,
++    actor: maker.id,
++    serverTime,
++    version: '1',
++  };
++  const command = issue(maker, {
++    action: OPS_ACTION_BREAKGLASS_ISSUE,
++    reason: request.reason,
++    entity: request.breakGlassCaseId,
++    envelope,
++  });
++  return { command, request };
++}
++
++/** Half two: a DIFFERENT payment operator approves the request. */
++export function approveBreakGlass<M extends ActorId, C extends ActorId>(
++  issued: IssuedBreakGlassCommand<M>,
++  checker: DistinctChecker<M, C>,
++  input: { readonly correlationId: string; readonly serverTime: string },
++): ApprovedBreakGlassCommand<M, C> {
++  const checkerActor = checker as Actor<C>;
++  assertPaymentOperator(checkerActor.id, 'checker');
++  const envelope: EventEnvelope = {
++    command_id: mintCommandId(),
++    correlation_id: input.correlationId,
++    aggregateVersion: issued.command.envelope.aggregateVersion + 1,
++    actor: checkerActor.id,
++    serverTime: input.serverTime,
++    version: '1',
++  };
++  const command = approve(issued.command, checker, envelope);
++  return { command, request: issued.request };
++}
+diff --git a/apps/ops-console/src/breakglass/sandbox.ts b/apps/ops-console/src/breakglass/sandbox.ts
+new file mode 100644
+index 0000000..bfa869e
+--- /dev/null
++++ b/apps/ops-console/src/breakglass/sandbox.ts
+@@ -0,0 +1,37 @@
++/*
++ * OPS NE MODIFIE JAMAIS LE REGISTRE. Aucun humain ne « corrige » l'argent.
++ * Chaque action est une commande permissionnée, événementielle et auditée.
++ * Maker-checker — deux personnes différentes — sur tout ce qui touche à
++ * l'argent ou à la garde. Si un humain peut déplacer un franc en silence,
++ * toutes les promesses de ce système sont du théâtre.
++ */
++
++/**
++ * Desk 5 break-glass sandbox (WO-OPS-1b) — a PREVIEW that exercises the REAL
++ * issuing command path (two different ops:payment operators, request→approve
++ * through breakglass/issue.ts) so the rendered case is honest, not fabricated.
++ * No franc leaves; no signature exists; provider-confirm onward is « en attente ».
++ */
++import { actor } from '../maker-checker';
++import { approveBreakGlass, issueBreakGlass } from './issue';
++import { deriveBreakGlassBoard, type BreakGlassCaseBoard } from './board';
++
++/** Build the preview break-glass board by running the real command path. */
++export function buildSandboxBreakGlass(serverTime: string): BreakGlassCaseBoard {
++  const requester = actor('ops:payment:sanou');
++  const approver = actor('ops:payment:zerbo');
++  const issued = issueBreakGlass(requester, {
++    orderId: 'order-o1',
++    riderId: 'rider-r1',
++    buyerRef: 'buyer-b1',
++    exactAmount: 12500,
++    providerTransactionReference: 'prov-tx-abc',
++    breakGlassCaseId: 'case-bg1',
++    reason: 'provider webhook missing; amount verified by phone with the network', // ASCII data
++    authorizationExpiresAt: serverTime,
++    correlationId: 'sbx-bg',
++    serverTime,
++  });
++  const approved = approveBreakGlass(issued, approver, { correlationId: 'sbx-bg', serverTime });
++  return deriveBreakGlassBoard(approved);
++}
+diff --git a/apps/ops-console/src/desks/reconciliation-operateur.ts b/apps/ops-console/src/desks/reconciliation-operateur.ts
+index 0294a0b..4478722 100644
+--- a/apps/ops-console/src/desks/reconciliation-operateur.ts
++++ b/apps/ops-console/src/desks/reconciliation-operateur.ts
+@@ -9,8 +9,10 @@ import type { Desk } from './types';
+ 
+ /**
+  * Desk 5 — Provider reconciliation (ECOSYSTEM-MASTER-REFERENCE.md §9.2). The
+- * ledger's obligations vs the provider's truth (the webhooks). On divergence:
+- * open a case, alert, protect existing customer promises. Not wired to data.
++ * authorized payment operator's desk (§9.3). LIVE since WO-OPS-1b: the router
++ * (main.ts) renders the payment operator's break-glass ISSUING surface
++ * (breakglass:issue) — request→approve, two operators, canon HandoffAuthorization
++ * machinery. This descriptor stays a pure record.
+  */
+ export const reconciliationOperateur: Desk = {
+   id: 'reconciliation-operateur',
+diff --git a/apps/ops-console/src/main.ts b/apps/ops-console/src/main.ts
+index 3da668b..5a30beb 100644
+--- a/apps/ops-console/src/main.ts
++++ b/apps/ops-console/src/main.ts
+@@ -13,6 +13,8 @@ import { opsIcon } from './icons';
+ import { t } from './i18n';
+ import { buildSandboxQueue } from './moderation/sandbox';
+ import { renderModerationQueue } from './moderation/queue-view';
++import { buildSandboxBreakGlass } from './breakglass/sandbox';
++import { renderBreakGlassBoard } from './breakglass/board-view';
+ 
+ /**
+  * WO-OPS-0 / WO-OPS-1a — the platform ops console SHELL. The eight desks (canon
+@@ -211,6 +213,53 @@ style.textContent = `
+     letter-spacing: var(--ls-label);
+     text-transform: uppercase;
+   }
++  .bg-case {
++    display: grid;
++    grid-template-columns: 1fr 1fr;
++    gap: var(--space-sm);
++    padding: var(--space-md);
++    background: var(--surface-muted);
++    border: var(--hair) solid var(--hairline);
++    border-radius: var(--radius-btn);
++  }
++  .bg-field { display: flex; flex-direction: column; gap: var(--space-xs); }
++  .bg-amount { grid-column: 1 / -1; }
++  .bg-label {
++    color: var(--muted);
++    font-size: var(--type-label);
++    font-weight: ${typo.scale.label.wght};
++    letter-spacing: var(--ls-label);
++    text-transform: uppercase;
++  }
++  .bg-value {
++    color: var(--ink);
++    font-size: var(--type-row);
++    font-weight: ${typo.scale.row.wght};
++  }
++  .bg-amount .bg-value { font-size: var(--type-title); font-weight: ${typo.scale.title.wght}; }
++  .bg-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-xs); }
++  .bg-step {
++    display: flex;
++    justify-content: space-between;
++    align-items: baseline;
++    padding: var(--space-sm) var(--space-md);
++    border: var(--hair) solid var(--hairline);
++    border-radius: var(--radius-btn);
++  }
++  .bg-step-name {
++    color: var(--body);
++    font-size: var(--type-row);
++    font-weight: ${typo.scale.row.wght};
++  }
++  .bg-step-status {
++    font-size: var(--type-label);
++    font-weight: ${typo.scale.label.wght};
++    letter-spacing: var(--ls-label);
++    text-transform: uppercase;
++  }
++  .bg-step-status--done { color: var(--success); }
++  .bg-step-status--current { color: var(--ink); }
++  .bg-step-status--pending { color: var(--muted); }
+ `;
+ document.head.appendChild(style);
+ 
+@@ -287,6 +336,9 @@ function render(): void {
+       buildSandboxQueue(new Date().toISOString()),
+       ribbon.sandbox.label,
+     );
++  } else if (desk.id === 'reconciliation-operateur') {
++    // Desk 5 — the payment operator's break-glass issuing surface (WO-OPS-1b).
++    renderBreakGlassBoard(contentHost, buildSandboxBreakGlass(new Date().toISOString()));
+   } else {
+     renderEmptyShell();
+   }
+diff --git a/apps/ops-console/src/ops-action.ts b/apps/ops-console/src/ops-action.ts
+index 64f42d2..3fd6132 100644
+--- a/apps/ops-console/src/ops-action.ts
++++ b/apps/ops-console/src/ops-action.ts
+@@ -15,14 +15,17 @@
+  * file, consumed alongside canon's `EventEnvelope` (taken verbatim for
+  * who/when/command/correlation/version).
+  *
+- * WO-OPS-1a paid the named debt: the union was a single `pending:*` sentinel
+- * while no command existed; it now carries its FIRST REAL member —
+- * `'moderation:decide'`, the Desk 3 command whose PAYLOAD is canon's
+- * `ModerationDecisionSchema` (v0.9.6). The sentinel is retired. Future real
+- * commands (OPS-1b payment / break-glass) add their members HERE, derived from
+- * commands that actually exist — never widened to `string`, never scattered.
++ * The union grows one member per real command, derived from commands that
++ * actually exist — never widened to `string`, never scattered:
++ *   - WO-OPS-1a: `'moderation:decide'` (Desk 3; canon `ModerationDecisionSchema`).
++ *     The `pending:*` sentinel was retired here.
++ *   - WO-OPS-1b: `'breakglass:issue'` (Desk 5; the payment operator's issuing
++ *     half of the break-glass seam; canon `HandoffAuthorization` machinery).
+  */
+-export type OpsActionType = 'moderation:decide';
++export type OpsActionType = 'moderation:decide' | 'breakglass:issue';
+ 
+ /** The Desk 3 command action-type: an operator decides a listing's moderation. */
+ export const OPS_ACTION_MODERATION_DECIDE: OpsActionType = 'moderation:decide';
++
++/** The Desk 5 command action-type: a payment operator issues a break-glass authorization. */
++export const OPS_ACTION_BREAKGLASS_ISSUE: OpsActionType = 'breakglass:issue';
+diff --git a/apps/ops-console/test-d/breakglass-issue.type-test.ts b/apps/ops-console/test-d/breakglass-issue.type-test.ts
+new file mode 100644
+index 0000000..e6aeb4b
+--- /dev/null
++++ b/apps/ops-console/test-d/breakglass-issue.type-test.ts
+@@ -0,0 +1,37 @@
++/**
++ * breakglass:issue — COMPILE-LEVEL guard (WO-OPS-1b). The maker-checker
++ * `DistinctChecker` guard flows through `approveBreakGlass`: the SAME payment
++ * operator approving his own request does not compile for LITERAL ids (proven by
++ * @ts-expect-error). DEBT ① remains in force — for runtime `string` ids the guard
++ * is vacuous; the runtime allow-list + same-identity check are the live guards
++ * (proven in test/breakglass-issue.test.ts).
++ */
++import {
++  issueBreakGlass,
++  approveBreakGlass,
++  type BreakGlassRequest,
++} from '../src/breakglass/issue';
++import { actor } from '../src/maker-checker';
++
++const opsA = actor('ops:payment:sanou');
++const opsB = actor('ops:payment:zerbo');
++const req: BreakGlassRequest = {
++  orderId: 'o',
++  riderId: 'r',
++  buyerRef: 'b',
++  exactAmount: 1,
++  providerTransactionReference: 'p',
++  breakGlassCaseId: 'c',
++  reason: 'x',
++  authorizationExpiresAt: 't',
++};
++const issued = issueBreakGlass(opsA, { ...req, correlationId: 'c', serverTime: 't' });
++
++// A DIFFERENT operator approves — MUST compile.
++const ok = approveBreakGlass(issued, opsB, { correlationId: 'c', serverTime: 't' });
++
++// The SAME operator cannot approve his own request — MUST NOT compile.
++// @ts-expect-error same identity cannot both request and approve a break-glass issuance
++const bad = approveBreakGlass(issued, opsA, { correlationId: 'c', serverTime: 't' });
++
++export { ok, bad };
+diff --git a/apps/ops-console/test/breakglass-issue.test.ts b/apps/ops-console/test/breakglass-issue.test.ts
+new file mode 100644
+index 0000000..d3a5595
+--- /dev/null
++++ b/apps/ops-console/test/breakglass-issue.test.ts
+@@ -0,0 +1,115 @@
++import { describe, it, expect } from 'vitest';
++import { CommandIdSchema } from '@platform/contracts';
++import {
++  actor,
++  MakerCheckerError,
++  MakerCheckerSameIdentityError,
++} from '../src/maker-checker';
++import {
++  issueBreakGlass,
++  approveBreakGlass,
++  BreakGlassActorError,
++  type BreakGlassRequest,
++} from '../src/breakglass/issue';
++
++// Two DIFFERENT payment operators — the ONLY actor class that validates
++// (founder ruling: allow-list ^ops:payment:[A-Za-z0-9._:-]+$).
++const opsA = actor('ops:payment:sanou');
++const opsB = actor('ops:payment:zerbo');
++
++// Every other actor is refused by NON-MATCH — no block-list. Fixtures are real:
++//   - a supplier actor
++//   - sera's REAL dispatcher actor literal (grepped from shipped sera code)
++//   - a cross-domain ops:moderation:* actor (Desk 3's operators cannot issue break-glass)
++//   - an empty-suffix ops:payment:
++const REFUSED = [
++  'supplier:aicha',
++  'logistics-service:dispatch',
++  'ops:moderation:diallo',
++  'ops:payment:',
++] as const;
++
++const REQUEST: BreakGlassRequest = {
++  orderId: 'order-o1',
++  riderId: 'rider-r1',
++  buyerRef: 'buyer-b1',
++  exactAmount: 12500,
++  providerTransactionReference: 'prov-tx-abc',
++  breakGlassCaseId: 'case-bg1',
++  reason: 'Webhook manquant; paiement vérifié par téléphone auprès du réseau.',
++  authorizationExpiresAt: '2026-07-13T12:00:00.000Z',
++};
++const issueIn = (r: BreakGlassRequest = REQUEST) => ({
++  ...r,
++  correlationId: 'corr-bg-1',
++  serverTime: '2026-07-13T10:00:00.000Z',
++});
++const approveIn = () => ({ correlationId: 'corr-bg-1', serverTime: '2026-07-13T10:05:00.000Z' });
++
++describe('WO-OPS-1b — the issuing half of break-glass (breakglass:issue)', () => {
++  it('two DIFFERENT payment operators: first requests, second approves — succeeds', () => {
++    const issued = issueBreakGlass(opsA, issueIn());
++    expect(issued.command.action).toBe('breakglass:issue');
++    expect(issued.request.breakGlassCaseId).toBe('case-bg1');
++    expect(issued.request.exactAmount).toBe(12500); // operators verify the amount
++    expect(CommandIdSchema.safeParse(issued.command.envelope.command_id).success).toBe(true);
++    const approved = approveBreakGlass(issued, opsB, approveIn());
++    expect(approved.command.command.maker.id).toBe('ops:payment:sanou');
++    expect(approved.command.checker.id).toBe('ops:payment:zerbo');
++  });
++
++  it('ALLOW-LIST at ISSUE: every non ops:payment:* actor is refused', () => {
++    for (const bad of REFUSED) {
++      const badMaker = actor(bad);
++      expect(() => issueBreakGlass(badMaker, issueIn()), `issue by ${bad}`).toThrow(
++        BreakGlassActorError,
++      );
++    }
++  });
++
++  it('ALLOW-LIST at APPROVE: every non ops:payment:* actor is refused', () => {
++    const issued = issueBreakGlass(opsA, issueIn());
++    for (const bad of REFUSED) {
++      const badChecker = actor(bad) as unknown as typeof opsB;
++      expect(() => approveBreakGlass(issued, badChecker, approveIn()), `approve by ${bad}`).toThrow(
++        BreakGlassActorError,
++      );
++    }
++  });
++
++  it('the maker-checker seam holds: same identity refused at runtime under a full `any` bypass', () => {
++    const issued = issueBreakGlass(opsA, issueIn());
++    const sameAsMaker: unknown = opsA;
++    expect(() => approveBreakGlass(issued, sameAsMaker as typeof opsB, approveIn())).toThrow(
++      MakerCheckerSameIdentityError,
++    );
++  });
++
++  it('DEBT ② carried forward: a forged maker envelope is refused at approve', () => {
++    const issued = issueBreakGlass(opsA, issueIn());
++    // tamper the issued command's envelope actor (a forged command)
++    const forged = {
++      ...issued,
++      command: { ...issued.command, envelope: { ...issued.command.envelope, actor: 'ops:payment:EVIL' } },
++    };
++    expect(() => approveBreakGlass(forged, opsB, approveIn())).toThrow(MakerCheckerError);
++  });
++
++  it('break_glass REQUIRES a breakGlassCaseId (mandatory incident review)', () => {
++    const noCase = { ...REQUEST, breakGlassCaseId: '' };
++    expect(() => issueBreakGlass(opsA, issueIn(noCase))).toThrow();
++  });
++
++  it('exactAmount is validated by canon FcfaSchema (a bad amount is refused)', () => {
++    const badAmount = { ...REQUEST, exactAmount: -1 };
++    expect(() => issueBreakGlass(opsA, issueIn(badAmount))).toThrow();
++    const fractional = { ...REQUEST, exactAmount: 12500.5 };
++    expect(() => issueBreakGlass(opsA, issueIn(fractional))).toThrow();
++  });
++
++  it('the request carries NO signature (the fourth secret is not in this slice’s data at all)', () => {
++    const issued = issueBreakGlass(opsA, issueIn());
++    expect('signature' in issued.request).toBe(false);
++    expect(JSON.stringify(issued)).not.toContain('signature');
++  });
++});
+diff --git a/apps/ops-console/test/desk-isolation.test.ts b/apps/ops-console/test/desk-isolation.test.ts
+index b38c3f2..49bad14 100644
+--- a/apps/ops-console/test/desk-isolation.test.ts
++++ b/apps/ops-console/test/desk-isolation.test.ts
+@@ -34,22 +34,38 @@ describe('desk isolation — Desk 3 is contained; the seven stay honest shells',
+     }
+   });
+ 
+-  it('the moderation queue/command is wired ONLY through the router, only for desk "moderation"', () => {
++  it('live desks are wired ONLY through the router; every other desk gets the empty shell', () => {
+     const main = readFileSync(join(srcDir, 'main.ts'), 'utf8');
+     expect(main).toMatch(/desk\.id === 'moderation'/);
+     expect(main).toMatch(/renderModerationQueue\(/);
+-    // every other desk falls to the honest empty shell
++    expect(main).toMatch(/desk\.id === 'reconciliation-operateur'/);
++    expect(main).toMatch(/renderBreakGlassBoard\(/);
+     expect(main).toMatch(/renderEmptyShell\(\)/);
++    // EXACTLY two desks go live; the remaining six fall to the shell.
++    const liveBranches = [...main.matchAll(/desk\.id === '([^']+)'/g)].map((m) => m[1]).sort();
++    expect(liveBranches).toEqual(['moderation', 'reconciliation-operateur']);
+   });
+ 
+-  it('no desk descriptor reaches the moderation command module (imports)', () => {
++  it('no desk descriptor reaches a command module (moderation/ or breakglass/) (imports)', () => {
+     for (const file of deskFiles) {
+       const src = readFileSync(join(desksDir, file), 'utf8');
+       const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+       expect(
+-        codeOnly.includes('moderation/'),
+-        `${file} code must not import the moderation command`,
++        codeOnly.includes('moderation/') || codeOnly.includes('breakglass/'),
++        `${file} code must not import a command module`,
+       ).toBe(false);
+     }
+   });
++
++  it('THE FOURTH SECRET is structurally absent from the break-glass surface (no signature in code, no logging)', () => {
++    const bgDir = join(srcDir, 'breakglass');
++    for (const file of readdirSync(bgDir).filter((f) => f.endsWith('.ts'))) {
++      const src = readFileSync(join(bgDir, file), 'utf8');
++      const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
++      // the signature (fourth secret) is not in this slice's data — no field, no render, no reference
++      expect(/signature/i.test(codeOnly), `${file} code references a signature`).toBe(false);
++      // no console logging anywhere on the break-glass surface
++      expect(codeOnly, `${file} logs`).not.toMatch(/console\.(log|info|warn|error|debug)/);
++    }
++  });
+ });
