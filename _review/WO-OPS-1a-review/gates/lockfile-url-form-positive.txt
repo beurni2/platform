@@ -1,0 +1,3 @@
+$ node scripts/gates/no-ssh-git-url.mjs
+lockfile URL-form gate OK: /tmp/claude-0/-home-user/d7e756df-b353-5d8b-889e-4df53351e005/scratchpad/cold-1a/pnpm-lock.yaml carries zero SSH-form git URLs (all https)
+(exit code: 0)

@@ -1,0 +1,48 @@
+RED-PROOF — WO-OPS-1a (moderation:decide) — the failing run captured verbatim
+============================================================================
+WHAT THIS IS: a reproduction proving THE ADVERSARIAL TESTS BITE — they import
+the implementation and DIE without it, so they cannot have passed vacuously.
+
+METHOD (no source change): a scratch git worktree checked out at the BASE
+(origin/main = 36907a0, the merged WO-OPS-0.1 — before a77f993). ONLY the test
+files were copied in from a77f993:
+  - apps/ops-console/test/moderation-decide.test.ts
+  - apps/ops-console/test-d/moderation-decide.type-test.ts
+The implementation (apps/ops-console/src/moderation/decide.ts) does NOT exist at
+base (`ls apps/ops-console/src/moderation/` → No such file or directory). Running
+vitest on the test therefore fails to load `../src/moderation/decide`.
+
+CHRONOLOGY: that the tests were written and run RED before the implementation
+rests on the session record (as it does for every red-proof); this artifact
+proves the tests are non-vacuous — remove the impl and they collapse.
+
+--- $ npx vitest run test/moderation-decide.test.ts   (at BASE 36907a0, impl absent) ---
+
+ RUN  v3.2.7 /tmp/claude-0/-home-user/d7e756df-b353-5d8b-889e-4df53351e005/scratchpad/base-wt/apps/ops-console
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/moderation-decide.test.ts [ test/moderation-decide.test.ts ]
+Error: Cannot find module '../src/moderation/decide' imported from '/tmp/claude-0/-home-user/d7e756df-b353-5d8b-889e-4df53351e005/scratchpad/base-wt/apps/ops-console/test/moderation-decide.test.ts'
+ ❯ test/moderation-decide.test.ts:9:1
+      7|   type IssuedCommand,
+      8| } from '../src/maker-checker';
+      9| import {
+       | ^
+     10|   issueModerationDecision,
+     11|   approveModerationDecision,
+
+Caused by: Error: Failed to load url ../src/moderation/decide (resolved id: ../src/moderation/decide) in /tmp/claude-0/-home-user/d7e756df-b353-5d8b-889e-4df53351e005/scratchpad/base-wt/apps/ops-console/test/moderation-decide.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../node_modules/.pnpm/vite@6.4.3_@types+node@22.20.1/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35835:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  20:44:00
+   Duration  1.01s (transform 105ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 136ms)
+
+
+(exit code: 1 — Test Files 1 failed, Tests: no tests — the module could not load)

@@ -1,0 +1,56 @@
+FRESH-CONTEXT VERIFIER — VERDICT (verbatim) — WO-OPS-1a
+=======================================================
+Dispatched with no memory of the build (CLAUDE.md §6bis + RED mandate). Ran the
+subversions itself; trusted no prose. Working tree left clean.
+
+A. PIN + CANON CONSUMPTION — PASS. All three pin sites pin @platform/* to
+   ba6f16d78a2a5a13ff6877237cef6d77d35d8d65; zero 04af4b5 in any pin value
+   (survives only in JOURNAL/README provenance prose + the old WO-OPS-0.1
+   packet). node -p version → 0.9.6. ESM import exposes ModerationDecisionSchema,
+   ModerationReasonCodeSchema (exactly six codes: facts_incomplete,
+   no_public_safe_proof, price_or_contact_in_image, not_neutral_packaging,
+   prohibited_or_unlaunched_category, authenticity_concern), mintCommandId,
+   CommandIdSchema. Lockfile: 28× ba6f16d, 0× 04af4b5.
+
+B. REAL COMMAND — supplier refused at BOTH halves — PASS. (1) supplier maker →
+   refused at issue (canon ModerationDecisionSchema ZodError on decided_by
+   'supplier:x'); (2) supplier checker (cast) → refused at approve
+   (ModerationActorError); (3) valid two-operator flow SUCCEEDS, producing three
+   DISTINCT genuine UUIDv4 command_ids all passing canon CommandIdSchema — minted
+   per call, not fabricated; (4) changes_requested with reasons:[] → refused.
+
+C. DEBT ① runtime guard — PASS. On a genuine command, forcing checker == maker
+   via a full `any` bypass throws MakerCheckerSameIdentityError. tsc confirms
+   DistinctChecker<string,string> collapses to `never` (assignable to never)
+   while DistinctChecker<'a','b'> is NOT never — so the compile guard is
+   literal-only; real string session ids get no usable compile protection and
+   the runtime check is the sole guard, which genuinely fires. Written down in
+   code comments, the type-test, and the test name.
+
+D. DEBT ② forged-envelope refusal — PASS. A hand-built IssuedCommand literal
+   with envelope.actor 'ops:moderation:EVIL' != maker.id 'ops:moderation:a',
+   passed with a valid DIFFERENT checker, throws MakerCheckerError ("issued
+   envelope actor … does not match the command's maker") and NOT
+   MakerCheckerSameIdentityError. The one-line re-assert is present in approve().
+
+E. DESK 3 LIVE + seven shells — PASS. main.ts render() calls
+   renderModerationQueue only under desk.id === 'moderation', else
+   renderEmptyShell(). All 8 desk descriptors import ONLY ./types (grep +
+   desk-isolation.test.ts). The queue is built by real issue→approve in
+   sandbox.ts. Playwright: seven shells clean, Desk 3 live.
+
+F. FORBIDDEN respected — PASS. grep of src for payment/break-glass/handoff
+   issuing yields only a forward-looking OPS-1b comment; OpsActionType is
+   literally 'moderation:decide' — no payment/break-glass command, no franc
+   computation. audit-log.ts is byte-identical to the prior commit
+   (git diff 36907a0 a77f993 empty); frozen-entry mutation/pop/delete → TypeError.
+
+G. FULL GATES — PASS. run-gates.sh ends "ALL GATES GREEN"; every negative fixture
+   exit 1; Playwright 4/4; grep -c 'git@github.com:' pnpm-lock.yaml → 0; fresh
+   vitest 32/32.
+
+OVERALL: PASS. No supplier slips through either half; command_ids are real minted
+UUIDv4s (not constants); the Debt ① runtime same-identity guard fires on the real
+command; the Debt ② forged-envelope re-assert fires; no desk leaks the queue; no
+forbidden command is present; audit-log append-only spine unchanged; all gates
+green. Working tree clean; all temp files removed.

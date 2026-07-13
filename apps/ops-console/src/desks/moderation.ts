@@ -10,7 +10,9 @@ import type { Desk } from './types';
 /**
  * Desk 3 — Moderation (ECOSYSTEM-MASTER-REFERENCE.md §9.2). The Boutik+ queue
  * for facts, media, categories — specific, actionable reasons, never a silent
- * rejection; no self-moderation. Deterministic imaging rules. Not wired to data.
+ * rejection; no self-moderation. Deterministic imaging rules. LIVE since
+ * WO-OPS-1a: the router (main.ts) renders the moderation queue from the real
+ * moderation:decide command path; this descriptor stays a pure record.
  */
 export const moderation: Desk = {
   id: 'moderation',

@@ -1,0 +1,1471 @@
+# git diff origin/main...HEAD -- . ':(exclude)_review'  (WO-OPS-1a delta from merged main 36907a0)
+# code under review: commit a77f993d418353eb321d0657460e1c677f20c612
+
+diff --git a/JOURNAL.md b/JOURNAL.md
+index f633834..8ed98d4 100644
+--- a/JOURNAL.md
++++ b/JOURNAL.md
+@@ -202,3 +202,65 @@ canon moved twice since v0.9.1, this is one re-pin to the current release).
+ not fixed early. The spine (`maker-checker.ts`, `audit-log.ts`) is unchanged.
+ Icons were not refreshed (repo assets, not the pinned package; out of this
+ slice's scope).
++
++---
++
++## WO-OPS-1a — DESK 3 GOES LIVE: the first real ops command — TIER: 🔴 RED — **IN REVIEW (do NOT merge — founder review)**
++
++Gated on canon WO-5.10. I held until it merged, then the founder relayed the
++pin. **Self-anchored by content before a line was written:** `ba6f16d` is on
++canon origin/main, is the **v0.9.6** merge ("moderation decision shapes; Boutik
++A1 ratified v1; silent + reasonless rejection unrepresentable; ops-only actor —
++founder review passed"), and the BUILT package prints `0.9.6` and exports
++`ModerationDecisionSchema` + `ModerationReasonCodeSchema` (the six ratified
++codes) + `mintCommandId`/`CommandIdSchema`. Re-pinned all three surfaces to
++`ba6f16d`; `EventEnvelopeSchema.command_id` stays `z.string().min(1)` (no
++breaking change).
++
++**The first real ops command — `moderation:decide`** (`src/moderation/decide.ts`):
++- **Payload is canon** `ModerationDecisionSchema` (v0.9.6): two outcomes only
++  (approved | changes_requested), a reasonless/silent rejection is
++  unrepresentable, `decided_by` must be `ops:moderation:*` — so a **SUPPLIER is
++  refused at ISSUE by the schema itself** (no self-moderation).
++- **`command_id` is minted by canon** `mintCommandId()` (v0.9.5 rule: UUIDv4 · OS
++  CSPRNG · never Math.random) — not fabricated.
++- Maker = the reviewing operator; checker = a **second** operator — the
++  maker-checker seam on a franc-adjacent action. A **supplier is refused at
++  APPROVE** too (checker validated through canon's rule; canon models only the
++  decider, so the checker's ops-actor requirement is the platform seam's).
++- **`OpsActionType` grew** to its first real member `'moderation:decide'`; the
++  `pending:*` sentinel is retired (the named debt paid). Canon still names no ops
++  event; `'moderation:decide'` is a LOCAL closed-union label.
++
++**NAMED DEBTS — this slice was their executioner:**
++- **① CLOSED (documented).** Written down here and in `decide.ts` /
++  `test-d/moderation-decide.type-test.ts`: `DistinctChecker` bites only for
++  LITERAL ids; real operator ids are runtime `string`, where the type guard is
++  VACUOUS — **production rests on the runtime identity check alone.** Proven on
++  the REAL command under a full `any` bypass (`moderation-decide.test.ts` "DEBT
++  ①" → throws `MakerCheckerSameIdentityError`). One layer in production, not two.
++- **② CLOSED (fixed).** `approve()` gained one line:
++  `command.envelope.actor !== command.maker.id → throw`. A hand-built
++  `IssuedCommand` with a lying maker envelope is refused (`moderation-decide.test.ts`
++  "DEBT ②").
++
++**Desk 3 is LIVE.** The router renders the moderation queue (pending / decided,
++reasons verbatim in French Voice) from a **preview (bac à sable) that exercises
++the REAL command path** — the approved/changes rows are genuine two-operator
++issue→approve results, not fabricated. No boutik DB is read (a real source is a
++later slice). The **other seven desks stay honest shells**, proven structurally
++(`test/desk-isolation.test.ts`: every desk descriptor imports only `./types`;
++the queue is wired only by the router under the `moderation` id) and in the e2e
++(the seven show the empty shell, zero `.mod-queue`).
++
++**RED ceremony:** adversarial tests written and run RED *before* implementation
++(`moderation-decide.test.ts`, 8 tests: supplier refused at issue + approve,
++maker≠decided_by, debt ① runtime, debt ② forged envelope, reasonless refused,
++verbatim reasons, minted UUIDv4). 32 tests + typecheck (incl. the type-test)
++green; warm run + clean-HOME cold proof (auth line shown); zero-hardcode (19
++files) · copy-lint (22 entries) · lockfile URL-form · drift-check (derived
++0.9.6) · Playwright (4/4) all green, every negative exit 1. Icons byte-stable
++v0.9.1→v0.9.6 (not re-copied); provenance swept to `ba6f16d`/v0.9.6.
++
++**FORBIDDEN respected:** no payment/break-glass issuing (that is OPS-1b) · no
++franc moves · the audit-log append-only spine is untouched.
+diff --git a/README.md b/README.md
+index 9dd6dc7..c8a896b 100644
+--- a/README.md
++++ b/README.md
+@@ -14,38 +14,44 @@ This repo **consumes** canon (`@platform/*`) at a **pinned git sha**; it never
+ defines canon. It reads through the authoritative services and **never writes
+ another domain's database.**
+ 
+-## What exists today (WO-OPS-0 — the shell and the spine)
++## What exists today (WO-OPS-0 shell + spine · WO-OPS-1a Desk 3 live)
+ 
+-- **The eight desks as routes**, each with an honest empty state
+-  (« Aucune donnée — cet établi n'est pas encore branché. »). No desk is wired
+-  to real data; no command exists yet. An empty desk that says so is correct;
++- **The eight desks as routes.** Seven remain honest empty shells
++  (« Aucune donnée — cet établi n'est pas encore branché. »). **Desk 3
++  (moderation) is LIVE** — it renders the moderation queue (pending / decided,
++  reasons verbatim) from the real command path. A shell that says so is correct;
+   a desk showing fabricated data would be a defect.
+ - **The maker-checker primitive** (`apps/ops-console/src/maker-checker.ts`) —
+-  a command cannot be both issued and approved by the same identity. The
+-  same-identity attempt is a **type-level impossibility** (it does not compile)
+-  **and** a **runtime refusal** (it throws). Both are proven.
++  a command cannot be both issued and approved by the same identity: a
++  **type-level impossibility** (does not compile) for literal ids **and** a
++  **runtime refusal** (throws). Named debt ① (WO-OPS-0, closed as documented
++  WO-OPS-1a): for runtime `string` ids the type guard is vacuous, so production
++  rests on the runtime check alone — proven on the real command under an `any`
++  bypass. Debt ② (closed WO-OPS-1a): approve() re-asserts the issued envelope's
++  actor is the maker, so a hand-built command with a lying envelope is refused.
+ - **The audit-log primitive** (`apps/ops-console/src/audit-log.ts`) —
+   append-only: who · what · why · when · against which entity · with what
+   evidence. An entry cannot be mutated or deleted; both are proven.
+-- **The ops action-type** (`apps/ops-console/src/ops-action.ts`) — the "what"
+-  the two primitives carry. Canon's closed `EVENT_NAMES` registry has no
+-  ops-command event and canon forbids inventing one, so this is NOT canon: a
+-  **quarantined local closed union — a named debt**, one debt sentinel today, to
+-  be derived later from commands that actually exist (**CTO ruling, 2026-07-13**;
+-  see JOURNAL.md).
++- **The first real ops command** (`apps/ops-console/src/moderation/decide.ts`) —
++  `moderation:decide`: a reviewing operator decides (canon
++  `ModerationDecisionSchema`; a supplier is refused at the schema — no
++  self-moderation), a **second** operator approves (supplier refused there too),
++  and the `command_id` is minted by canon `mintCommandId()`. The action-type
++  (`apps/ops-console/src/ops-action.ts`) is a **quarantined local closed union**;
++  its pending sentinel was retired for this real member.
+ 
+ ## Canon pin
+ 
+ All `@platform/*` packages are pinned to platform-contracts
+-**`04af4b5266d53866a2b6d5800e270d3fffac2b35`** (canon **v0.9.4**; its canon
+-commit message records "founder review passed"). The pin was supplied by the
+-CTO in-session (**CTO ruling, 2026-07-13** — WO-OPS-0.1 re-pin; the original
+-WO-OPS-0 pin was `4440ce0` / v0.9.1). This repo consumes that pin; it never
+-edits canon. Moving the pin is a deliberate, reviewed change across
+-`apps/ops-console/package.json` + `pnpm-workspace.yaml` + the `/docs` copy, in
+-one PR (see `CONSUMING.md` in platform-contracts) — the drift-check's
+-`--pinned-version` is derived from the installed package so the doc anchor
+-follows the sha automatically.
++**`ba6f16d78a2a5a13ff6877237cef6d77d35d8d65`** (canon **v0.9.6** — the
++moderation decision shapes; its canon commit message records "founder review
++passed"). Founder-supplied in-session (WO-OPS-1a gate). Pin history:
++`4440ce0`/v0.9.1 (WO-OPS-0) → `04af4b5`/v0.9.4 (WO-OPS-0.1) → `ba6f16d`/v0.9.6
++(WO-OPS-1a). This repo consumes that pin; it never edits canon. Moving the pin
++is a deliberate, reviewed change across `apps/ops-console/package.json` +
++`pnpm-workspace.yaml` + the `/docs` copy, in one PR (see `CONSUMING.md` in
++platform-contracts) — the drift-check's `--pinned-version` is derived from the
++installed package so the doc anchor follows the sha automatically.
+ 
+ ## Layout
+ 
+diff --git a/apps/ops-console/e2e/shell.spec.ts b/apps/ops-console/e2e/shell.spec.ts
+index db65b9b..4d52e62 100644
+--- a/apps/ops-console/e2e/shell.spec.ts
++++ b/apps/ops-console/e2e/shell.spec.ts
+@@ -2,9 +2,10 @@ import { expect, test } from '@playwright/test';
+ import { sharedColour } from '@platform/ui-tokens';
+ 
+ /**
+- * WO-OPS-0 DoD: "the eight routes render with honest empty states." This drives
+- * the REAL built console in a real Chromium. The console runs on the shared/
+- * neutral palette (no `platform` theme exists) — ink on warm paper.
++ * WO-OPS-0 / WO-OPS-1a DoD. Drives the REAL built console in a real Chromium.
++ * Seven desks stay honest empty shells; DESK 3 (moderation) is live and renders
++ * the queue (pending / decided, reasons verbatim). The console runs on the
++ * shared/neutral palette — ink on warm paper.
+  */
+ 
+ function hexToRgb(hex: string): string {
+@@ -12,53 +13,68 @@ function hexToRgb(hex: string): string {
+   return `rgb(${parseInt(n.slice(0, 2), 16)}, ${parseInt(n.slice(2, 4), 16)}, ${parseInt(n.slice(4, 6), 16)})`;
+ }
+ 
+-const DESKS: ReadonlyArray<{ slug: string; title: string }> = [
++// The seven desks that stay honest shells (everything except moderation).
++const SHELL_DESKS: ReadonlyArray<{ slug: string; title: string }> = [
+   { slug: 'fonds-de-protection', title: 'Fonds de protection' },
+   { slug: 'reclamations', title: 'Réclamations' },
+-  { slug: 'moderation', title: 'Modération' },
+   { slug: 'confiance-securite', title: 'Confiance & sécurité' },
+   { slug: 'reconciliation-operateur', title: 'Réconciliation opérateur' },
+   { slug: 'echelle-de-refus', title: 'Échelle de refus' },
+   { slug: 'flags-kill-switches', title: 'Flags & kill-switches' },
+   { slug: 'journal-audit', title: "Journal d'audit" },
+ ];
+-
+ const EMPTY = "Aucune donnée — cet établi n'est pas encore branché.";
+ 
+ test('the shell boots on the shared/neutral palette with catalog strings', async ({ page }) => {
+   await page.goto('/');
+   await expect(page).toHaveTitle('Console Ops — Platform');
+-
+   const brand = page.locator('h1');
+   await expect(brand).toHaveText('Console Ops');
+-  // Grand Teint: the brand is ink; the page sits on warm sand.
+   await expect(brand).toHaveCSS('color', hexToRgb(sharedColour.ink));
+   await expect(page.locator('body')).toHaveCSS('background-color', hexToRgb(sharedColour.sand));
+-
+-  // All eight desks are present in the nav, each an icon + word (glyph + label).
+   await expect(page.locator('nav .desk-link')).toHaveCount(8);
+   await expect(page.locator('nav .desk-link .glyph svg')).toHaveCount(8);
+ });
+ 
+-test('every one of the eight desks renders its title and the HONEST empty state', async ({
++test('the seven non-moderation desks stay honest empty shells (no queue leaks in)', async ({
+   page,
+ }) => {
+-  for (const desk of DESKS) {
++  for (const desk of SHELL_DESKS) {
+     await page.goto(`/#/${desk.slug}`);
+     await expect(page.locator('.desk-title')).toHaveText(desk.title);
+     await expect(page.locator('.empty-state')).toHaveText(EMPTY);
+-    // the active nav item is marked (aria-current)
+-    await expect(page.locator(`.desk-link[data-id="${desk.slug}"]`)).toHaveAttribute(
+-      'aria-current',
+-      'page',
+-    );
++    // Desk 3 going live must not have leaked into any other desk.
++    await expect(page.locator('.mod-queue')).toHaveCount(0);
+   }
+ });
+ 
+-test('an unknown route falls back to the first desk — never a blank or fabricated screen', async ({
++test('DESK 3 (moderation) is live — renders the queue: pending / decided, reasons verbatim', async ({
++  page,
++}) => {
++  await page.goto('/#/moderation');
++  await expect(page.locator('.desk-title')).toHaveText('Modération');
++  // it is a queue, not an empty shell
++  await expect(page.locator('.empty-state')).toHaveCount(0);
++  await expect(page.locator('.mod-queue .mod-item')).toHaveCount(3);
++  await expect(page.getByText('Deux personnes valident — jamais la même.')).toBeVisible();
++
++  // the three honest states
++  await expect(page.locator('.mod-state--pending')).toHaveText('En attente');
++  await expect(page.locator('.mod-state--approved')).toHaveText('Approuvé');
++  await expect(page.locator('.mod-state--changes_requested')).toHaveText('Corrections demandées');
++
++  // reasons rendered VERBATIM (every cited reason, in French Voice)
++  const reasons = page.locator('.mod-reason');
++  await expect(reasons).toHaveCount(2);
++  await expect(reasons.nth(0)).toHaveText('Prix ou contact sur la photo');
++  await expect(reasons.nth(1)).toHaveText('Emballage non neutre');
++});
++
++test('an unknown route falls back to the first desk — a shell, never blank or fabricated', async ({
+   page,
+ }) => {
+   await page.goto('/#/does-not-exist');
+   await expect(page.locator('.desk-title')).toHaveText('Fonds de protection');
+   await expect(page.locator('.empty-state')).toHaveText(EMPTY);
++  await expect(page.locator('.mod-queue')).toHaveCount(0);
+ });
+diff --git a/apps/ops-console/i18n/catalog.json b/apps/ops-console/i18n/catalog.json
+index 3d46120..73e0916 100644
+--- a/apps/ops-console/i18n/catalog.json
++++ b/apps/ops-console/i18n/catalog.json
+@@ -64,5 +64,71 @@
+     "fr": "Journal d'audit",
+     "register": "neutral",
+     "screenClass": "label"
++  },
++  {
++    "key": "moderation.queue_heading",
++    "fr": "File de modération",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "moderation.state_pending",
++    "fr": "En attente",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "moderation.state_approved",
++    "fr": "Approuvé",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "moderation.state_changes",
++    "fr": "Corrections demandées",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "moderation.two_operator_note",
++    "fr": "Deux personnes valident — jamais la même.",
++    "register": "neutral",
++    "screenClass": "status"
++  },
++  {
++    "key": "moderation.reason.facts_incomplete",
++    "fr": "Informations incomplètes",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "moderation.reason.no_public_safe_proof",
++    "fr": "Preuve de l'article manquante",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "moderation.reason.price_or_contact_in_image",
++    "fr": "Prix ou contact sur la photo",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "moderation.reason.not_neutral_packaging",
++    "fr": "Emballage non neutre",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "moderation.reason.prohibited_or_unlaunched_category",
++    "fr": "Catégorie non autorisée",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "moderation.reason.authenticity_concern",
++    "fr": "Doute sur l'authenticité",
++    "register": "neutral",
++    "screenClass": "label"
+   }
+ ]
+diff --git a/apps/ops-console/package.json b/apps/ops-console/package.json
+index 84ca0b8..64965e1 100644
+--- a/apps/ops-console/package.json
++++ b/apps/ops-console/package.json
+@@ -15,9 +15,9 @@
+     "gen:icons": "node scripts/gen-icons.mjs"
+   },
+   "dependencies": {
+-    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts",
+-    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n",
+-    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens"
++    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts",
++    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n",
++    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens"
+   },
+   "devDependencies": {
+     "@playwright/test": "^1.57.0",
+diff --git a/apps/ops-console/scripts/gen-icons.mjs b/apps/ops-console/scripts/gen-icons.mjs
+index 8861240..6214b24 100644
+--- a/apps/ops-console/scripts/gen-icons.mjs
++++ b/apps/ops-console/scripts/gen-icons.mjs
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env node
+ // GENERATE apps/ops-console/src/icons.ts from the canon icon set copied into
+-// assets/icons/ (byte-faithful to platform-contracts@04af4b5 / canon v0.9.4;
+-// the 29-icon set is byte-identical across v0.9.1→v0.9.4 — the icons did not move).
++// assets/icons/ (byte-faithful to platform-contracts@ba6f16d / canon v0.9.6;
++// the 29-icon set is byte-identical across v0.9.1→v0.9.6 — the icons did not move).
+ // The names and bytes are canon's; icons.test.ts proves each embedded glyph's
+ // sha256 equals assets/icons/icons.manifest.json. Re-run after any icon bump:
+ //   pnpm --filter @platform/ops-console gen:icons
+@@ -23,7 +23,7 @@ const entries = names
+   .join('\n');
+ 
+ const out = `// GENERATED by scripts/gen-icons.mjs from assets/icons/ — DO NOT EDIT BY HAND.
+-// The 29 Grand Teint glyphs (canon v0.9.4, pin 04af4b5) as inline SVG strings
++// The 29 Grand Teint glyphs (canon v0.9.6, pin ba6f16d) as inline SVG strings
+ // (zero deps). Each is byte-verbatim from canon; icons.test.ts proves sha256
+ // fidelity to assets/icons/icons.manifest.json. currentColor is driven by the
+ // element's CSS \`color\`; size is set in CSS (the SVGs are viewBox-only).
+diff --git a/apps/ops-console/src/desks/moderation.ts b/apps/ops-console/src/desks/moderation.ts
+index 5bbd6d2..a15043b 100644
+--- a/apps/ops-console/src/desks/moderation.ts
++++ b/apps/ops-console/src/desks/moderation.ts
+@@ -10,7 +10,9 @@ import type { Desk } from './types';
+ /**
+  * Desk 3 — Moderation (ECOSYSTEM-MASTER-REFERENCE.md §9.2). The Boutik+ queue
+  * for facts, media, categories — specific, actionable reasons, never a silent
+- * rejection; no self-moderation. Deterministic imaging rules. Not wired to data.
++ * rejection; no self-moderation. Deterministic imaging rules. LIVE since
++ * WO-OPS-1a: the router (main.ts) renders the moderation queue from the real
++ * moderation:decide command path; this descriptor stays a pure record.
+  */
+ export const moderation: Desk = {
+   id: 'moderation',
+diff --git a/apps/ops-console/src/icons.ts b/apps/ops-console/src/icons.ts
+index bdc62a6..0bd21ea 100644
+--- a/apps/ops-console/src/icons.ts
++++ b/apps/ops-console/src/icons.ts
+@@ -1,5 +1,5 @@
+ // GENERATED by scripts/gen-icons.mjs from assets/icons/ — DO NOT EDIT BY HAND.
+-// The 29 Grand Teint glyphs (canon v0.9.4, pin 04af4b5) as inline SVG strings
++// The 29 Grand Teint glyphs (canon v0.9.6, pin ba6f16d) as inline SVG strings
+ // (zero deps). Each is byte-verbatim from canon; icons.test.ts proves sha256
+ // fidelity to assets/icons/icons.manifest.json. currentColor is driven by the
+ // element's CSS `color`; size is set in CSS (the SVGs are viewBox-only).
+diff --git a/apps/ops-console/src/main.ts b/apps/ops-console/src/main.ts
+index 7bc1a1e..3da668b 100644
+--- a/apps/ops-console/src/main.ts
++++ b/apps/ops-console/src/main.ts
+@@ -6,15 +6,19 @@ import {
+   interaction,
+   band,
+   touch,
++  ribbon,
+ } from '@platform/ui-tokens';
+ import { DESKS, type Desk } from './desks';
+ import { opsIcon } from './icons';
+ import { t } from './i18n';
++import { buildSandboxQueue } from './moderation/sandbox';
++import { renderModerationQueue } from './moderation/queue-view';
+ 
+ /**
+- * WO-OPS-0 — the platform ops console SHELL. The eight desks (canon
+- * ECOSYSTEM-MASTER-REFERENCE §9.2) as hash ROUTES, each with an honest empty
+- * state. NO desk is wired to real data; NO command exists yet. Everything is
++ * WO-OPS-0 / WO-OPS-1a — the platform ops console SHELL. The eight desks (canon
++ * ECOSYSTEM-MASTER-REFERENCE §9.2) as hash ROUTES. Seven remain honest empty
++ * shells; DESK 3 (moderation) is now LIVE — it renders the moderation queue
++ * (pending / decided, reasons verbatim) from the real command path. Everything is
+  * Grand Teint: colours, spacing, type, radius, hairlines come from
+  * @platform/ui-tokens — no local values (the zero-hardcode scan enforces it).
+  * There is no `platform`/ops theme in ui-tokens (only boutik-plus/shop-plus/
+@@ -37,6 +41,10 @@ root.style.setProperty('--desk', C.desk);
+ root.style.setProperty('--surface-muted', C.surfaceMuted);
+ root.style.setProperty('--hairline', C.hairline);
+ root.style.setProperty('--hairline-strong', C.hairlineStrong);
++root.style.setProperty('--success', C.success);
++root.style.setProperty('--success-tint', C.successTint);
++root.style.setProperty('--warning', C.warning);
++root.style.setProperty('--warning-tint', C.warningTint);
+ // lengths (all token-derived — no literals)
+ root.style.setProperty('--space-xs', px(spacing.xs));
+ root.style.setProperty('--space-sm', px(spacing.sm));
+@@ -141,6 +149,68 @@ style.textContent = `
+     font-weight: ${typo.scale.body.wght};
+     line-height: ${typo.scale.body.lh};
+   }
++  .desk-content { display: grid; gap: var(--space-md); }
++  .mod-ribbon {
++    margin: 0;
++    align-self: start;
++    padding: var(--space-xs) var(--space-sm);
++    background: var(--warning-tint);
++    color: var(--warning);
++    font-size: var(--type-label);
++    font-weight: ${typo.scale.label.wght};
++    letter-spacing: var(--ls-label);
++    text-transform: uppercase;
++  }
++  .mod-note {
++    margin: 0;
++    color: var(--muted);
++    font-size: var(--type-caption);
++    font-weight: ${typo.scale.caption.wght};
++  }
++  .mod-queue { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-sm); }
++  .mod-item {
++    display: grid;
++    grid-template-columns: 1fr auto;
++    gap: var(--space-sm);
++    align-items: baseline;
++    padding: var(--space-md);
++    background: var(--surface-muted);
++    border: var(--hair) solid var(--hairline);
++    border-radius: var(--radius-btn);
++  }
++  .mod-ref {
++    color: var(--body);
++    font-size: var(--type-row);
++    font-weight: ${typo.scale.row.wght};
++  }
++  .mod-state {
++    justify-self: end;
++    font-size: var(--type-label);
++    font-weight: ${typo.scale.label.wght};
++    letter-spacing: var(--ls-label);
++    text-transform: uppercase;
++  }
++  .mod-state--pending { color: var(--muted); }
++  .mod-state--approved { color: var(--success); }
++  .mod-state--changes_requested { color: var(--warning); }
++  .mod-reasons {
++    grid-column: 1 / -1;
++    list-style: none;
++    margin: 0;
++    padding: 0;
++    display: flex;
++    flex-wrap: wrap;
++    gap: var(--space-xs);
++  }
++  .mod-reason {
++    padding: var(--space-xs) var(--space-sm);
++    background: var(--warning-tint);
++    color: var(--warning);
++    font-size: var(--type-label);
++    font-weight: ${typo.scale.label.wght};
++    letter-spacing: var(--ls-label);
++    text-transform: uppercase;
++  }
+ `;
+ document.head.appendChild(style);
+ 
+@@ -186,23 +256,40 @@ const panel = document.createElement('section');
+ panel.className = 'desk-panel';
+ const deskTitle = document.createElement('h2');
+ deskTitle.className = 'desk-title';
+-const emptyState = document.createElement('p');
+-emptyState.className = 'empty-state';
+-panel.append(deskTitle, emptyState);
++const contentHost = document.createElement('div');
++contentHost.className = 'desk-content';
++panel.append(deskTitle, contentHost);
+ main.append(panel);
+ 
+ app.append(strip, header, nav, main);
+ 
+-// ── router: eight desks as hash routes, honest empty state per route ──────────
++// ── router: eight desks as hash routes ────────────────────────────────────────
++// Desk 3 (moderation) renders the live queue; the other seven stay honest shells.
+ function currentDesk(): Desk {
+   const slug = window.location.hash.replace(/^#\/?/, '');
+   return DESKS.find((d) => d.id === slug) ?? DESKS[0]!;
+ }
+ 
++function renderEmptyShell(): void {
++  contentHost.replaceChildren();
++  const empty = document.createElement('p');
++  empty.className = 'empty-state';
++  empty.textContent = t('desk.empty_state');
++  contentHost.append(empty);
++}
++
+ function render(): void {
+   const desk = currentDesk();
+   deskTitle.textContent = t(desk.titleKey);
+-  emptyState.textContent = t('desk.empty_state');
++  if (desk.id === 'moderation') {
++    renderModerationQueue(
++      contentHost,
++      buildSandboxQueue(new Date().toISOString()),
++      ribbon.sandbox.label,
++    );
++  } else {
++    renderEmptyShell();
++  }
+   for (const [id, link] of navButtons) {
+     if (id === desk.id) link.setAttribute('aria-current', 'page');
+     else link.removeAttribute('aria-current');
+diff --git a/apps/ops-console/src/maker-checker.ts b/apps/ops-console/src/maker-checker.ts
+index 50594cb..c85bfc8 100644
+--- a/apps/ops-console/src/maker-checker.ts
++++ b/apps/ops-console/src/maker-checker.ts
+@@ -136,6 +136,15 @@ export function approve<M extends ActorId, C extends ActorId>(
+   // At runtime the brand/guard is erased; the checker is structurally Actor<C>.
+   const checkerActor = checker as Actor<C>;
+   EventEnvelopeSchema.parse(envelope);
++  // DEBT ② (WO-OPS-1a): `IssuedCommand` is an exported interface, so a command
++  // can be hand-built as an object literal, bypassing issue()'s guarantee that
++  // the issued envelope's actor IS the maker. Re-assert it here — an invariant a
++  // constructor establishes but the type does not preserve is not an invariant.
++  if ((command.envelope.actor as string) !== (command.maker.id as string)) {
++    throw new MakerCheckerError(
++      `issued envelope actor "${command.envelope.actor}" does not match the command's maker "${command.maker.id}" — a forged or tampered command`,
++    );
++  }
+   // Compare as plain strings: at the type level M and C are provably distinct
+   // (that is the guard), so TS considers `maker.id === checker.id` a no-overlap
+   // comparison — but at runtime the brands are erased and a subverted call CAN
+diff --git a/apps/ops-console/src/moderation/decide.ts b/apps/ops-console/src/moderation/decide.ts
+new file mode 100644
+index 0000000..3a12e7b
+--- /dev/null
++++ b/apps/ops-console/src/moderation/decide.ts
+@@ -0,0 +1,144 @@
++/*
++ * OPS NE MODIFIE JAMAIS LE REGISTRE. Aucun humain ne « corrige » l'argent.
++ * Chaque action est une commande permissionnée, événementielle et auditée.
++ * Maker-checker — deux personnes différentes — sur tout ce qui touche à
++ * l'argent ou à la garde. Si un humain peut déplacer un franc en silence,
++ * toutes les promesses de ce système sont du théâtre.
++ */
++
++/**
++ * DESK 3 — THE FIRST REAL OPS COMMAND: moderation:decide (WO-OPS-1a).
++ *
++ * A reviewing operator (maker) makes a canon `ModerationDecision` about a
++ * listing; a SECOND operator (checker) approves it — the maker-checker seam on a
++ * real, franc-adjacent action (an approved decision is what lets a listing go
++ * live). Everything canon-owned is CONSUMED, nothing invented:
++ *   - the payload is canon `ModerationDecisionSchema` (v0.9.6): exactly two
++ *     outcomes (approved | changes_requested), a silent/reasonless rejection is
++ *     unrepresentable, and `decided_by` MUST be an `ops:moderation:*` actor — so
++ *     a SUPPLIER is refused at ISSUE by the schema itself (no self-moderation);
++ *   - the `command_id` is MINTED by canon `mintCommandId()` (v0.9.5 rule: UUIDv4
++ *     from the OS CSPRNG, never Math.random);
++ *   - the two-person seam, and the identity law, are the platform maker-checker
++ *     spine.
++ * The action-type `'moderation:decide'` is a LOCAL closed-union member
++ * (ops-action.ts) — canon names no ops-command event.
++ *
++ * DEBT ① (named here, in force): the compile-time DistinctChecker guard bites
++ * only for LITERAL identity types. Real operator ids arrive from a session token
++ * as `string`, so at runtime the type guard is VACUOUS and the RUNTIME identity
++ * check in approve() is the ONLY guard standing between this command and a
++ * one-person decision. The tests prove that runtime check on THIS real command
++ * under a full `any` bypass.
++ */
++import {
++  ModerationDecisionSchema,
++  mintCommandId,
++  type ModerationDecision,
++  type EventEnvelope,
++} from '@platform/contracts';
++import {
++  approve,
++  issue,
++  type Actor,
++  type ActorId,
++  type ApprovedCommand,
++  type DistinctChecker,
++  type IssuedCommand,
++} from '../maker-checker';
++import { OPS_ACTION_MODERATION_DECIDE } from '../ops-action';
++
++/** A supplier (or any non-`ops:moderation:*` actor) tried to decide or approve. */
++export class ModerationActorError extends Error {
++  constructor(message: string) {
++    super(message);
++    this.name = 'ModerationActorError';
++  }
++}
++
++/**
++ * Validate that `id` is an `ops:moderation:*` actor by CONSUMING canon's rule:
++ * canon keeps the actor regex private but exposes it through
++ * `ModerationDecisionSchema` (its `decided_by`), so a minimal decision with this
++ * id either parses or does not. We invent no pattern — if canon tightens the
++ * rule, this follows. (Canon models only the decider; the checker's ops-actor
++ * requirement is the platform maker-checker seam's, enforced here.)
++ */
++function assertOpsModerationActor(id: string, half: 'maker' | 'checker'): void {
++  const ok = ModerationDecisionSchema.safeParse({ decision: 'approved', decided_by: id }).success;
++  if (!ok) {
++    throw new ModerationActorError(
++      `${half} "${id}" is not an ops:moderation:* actor — no self-moderation; a supplier never validates`,
++    );
++  }
++}
++
++export interface IssuedModerationCommand<M extends ActorId = ActorId> {
++  readonly command: IssuedCommand<M>;
++  readonly decision: ModerationDecision;
++  readonly listingId: string;
++}
++
++export interface ApprovedModerationCommand<M extends ActorId = ActorId, C extends ActorId = ActorId> {
++  readonly command: ApprovedCommand<M, C>;
++  readonly decision: ModerationDecision;
++  readonly listingId: string;
++}
++
++/** Half one: the reviewing operator issues a moderation decision on a listing. */
++export function issueModerationDecision<M extends ActorId>(
++  maker: Actor<M>,
++  input: {
++    readonly listingId: string;
++    readonly decision: ModerationDecision;
++    readonly correlationId: string;
++    readonly serverTime: string;
++  },
++): IssuedModerationCommand<M> {
++  // Canon validates the payload: supplier decided_by refused, reasonless
++  // changes_requested refused, no extra keys.
++  const decision = ModerationDecisionSchema.parse(input.decision);
++  if (decision.decided_by !== maker.id) {
++    throw new ModerationActorError(
++      `decision.decided_by "${decision.decided_by}" must be the issuing maker "${maker.id}" — an operator does not decide as someone else`,
++    );
++  }
++  const envelope: EventEnvelope = {
++    command_id: mintCommandId(), // canon mint rule (UUIDv4 · OS CSPRNG)
++    correlation_id: input.correlationId,
++    aggregateVersion: 0,
++    actor: maker.id,
++    serverTime: input.serverTime,
++    version: '1',
++  };
++  const command = issue(maker, {
++    action: OPS_ACTION_MODERATION_DECIDE,
++    reason: decision.decision,
++    entity: input.listingId,
++    envelope,
++  });
++  return { command, decision, listingId: input.listingId };
++}
++
++/** Half two: a DIFFERENT ops:moderation operator approves the issued decision. */
++export function approveModerationDecision<M extends ActorId, C extends ActorId>(
++  issued: IssuedModerationCommand<M>,
++  checker: DistinctChecker<M, C>,
++  input: { readonly correlationId: string; readonly serverTime: string },
++): ApprovedModerationCommand<M, C> {
++  const checkerActor = checker as Actor<C>;
++  // A supplier can never be the second operator (refused at APPROVE).
++  assertOpsModerationActor(checkerActor.id, 'checker');
++  const envelope: EventEnvelope = {
++    command_id: mintCommandId(),
++    correlation_id: input.correlationId,
++    aggregateVersion: issued.command.envelope.aggregateVersion + 1,
++    actor: checkerActor.id,
++    serverTime: input.serverTime,
++    version: '1',
++  };
++  // The spine enforces: forged maker-envelope (debt ②), same-identity (debt ①
++  // runtime guard), and approval-envelope actor == checker.
++  const command = approve(issued.command, checker, envelope);
++  return { command, decision: issued.decision, listingId: issued.listingId };
++}
+diff --git a/apps/ops-console/src/moderation/queue-view.ts b/apps/ops-console/src/moderation/queue-view.ts
+new file mode 100644
+index 0000000..8a1a979
+--- /dev/null
++++ b/apps/ops-console/src/moderation/queue-view.ts
+@@ -0,0 +1,64 @@
++import { t } from '../i18n';
++import type { QueueItem } from './sandbox';
++
++/**
++ * Desk 3 queue view (WO-OPS-1a). Renders the moderation queue honestly:
++ * pending / approved / changes_requested, with each changes_requested row naming
++ * its reasons VERBATIM (every cited reason, none summarised). All strings come
++ * from the catalog (`t`) or a passed token; styling is class-only (token-driven
++ * classes live in main.ts) so this module holds no colour/length literals.
++ */
++const STATE_KEY: Record<QueueItem['state'], string> = {
++  pending: 'moderation.state_pending',
++  approved: 'moderation.state_approved',
++  changes_requested: 'moderation.state_changes',
++};
++
++export function renderModerationQueue(
++  host: HTMLElement,
++  items: readonly QueueItem[],
++  sandboxLabel: string,
++): void {
++  host.replaceChildren();
++
++  const ribbon = document.createElement('p');
++  ribbon.className = 'mod-ribbon';
++  ribbon.textContent = sandboxLabel;
++
++  const note = document.createElement('p');
++  note.className = 'mod-note';
++  note.textContent = t('moderation.two_operator_note');
++
++  const list = document.createElement('ul');
++  list.className = 'mod-queue';
++  for (const item of items) {
++    const row = document.createElement('li');
++    row.className = 'mod-item';
++    row.dataset['state'] = item.state;
++
++    const ref = document.createElement('span');
++    ref.className = 'mod-ref';
++    ref.textContent = item.listingRef;
++
++    const state = document.createElement('span');
++    state.className = `mod-state mod-state--${item.state}`;
++    state.textContent = t(STATE_KEY[item.state]);
++
++    row.append(ref, state);
++
++    if (item.reasons.length > 0) {
++      const reasons = document.createElement('ul');
++      reasons.className = 'mod-reasons';
++      for (const code of item.reasons) {
++        const reason = document.createElement('li');
++        reason.className = 'mod-reason';
++        reason.textContent = t(`moderation.reason.${code}`);
++        reasons.append(reason);
++      }
++      row.append(reasons);
++    }
++    list.append(row);
++  }
++
++  host.append(ribbon, note, list);
++}
+diff --git a/apps/ops-console/src/moderation/sandbox.ts b/apps/ops-console/src/moderation/sandbox.ts
+new file mode 100644
+index 0000000..75edb6a
+--- /dev/null
++++ b/apps/ops-console/src/moderation/sandbox.ts
+@@ -0,0 +1,83 @@
++/*
++ * OPS NE MODIFIE JAMAIS LE REGISTRE. Aucun humain ne « corrige » l'argent.
++ * Chaque action est une commande permissionnée, événementielle et auditée.
++ * Maker-checker — deux personnes différentes — sur tout ce qui touche à
++ * l'argent ou à la garde. Si un humain peut déplacer un franc en silence,
++ * toutes les promesses de ce système sont du théâtre.
++ */
++
++/**
++ * Desk 3 sandbox queue (WO-OPS-1a) — a PREVIEW (bac à sable) that exercises the
++ * REAL moderation command path so the rendered states are honest, not fabricated:
++ * the `approved` and `changes_requested` rows are produced by a genuine two-
++ * operator issue→approve through `moderation/decide.ts` (maker ≠ checker, canon
++ * `ModerationDecisionSchema`). No boutik/catalog DB is read — this is a preview,
++ * clearly labelled as such by the queue view; a real data source is a later slice.
++ */
++import type { ModerationDecision, ModerationReasonCode } from '@platform/contracts';
++import { actor } from '../maker-checker';
++import {
++  approveModerationDecision,
++  issueModerationDecision,
++  type ApprovedModerationCommand,
++} from './decide';
++
++export interface QueueItem {
++  readonly listingRef: string;
++  readonly state: 'pending' | 'approved' | 'changes_requested';
++  readonly reasons: readonly ModerationReasonCode[];
++}
++
++function toItem(decided: ApprovedModerationCommand): QueueItem {
++  const d = decided.decision;
++  return {
++    listingRef: decided.listingId,
++    state: d.decision,
++    reasons: d.decision === 'changes_requested' ? d.reasons : [],
++  };
++}
++
++/** Build the preview queue by running the real command path (issue → approve). */
++export function buildSandboxQueue(serverTime: string): readonly QueueItem[] {
++  const maker = actor('ops:moderation:diallo');
++  const checker = actor('ops:moderation:kabore');
++
++  // A real approved decision (two different operators).
++  const approvedDecision: ModerationDecision = {
++    decision: 'approved',
++    decided_by: 'ops:moderation:diallo',
++  };
++  const approved = approveModerationDecision(
++    issueModerationDecision(maker, {
++      listingId: 'listing:pagne-02',
++      decision: approvedDecision,
++      correlationId: 'sbx-approved',
++      serverTime,
++    }),
++    checker,
++    { correlationId: 'sbx-approved', serverTime },
++  );
++
++  // A real changes_requested decision naming its reasons verbatim.
++  const changesDecision: ModerationDecision = {
++    decision: 'changes_requested',
++    reasons: ['price_or_contact_in_image', 'not_neutral_packaging'],
++    decided_by: 'ops:moderation:diallo',
++  };
++  const changes = approveModerationDecision(
++    issueModerationDecision(maker, {
++      listingId: 'listing:miel-03',
++      decision: changesDecision,
++      correlationId: 'sbx-changes',
++      serverTime,
++    }),
++    checker,
++    { correlationId: 'sbx-changes', serverTime },
++  );
++
++  return [
++    { listingRef: 'listing:savon-01', state: 'pending', reasons: [] },
++    toItem(approved),
++    toItem(changes),
++  ];
++}
+diff --git a/apps/ops-console/src/ops-action.ts b/apps/ops-console/src/ops-action.ts
+index 63dc480..64f42d2 100644
+--- a/apps/ops-console/src/ops-action.ts
++++ b/apps/ops-console/src/ops-action.ts
+@@ -7,27 +7,22 @@
+  */
+ 
+ /**
+- * THE OPS ACTION-TYPE — a QUARANTINED LOCAL CLOSED UNION · a NAMED DEBT.
+- * CTO ruling, 2026-07-13 (a CTO ruling, overturnable by the CTO — NOT a founder
+- * ruling; the founder never ruled on the ops action-type).
++ * THE OPS ACTION-TYPE — a QUARANTINED LOCAL CLOSED UNION.
+  *
+- * The maker-checker command and the audit entry each need a "what". Canon's
+- * closed `EVENT_NAMES` registry carries NO ops-command / audit / maker-checker
+- * event, and canon forbids inventing event names — refusing to invent one was
+- * correct. So the "what" is NOT canon: it is a LOCAL, CLOSED union, quarantined
+- * in this one file, consumed alongside canon's `EventEnvelope` (which we take
+- * verbatim for who/when/command/correlation/version).
++ * CTO ruling (2026-07-13): canon's closed `EVENT_NAMES` registry carries NO
++ * ops-command event and canon forbids inventing event names, so the "what" of an
++ * ops command is NOT canon — it is a LOCAL, CLOSED union quarantined in this one
++ * file, consumed alongside canon's `EventEnvelope` (taken verbatim for
++ * who/when/command/correlation/version).
+  *
+- * It carries exactly ONE member today — a sentinel that is explicitly NOT a
+- * command — because no ops command exists yet. This keeps the spine exercisable
+- * without inventing any ops vocabulary.
+- *
+- * THE DEBT (to pay down deliberately): when commands that actually exist arrive
+- * — and canon names their events — DERIVE the members here from those real
+- * commands and retire the sentinel. Do NOT widen this to `string`, and do NOT
+- * scatter action literals through the codebase. One quarantined union.
++ * WO-OPS-1a paid the named debt: the union was a single `pending:*` sentinel
++ * while no command existed; it now carries its FIRST REAL member —
++ * `'moderation:decide'`, the Desk 3 command whose PAYLOAD is canon's
++ * `ModerationDecisionSchema` (v0.9.6). The sentinel is retired. Future real
++ * commands (OPS-1b payment / break-glass) add their members HERE, derived from
++ * commands that actually exist — never widened to `string`, never scattered.
+  */
+-export type OpsActionType = 'pending:no-ops-command-defined';
++export type OpsActionType = 'moderation:decide';
+ 
+-/** The sole current member — a debt placeholder, not an ops command. */
+-export const OPS_ACTION_PENDING: OpsActionType = 'pending:no-ops-command-defined';
++/** The Desk 3 command action-type: an operator decides a listing's moderation. */
++export const OPS_ACTION_MODERATION_DECIDE: OpsActionType = 'moderation:decide';
+diff --git a/apps/ops-console/test-d/maker-checker.type-test.ts b/apps/ops-console/test-d/maker-checker.type-test.ts
+index d3059a1..532de53 100644
+--- a/apps/ops-console/test-d/maker-checker.type-test.ts
++++ b/apps/ops-console/test-d/maker-checker.type-test.ts
+@@ -7,7 +7,7 @@
+  */
+ import type { EventEnvelope } from '@platform/contracts';
+ import { actor, issue, approve } from '../src/maker-checker';
+-import { OPS_ACTION_PENDING } from '../src/ops-action';
++import { OPS_ACTION_MODERATION_DECIDE } from '../src/ops-action';
+ 
+ const env = (who: string): EventEnvelope => ({
+   command_id: 'c',
+@@ -21,7 +21,7 @@ const env = (who: string): EventEnvelope => ({
+ const alice = actor('alice');
+ const bob = actor('bob');
+ const issued = issue(alice, {
+-  action: OPS_ACTION_PENDING,
++  action: OPS_ACTION_MODERATION_DECIDE,
+   reason: 'r',
+   entity: 'e',
+   envelope: env('alice'),
+diff --git a/apps/ops-console/test-d/moderation-decide.type-test.ts b/apps/ops-console/test-d/moderation-decide.type-test.ts
+new file mode 100644
+index 0000000..dcfadb6
+--- /dev/null
++++ b/apps/ops-console/test-d/moderation-decide.type-test.ts
+@@ -0,0 +1,39 @@
++/**
++ * moderation:decide — COMPILE-LEVEL guard + DEBT ① written down (WO-OPS-1a).
++ *
++ * The maker-checker `DistinctChecker` guard flows THROUGH
++ * `approveModerationDecision`, so the SAME operator approving his own decision
++ * does not compile — FOR LITERAL identity types (proven by the @ts-expect-error
++ * below; if it compiled, the unused directive would fail the typecheck gate).
++ *
++ * DEBT ①, IN FORCE: real operator ids arrive from a session token as `string`.
++ * `string extends string` is TRUE, so `DistinctChecker<string,string>` collapses
++ * to `never` and every real call MUST cast the checker — after which the compile
++ * guard is VACUOUS and the RUNTIME identity check in approve() is the ONLY guard.
++ * That runtime guard is proven on the REAL command under a full `any` bypass in
++ * test/moderation-decide.test.ts ("DEBT ①"). Do not read two production layers
++ * where there is one.
++ */
++import type { ModerationDecision } from '@platform/contracts';
++import { actor } from '../src/maker-checker';
++import { issueModerationDecision, approveModerationDecision } from '../src/moderation/decide';
++
++const opsA = actor('ops:moderation:diallo');
++const opsB = actor('ops:moderation:kabore');
++const decision: ModerationDecision = { decision: 'approved', decided_by: 'ops:moderation:diallo' };
++const issued = issueModerationDecision(opsA, {
++  listingId: 'listing:x',
++  decision,
++  correlationId: 'c',
++  serverTime: 't',
++});
++
++// A DIFFERENT operator approves — MUST compile.
++const ok = approveModerationDecision(issued, opsB, { correlationId: 'c', serverTime: 't' });
++
++// The SAME operator cannot approve his own decision — MUST NOT compile
++// (DistinctChecker collapses the checker parameter to `never`).
++// @ts-expect-error same identity cannot both decide and approve a moderation command
++const bad = approveModerationDecision(issued, opsA, { correlationId: 'c', serverTime: 't' });
++
++export { ok, bad };
+diff --git a/apps/ops-console/test/audit-log.test.ts b/apps/ops-console/test/audit-log.test.ts
+index 28645ce..a8255dd 100644
+--- a/apps/ops-console/test/audit-log.test.ts
++++ b/apps/ops-console/test/audit-log.test.ts
+@@ -1,7 +1,7 @@
+ import { describe, it, expect } from 'vitest';
+ import type { EventEnvelope } from '@platform/contracts';
+ import { AuditLog } from '../src/audit-log';
+-import { OPS_ACTION_PENDING } from '../src/ops-action';
++import { OPS_ACTION_MODERATION_DECIDE } from '../src/ops-action';
+ 
+ const env = (who: string, id: string): EventEnvelope => ({
+   command_id: id,
+@@ -16,7 +16,7 @@ describe('audit log — append-only; nobody “corrects” in silence', () => {
+   it('records who · what · why · when · entity · evidence', () => {
+     const log = new AuditLog();
+     const e = log.append({
+-      action: OPS_ACTION_PENDING,
++      action: OPS_ACTION_MODERATION_DECIDE,
+       reason: 'incident 22h',
+       entity: 'capability:checkout',
+       evidence: 'ref:INC-1',
+@@ -25,7 +25,7 @@ describe('audit log — append-only; nobody “corrects” in silence', () => {
+     expect(e.seq).toBe(0);
+     expect(e.envelope.actor).toBe('alice'); // who
+     expect(e.envelope.serverTime).toBe('2026-07-13T09:00:00.000Z'); // when
+-    expect(e.action).toBe(OPS_ACTION_PENDING); // what
++    expect(e.action).toBe(OPS_ACTION_MODERATION_DECIDE); // what
+     expect(e.reason).toBe('incident 22h'); // why
+     expect(e.entity).toBe('capability:checkout'); // against which entity
+     expect(e.evidence).toBe('ref:INC-1'); // with what evidence
+@@ -34,7 +34,7 @@ describe('audit log — append-only; nobody “corrects” in silence', () => {
+ 
+   it('an entry CANNOT be mutated (deep-frozen — the write throws)', () => {
+     const log = new AuditLog();
+-    log.append({ action: OPS_ACTION_PENDING, reason: 'r', entity: 'e', evidence: 'v', envelope: env('alice', 'c1') });
++    log.append({ action: OPS_ACTION_MODERATION_DECIDE, reason: 'r', entity: 'e', evidence: 'v', envelope: env('alice', 'c1') });
+     const entry = log.entries[0]!;
+     expect(() => {
+       (entry as unknown as { reason: string }).reason = 'tampered';
+@@ -49,8 +49,8 @@ describe('audit log — append-only; nobody “corrects” in silence', () => {
+ 
+   it('an entry CANNOT be deleted and the log CANNOT be trimmed', () => {
+     const log = new AuditLog();
+-    log.append({ action: OPS_ACTION_PENDING, reason: 'r', entity: 'e', evidence: 'v', envelope: env('alice', 'c1') });
+-    log.append({ action: OPS_ACTION_PENDING, reason: 'r2', entity: 'e2', evidence: 'v2', envelope: env('bob', 'c2') });
++    log.append({ action: OPS_ACTION_MODERATION_DECIDE, reason: 'r', entity: 'e', evidence: 'v', envelope: env('alice', 'c1') });
++    log.append({ action: OPS_ACTION_MODERATION_DECIDE, reason: 'r2', entity: 'e2', evidence: 'v2', envelope: env('bob', 'c2') });
+     const snapshot = log.entries;
+     expect(() => {
+       (snapshot as unknown as unknown[]).pop();
+@@ -77,7 +77,7 @@ describe('audit log — append-only; nobody “corrects” in silence', () => {
+       version: '1',
+     } as unknown as EventEnvelope;
+     expect(() =>
+-      log.append({ action: OPS_ACTION_PENDING, reason: 'r', entity: 'e', evidence: 'v', envelope: bad }),
++      log.append({ action: OPS_ACTION_MODERATION_DECIDE, reason: 'r', entity: 'e', evidence: 'v', envelope: bad }),
+     ).toThrow();
+     expect(log.length).toBe(0);
+   });
+diff --git a/apps/ops-console/test/desk-isolation.test.ts b/apps/ops-console/test/desk-isolation.test.ts
+new file mode 100644
+index 0000000..b38c3f2
+--- /dev/null
++++ b/apps/ops-console/test/desk-isolation.test.ts
+@@ -0,0 +1,55 @@
++import { readFileSync, readdirSync } from 'node:fs';
++import { join } from 'node:path';
++import { describe, it, expect } from 'vitest';
++
++/**
++ * WO-OPS-1a absence proof (the sera structural pattern): Desk 3 going live must
++ * NOT leak into the other seven desks. A desk descriptor is a PURE record — its
++ * only import is the shared `./types`; it reaches no spine, no command, no data
++ * source. The moderation queue/command is wired ONLY by the router (main.ts),
++ * and only under the `moderation` id. Prove the absence structurally.
++ */
++const srcDir = join(import.meta.dirname, '..', 'src');
++const desksDir = join(srcDir, 'desks');
++const deskFiles = readdirSync(desksDir).filter(
++  (f) => f.endsWith('.ts') && f !== 'index.ts' && f !== 'types.ts',
++);
++
++describe('desk isolation — Desk 3 is contained; the seven stay honest shells', () => {
++  it('there are exactly eight desk descriptor files', () => {
++    expect(deskFiles).toHaveLength(8);
++  });
++
++  it('every desk descriptor imports ONLY ./types — no spine, no command, no data source', () => {
++    for (const file of deskFiles) {
++      const src = readFileSync(join(desksDir, file), 'utf8');
++      const imports = [...src.matchAll(/^import\s+[^;]*from\s+['"]([^'"]+)['"];/gm)].map((m) => m[1]);
++      expect(imports, `${file} imports`).toEqual(['./types']);
++      // scan CODE only (comments may legitimately reference the spine by name)
++      const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
++      expect(
++        codeOnly,
++        `${file} code must not reach live wiring`,
++      ).not.toMatch(/moderation\/|maker-checker|audit-log|@platform\/contracts|fetch\(|XMLHttpRequest|WebSocket|indexedDB|localStorage/);
++    }
++  });
++
++  it('the moderation queue/command is wired ONLY through the router, only for desk "moderation"', () => {
++    const main = readFileSync(join(srcDir, 'main.ts'), 'utf8');
++    expect(main).toMatch(/desk\.id === 'moderation'/);
++    expect(main).toMatch(/renderModerationQueue\(/);
++    // every other desk falls to the honest empty shell
++    expect(main).toMatch(/renderEmptyShell\(\)/);
++  });
++
++  it('no desk descriptor reaches the moderation command module (imports)', () => {
++    for (const file of deskFiles) {
++      const src = readFileSync(join(desksDir, file), 'utf8');
++      const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
++      expect(
++        codeOnly.includes('moderation/'),
++        `${file} code must not import the moderation command`,
++      ).toBe(false);
++    }
++  });
++});
+diff --git a/apps/ops-console/test/icons.test.ts b/apps/ops-console/test/icons.test.ts
+index c09cffe..2c706be 100644
+--- a/apps/ops-console/test/icons.test.ts
++++ b/apps/ops-console/test/icons.test.ts
+@@ -5,8 +5,8 @@ import { describe, it, expect } from 'vitest';
+ import { opsIcon, OPS_ICON_NAMES } from '../src/icons';
+ 
+ /**
+- * The ops console consumes canon's 29-icon set (pin 04af4b5 / v0.9.4; byte-identical
+- * across v0.9.1→v0.9.4) as inline
++ * The ops console consumes canon's 29-icon set (pin ba6f16d / v0.9.6; byte-identical
++ * across v0.9.1→v0.9.6) as inline
+  * SVG strings. This proves the embedded glyphs are BYTE-IDENTICAL to canon: each
+  * embedded string's sha256 equals assets/icons/icons.manifest.json, whose entries
+  * are canon's own. No hand-editing can drift a glyph without turning this red.
+diff --git a/apps/ops-console/test/maker-checker.test.ts b/apps/ops-console/test/maker-checker.test.ts
+index dc69751..0df9740 100644
+--- a/apps/ops-console/test/maker-checker.test.ts
++++ b/apps/ops-console/test/maker-checker.test.ts
+@@ -7,7 +7,7 @@ import {
+   MakerCheckerError,
+   MakerCheckerSameIdentityError,
+ } from '../src/maker-checker';
+-import { OPS_ACTION_PENDING } from '../src/ops-action';
++import { OPS_ACTION_MODERATION_DECIDE } from '../src/ops-action';
+ 
+ const env = (who: string, id: string): EventEnvelope => ({
+   command_id: id,
+@@ -24,7 +24,7 @@ describe('maker-checker — two different people, or it does not happen', () =>
+ 
+   it('a DIFFERENT identity can approve a maker’s command', () => {
+     const cmd = issue(alice, {
+-      action: OPS_ACTION_PENDING,
++      action: OPS_ACTION_MODERATION_DECIDE,
+       reason: 'incident 22h',
+       entity: 'capability:checkout',
+       envelope: env('alice', 'cmd-issue'),
+@@ -36,7 +36,7 @@ describe('maker-checker — two different people, or it does not happen', () =>
+ 
+   it('the SAME identity is refused at RUNTIME even when the compiler is subverted (cast)', () => {
+     const cmd = issue(alice, {
+-      action: OPS_ACTION_PENDING,
++      action: OPS_ACTION_MODERATION_DECIDE,
+       reason: 'incident 22h',
+       entity: 'capability:checkout',
+       envelope: env('alice', 'cmd-issue'),
+@@ -51,13 +51,13 @@ describe('maker-checker — two different people, or it does not happen', () =>
+ 
+   it('the issued envelope actor must equal the maker', () => {
+     expect(() =>
+-      issue(alice, { action: OPS_ACTION_PENDING, reason: 'r', entity: 'e', envelope: env('bob', 'cmd') }),
++      issue(alice, { action: OPS_ACTION_MODERATION_DECIDE, reason: 'r', entity: 'e', envelope: env('bob', 'cmd') }),
+     ).toThrow(MakerCheckerError);
+   });
+ 
+   it('the approval envelope actor must equal the checker', () => {
+     const cmd = issue(alice, {
+-      action: OPS_ACTION_PENDING,
++      action: OPS_ACTION_MODERATION_DECIDE,
+       reason: 'r',
+       entity: 'e',
+       envelope: env('alice', 'cmd-issue'),
+@@ -75,7 +75,7 @@ describe('maker-checker — two different people, or it does not happen', () =>
+       version: '1',
+     } as unknown as EventEnvelope;
+     expect(() =>
+-      issue(alice, { action: OPS_ACTION_PENDING, reason: 'r', entity: 'e', envelope: bad }),
++      issue(alice, { action: OPS_ACTION_MODERATION_DECIDE, reason: 'r', entity: 'e', envelope: bad }),
+     ).toThrow();
+   });
+ });
+diff --git a/apps/ops-console/test/moderation-decide.test.ts b/apps/ops-console/test/moderation-decide.test.ts
+new file mode 100644
+index 0000000..b60d711
+--- /dev/null
++++ b/apps/ops-console/test/moderation-decide.test.ts
+@@ -0,0 +1,123 @@
++import { describe, it, expect } from 'vitest';
++import { CommandIdSchema, type ModerationDecision } from '@platform/contracts';
++import {
++  actor,
++  MakerCheckerError,
++  MakerCheckerSameIdentityError,
++  type IssuedCommand,
++} from '../src/maker-checker';
++import {
++  issueModerationDecision,
++  approveModerationDecision,
++  ModerationActorError,
++  type IssuedModerationCommand,
++} from '../src/moderation/decide';
++
++// Two DIFFERENT ops:moderation operators (canon requires ops:moderation:* actors).
++const opsA = actor('ops:moderation:diallo');
++const opsB = actor('ops:moderation:kabore');
++
++const approved = (by: string): ModerationDecision => ({ decision: 'approved', decided_by: by });
++const changes = (by: string): ModerationDecision => ({
++  decision: 'changes_requested',
++  reasons: ['price_or_contact_in_image'],
++  decided_by: by,
++});
++const issueIn = (decision: ModerationDecision) => ({
++  listingId: 'listing:soap-01',
++  decision,
++  correlationId: 'corr-mod-1',
++  serverTime: '2026-07-13T10:00:00.000Z',
++});
++const approveIn = () => ({ correlationId: 'corr-mod-1', serverTime: '2026-07-13T10:05:00.000Z' });
++
++describe('Desk 3 — the first real ops command (moderation:decide)', () => {
++  it('a two-operator decision succeeds: maker decides, a DIFFERENT operator approves', () => {
++    const issued = issueModerationDecision(opsA, issueIn(approved('ops:moderation:diallo')));
++    expect(issued.command.action).toBe('moderation:decide');
++    expect(issued.decision.decision).toBe('approved');
++    // command_id was MINTED as a UUIDv4 (canon v0.9.5 mint rule), not fabricated
++    expect(CommandIdSchema.safeParse(issued.command.envelope.command_id).success).toBe(true);
++    const decided = approveModerationDecision(issued, opsB, approveIn());
++    expect(decided.command.command.maker.id).toBe('ops:moderation:diallo');
++    expect(decided.command.checker.id).toBe('ops:moderation:kabore');
++    expect(decided.listingId).toBe('listing:soap-01');
++  });
++
++  it('a SUPPLIER actor is refused at ISSUE (canon: decided_by must be ops:moderation:*)', () => {
++    const supplier = actor('supplier:aicha');
++    expect(() =>
++      issueModerationDecision(supplier, issueIn(approved('supplier:aicha'))),
++    ).toThrow();
++  });
++
++  it('a maker whose id != decision.decided_by is refused at ISSUE (no proxying another operator)', () => {
++    expect(() =>
++      issueModerationDecision(opsA, issueIn(approved('ops:moderation:someone-else'))),
++    ).toThrow(ModerationActorError);
++  });
++
++  it('a SUPPLIER actor is refused at APPROVE (supplier can never be the second operator)', () => {
++    const issued = issueModerationDecision(opsA, issueIn(approved('ops:moderation:diallo')));
++    const supplierAsChecker = actor('supplier:aicha') as unknown as typeof opsB;
++    expect(() => approveModerationDecision(issued, supplierAsChecker, approveIn())).toThrow(
++      ModerationActorError,
++    );
++  });
++
++  it('DEBT ①: on a REAL command, same-identity approve is refused at RUNTIME under a full `any` bypass — production rests on this alone (the compile guard is vacuous for string ids)', () => {
++    const issued = issueModerationDecision(opsA, issueIn(approved('ops:moderation:diallo')));
++    // A session-token id is a `string` at runtime; the type guard cannot see it.
++    // This is exactly what a real call looks like once ids leave literal types.
++    const sameAsMaker: unknown = opsA;
++    expect(() =>
++      approveModerationDecision(issued, sameAsMaker as typeof opsB, approveIn()),
++    ).toThrow(MakerCheckerSameIdentityError);
++  });
++
++  it('DEBT ②: a hand-built IssuedCommand with a LYING maker envelope is refused at approve', () => {
++    // Bypass issueModerationDecision()/issue() entirely — a raw object literal.
++    const lying: IssuedCommand<'ops:moderation:diallo'> = {
++      action: 'moderation:decide',
++      reason: 'approved',
++      entity: 'listing:x',
++      maker: actor('ops:moderation:diallo'),
++      envelope: {
++        command_id: '00000000-0000-4000-8000-000000000000',
++        correlation_id: 'c',
++        aggregateVersion: 0,
++        actor: 'ops:moderation:MALLORY', // the lie: envelope actor != maker.id
++        serverTime: '2026-07-13T10:00:00.000Z',
++        version: '1',
++      },
++    };
++    const forged: IssuedModerationCommand<'ops:moderation:diallo'> = {
++      command: lying,
++      decision: approved('ops:moderation:diallo'),
++      listingId: 'listing:x',
++    };
++    expect(() => approveModerationDecision(forged, opsB, approveIn())).toThrow(MakerCheckerError);
++  });
++
++  it('a reasonless changes_requested is unrepresentable (canon)', () => {
++    const reasonless = {
++      decision: 'changes_requested',
++      reasons: [],
++      decided_by: 'ops:moderation:diallo',
++    } as unknown as ModerationDecision;
++    expect(() => issueModerationDecision(opsA, issueIn(reasonless))).toThrow();
++  });
++
++  it('changes_requested carries its reason codes verbatim through issue and approve', () => {
++    const issued = issueModerationDecision(opsA, issueIn(changes('ops:moderation:diallo')));
++    expect(issued.decision).toMatchObject({
++      decision: 'changes_requested',
++      reasons: ['price_or_contact_in_image'],
++    });
++    const decided = approveModerationDecision(issued, opsB, approveIn());
++    expect(decided.decision).toMatchObject({
++      decision: 'changes_requested',
++      reasons: ['price_or_contact_in_image'],
++    });
++  });
++});
+diff --git a/package.json b/package.json
+index 115c561..1942134 100644
+--- a/package.json
++++ b/package.json
+@@ -16,9 +16,9 @@
+     "gates": "bash scripts/run-gates.sh"
+   },
+   "dependencies": {
+-    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts",
+-    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n",
+-    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens"
++    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts",
++    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n",
++    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens"
+   },
+   "devDependencies": {
+     "@types/node": "^22.20.1",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 14fa767..d042c16 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -5,23 +5,23 @@ settings:
+   excludeLinksFromLockfile: false
+ 
+ overrides:
+-  '@platform/contracts': git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
+-  '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types
+-  '@platform/ui-tokens': git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
++  '@platform/contracts': git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
++  '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types
++  '@platform/ui-tokens': git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
+ 
+ importers:
+ 
+   .:
+     dependencies:
+       '@platform/contracts':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
+-        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
++        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
++        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
+       '@platform/i18n':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n
+-        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n
++        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n
++        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n
+       '@platform/ui-tokens':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
+-        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
++        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
++        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
+     devDependencies:
+       '@types/node':
+         specifier: ^22.20.1
+@@ -39,14 +39,14 @@ importers:
+   apps/ops-console:
+     dependencies:
+       '@platform/contracts':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
+-        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
++        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
++        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
+       '@platform/i18n':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n
+-        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n
++        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n
++        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n
+       '@platform/ui-tokens':
+-        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
+-        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
++        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
++        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
+     devDependencies:
+       '@playwright/test':
+         specifier: ^1.57.0
+@@ -225,23 +225,23 @@ packages:
+   '@jridgewell/sourcemap-codec@1.5.5':
+     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
+ 
+-  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts':
+-    resolution: {commit: 04af4b5266d53866a2b6d5800e270d3fffac2b35, path: packages/contracts, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+-    version: 0.9.4
++  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts':
++    resolution: {commit: ba6f16d78a2a5a13ff6877237cef6d77d35d8d65, path: packages/contracts, repo: https://github.com/beurni2/platform-contracts.git, type: git}
++    version: 0.9.6
+     hasBin: true
+ 
+-  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n':
+-    resolution: {commit: 04af4b5266d53866a2b6d5800e270d3fffac2b35, path: packages/i18n, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+-    version: 0.9.4
++  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n':
++    resolution: {commit: ba6f16d78a2a5a13ff6877237cef6d77d35d8d65, path: packages/i18n, repo: https://github.com/beurni2/platform-contracts.git, type: git}
++    version: 0.9.6
+     hasBin: true
+ 
+-  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types':
+-    resolution: {commit: 04af4b5266d53866a2b6d5800e270d3fffac2b35, path: packages/kernel-types, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+-    version: 0.9.4
++  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types':
++    resolution: {commit: ba6f16d78a2a5a13ff6877237cef6d77d35d8d65, path: packages/kernel-types, repo: https://github.com/beurni2/platform-contracts.git, type: git}
++    version: 0.9.6
+ 
+-  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens':
+-    resolution: {commit: 04af4b5266d53866a2b6d5800e270d3fffac2b35, path: packages/ui-tokens, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+-    version: 0.9.4
++  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens':
++    resolution: {commit: ba6f16d78a2a5a13ff6877237cef6d77d35d8d65, path: packages/ui-tokens, repo: https://github.com/beurni2/platform-contracts.git, type: git}
++    version: 0.9.6
+ 
+   '@playwright/test@1.61.1':
+     resolution: {integrity: sha512-8nKv6+0RJSL9FE4jYOEGXnPeM/Hg12qZpmqzZjRh3qM0Y7c3z1mrOTfFLids72RDQYVh9WpLEfR5WdpNX4fkig==}
+@@ -783,20 +783,20 @@ snapshots:
+ 
+   '@jridgewell/sourcemap-codec@1.5.5': {}
+ 
+-  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts':
++  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts':
+     dependencies:
+-      '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types
++      '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types
+       zod: 4.4.3
+ 
+-  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n':
++  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n':
+     dependencies:
+       zod: 4.4.3
+ 
+-  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types':
++  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types':
+     dependencies:
+       zod: 4.4.3
+ 
+-  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens': {}
++  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens': {}
+ 
+   '@playwright/test@1.61.1':
+     dependencies:
+diff --git a/pnpm-workspace.yaml b/pnpm-workspace.yaml
+index 71481eb..17f56a0 100644
+--- a/pnpm-workspace.yaml
++++ b/pnpm-workspace.yaml
+@@ -12,8 +12,8 @@ onlyBuiltDependencies:
+ 
+ # Inter-package version-deps exist on no registry: @platform/contracts →
+ # @platform/kernel-types. Route every transitive resolution through the same
+-# pinned release sha (04af4b5 — canon v0.9.4) so nothing drifts off-pin.
++# pinned release sha (ba6f16d — canon v0.9.6) so nothing drifts off-pin.
+ overrides:
+-  "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts"
+-  "@platform/kernel-types": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types"
+-  "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens"
++  "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts"
++  "@platform/kernel-types": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types"
++  "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens"
+diff --git a/scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml b/scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml
+index 2bbdda0..0a493d3 100644
+--- a/scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml
++++ b/scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml
+@@ -4,5 +4,5 @@ importers:
+   .:
+     dependencies:
+       '@platform/contracts':
+-        specifier: git@github.com:beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
+-        version: 'git@github.com:beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts'
++        specifier: git@github.com:beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
++        version: 'git@github.com:beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts'
