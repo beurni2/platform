@@ -130,5 +130,107 @@
     "fr": "Doute sur l'authenticité",
     "register": "neutral",
     "screenClass": "label"
+  },
+  {
+    "key": "breakglass.sandbox_note",
+    "fr": "Aperçu — autorisation exceptionnelle",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.case",
+    "fr": "Dossier",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.order",
+    "fr": "Commande",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.rider",
+    "fr": "Livreur",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.amount",
+    "fr": "Montant à vérifier",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.requested_by",
+    "fr": "Demandé par",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.approved_by",
+    "fr": "Validé par",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.state_requested",
+    "fr": "Demande",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.state_verifying",
+    "fr": "Vérification opérateur",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.state_provider",
+    "fr": "Confirmation réseau",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.state_issued",
+    "fr": "Autorisation émise",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.state_consumed",
+    "fr": "Autorisation utilisée",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.state_expired",
+    "fr": "Expirée",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.state_voided",
+    "fr": "Annulée",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.status_done",
+    "fr": "Fait",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.status_current",
+    "fr": "En cours",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "breakglass.status_pending",
+    "fr": "En attente",
+    "register": "neutral",
+    "screenClass": "label"
   }
 ]

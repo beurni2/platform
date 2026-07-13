@@ -15,14 +15,17 @@
  * file, consumed alongside canon's `EventEnvelope` (taken verbatim for
  * who/when/command/correlation/version).
  *
- * WO-OPS-1a paid the named debt: the union was a single `pending:*` sentinel
- * while no command existed; it now carries its FIRST REAL member —
- * `'moderation:decide'`, the Desk 3 command whose PAYLOAD is canon's
- * `ModerationDecisionSchema` (v0.9.6). The sentinel is retired. Future real
- * commands (OPS-1b payment / break-glass) add their members HERE, derived from
- * commands that actually exist — never widened to `string`, never scattered.
+ * The union grows one member per real command, derived from commands that
+ * actually exist — never widened to `string`, never scattered:
+ *   - WO-OPS-1a: `'moderation:decide'` (Desk 3; canon `ModerationDecisionSchema`).
+ *     The `pending:*` sentinel was retired here.
+ *   - WO-OPS-1b: `'breakglass:issue'` (Desk 5; the payment operator's issuing
+ *     half of the break-glass seam; canon `HandoffAuthorization` machinery).
  */
-export type OpsActionType = 'moderation:decide';
+export type OpsActionType = 'moderation:decide' | 'breakglass:issue';
 
 /** The Desk 3 command action-type: an operator decides a listing's moderation. */
 export const OPS_ACTION_MODERATION_DECIDE: OpsActionType = 'moderation:decide';
+
+/** The Desk 5 command action-type: a payment operator issues a break-glass authorization. */
+export const OPS_ACTION_BREAKGLASS_ISSUE: OpsActionType = 'breakglass:issue';

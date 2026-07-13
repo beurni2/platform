@@ -274,3 +274,65 @@ run at BASE (origin/main 36907a0, before a77f993) with ONLY the test files copie
 in and the implementation absent: vitest fails to load `../src/moderation/decide`
 (1 failed, no tests). Proves the tests bite — non-vacuous. Code head unchanged
 (a77f993); this is a packet-refresh (_review/ + JOURNAL only).
+
+---
+
+## WO-OPS-1b — THE ISSUING HALF OF BREAK-GLASS — TIER: 🔴 RED — **IN REVIEW (do NOT merge — founder review)**
+
+The last platform slice of E4. Branched from the merged 1a head (5ef51cb); NO
+re-pin (canon v0.9.6 / ba6f16d already carries the machinery). Self-anchored the
+canon surface before writing: `HandoffAuthorizationSchema` (exactAmount [Fcfa] ·
+authorizationSource [`provider_webhook`|`break_glass`] · breakGlassCaseId
+[required for break_glass] · signature [the fourth secret] · state [7-state
+enum]), consumed via `IdSchema`/`FcfaSchema`/`IsoTimestampSchema`/`mintCommandId`.
+Sera's D5 (WO-6.9-e, merged) confirmed the premise: its dispatcher `BreakGlassView`
+has no issuing lever and omits signature + franc; issuing is this console's.
+
+**THE ACTOR BOUNDARY — FOUNDER RULING (Beurni, 2026-07-13), quoted verbatim:**
+> "The payment-operator actor pattern is ops:payment:* … Break-glass issuance
+> validates by ALLOW-LIST: at BOTH halves, only an actor matching
+> ^ops:payment:[A-Za-z0-9._:-]+$ validates; every other actor — supplier,
+> dispatcher, ops:moderation:*, anything — is refused by non-match. No block-list
+> exists to maintain. Canon will encode this constraint (WO-5.12); until that pin
+> exists, PLATFORM enforces the pattern app-side, quoted verbatim from this ruling."
+
+Implemented as `PAYMENT_OPERATOR_PATTERN` in `src/breakglass/issue.ts`, applied at
+issue AND approve. **⏳ NAMED INTERIM DEBT:** app-side enforcement is temporary —
+**executioner = the re-pin after canon WO-5.12 lands**, at which point the guard
+delegates to canon's constraint (the A1→MENUM arc repeated). Journaled per CTO.
+
+**The command — `breakglass:issue`** (`OpsActionType`'s second member): a first
+payment operator requests issuance for a named break-glass case (orderId, riderId,
+buyerRef, exactAmount, providerTransactionReference, breakGlassCaseId, reason);
+a SECOND payment operator approves (maker-checker seam). command_id minted by
+canon `mintCommandId`. Refusal fixtures are REAL, not guessed: supplier ·
+**`logistics-service:dispatch`** (sera's shipped dispatcher actor literal,
+grepped) · `ops:moderation:*` (cross-domain ops refused) · empty-suffix
+`ops:payment:` — all refused at both halves.
+
+**The fourth secret stays operator-side.** This slice models request→approve
+only; `provider_confirmed`/`issued`/`consumed` are E3-gated and render « en
+attente » — transitions NOT modeled (per CTO confirmation; the certified
+provider-confirm mock is a later slice's). The `signature` is not in this slice's
+data at all — `BreakGlassRequest`/board carry none — proven structurally
+(`test/desk-isolation.test.ts`: no `signature` in break-glass code, no logging).
+
+**Desk 5 (reconciliation-operateur — the authorized payment operator's desk,
+§9.3) is LIVE:** renders the case honestly (state machine with « en attente »
+downstream, both operators named, the operator-verified `exactAmount` in canon
+money format — it never leaves the console). The other **six** desks stay honest
+shells; moderation (Desk 3) untouched beyond shared plumbing. Absence proven
+structurally (only two router branches: moderation, reconciliation-operateur) and
+in the e2e (six shells show zero `.mod-queue`/`.bg-case`).
+
+**RED ceremony:** the adversarial test (`test/breakglass-issue.test.ts`, 8 tests)
+was written and run RED before implementation — the failing run is captured in the
+packet (`logs/red-proof.txt`: `Failed to load url ../src/breakglass/issue`).
+41 tests + typecheck (incl. the compile-guard type-test) green; zero-hardcode
+(23 files) · copy-lint (39 entries) · lockfile URL-form · drift-check (derived
+0.9.6) · Playwright (5/5); every negative exit 1.
+
+**FORBIDDEN respected:** no franc computed/displayed beyond canon's `exactAmount`
+inside the operators' payload (it never leaves) · audit-log append-only spine
+untouched · no payout/refund lever · moderation desk untouched beyond shared
+plumbing.
