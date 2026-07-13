@@ -1,0 +1,6 @@
+SELF-ANCHORING — local HEAD vs origin
+=====================================
+git rev-parse HEAD  : e7fbff79bf73c1718872536979ffb51c7d23b571
+
+git ls-remote origin claude/platform-ops-console-90txec :
+e7fbff79bf73c1718872536979ffb51c7d23b571	refs/heads/claude/platform-ops-console-90txec

@@ -1,0 +1,3 @@
+$ node scripts/gates/no-hardcode.mjs
+zero-hardcode scan OK: 16 src file(s), no literal colours or lengths
+(exit code: 0)

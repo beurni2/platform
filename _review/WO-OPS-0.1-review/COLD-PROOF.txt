@@ -1,0 +1,36 @@
+ISOLATION / COLD-PROOF — WO-OPS-0.1 (CLEAN HOME, at e7fbff7)
+===========================================================
+Per CTO: a CLEAN HOME, not just a clean store. Greenness comes from a fresh
+$HOME (no inherited pnpm store, no inherited git/pnpm config) cloning the
+COMMITTED bytes. The only thing re-established in the fresh home is the git
+proxy rewrite — infrastructure equivalent to CI's token-auth step, not a cache.
+
+  export HOME=<fresh empty dir>
+  git config --global url."<git-proxy>".insteadOf "https://github.com/"   # infra only
+  git clone --single-branch --branch claude/platform-ops-console-90txec <proxy>/beurni2/platform <cold>
+
+  cold HEAD    : e7fbff79bf73c1718872536979ffb51c7d23b571
+  origin branch: e7fbff79bf73c1718872536979ffb51c7d23b571   (identical)
+
+  $ pnpm install --frozen-lockfile        # default store under the fresh HOME = empty = cold
+  Done — @platform/* resolved at pin 04af4b5 (canon v0.9.4), lockfile frozen.
+
+  GUARD (DoD) from the cold clone:
+  $ node -p "require('@platform/contracts/package.json').version"
+  0.9.4
+
+Gates from the cold clone (bash scripts/run-gates.sh):
+  typecheck ........................................ exit 0
+  tests ............................................ exit 0  (20 passed)
+  zero-hardcode  (pos / neg) ....................... 0 / 1
+  copy-lint      (pos / neg) ....................... 0 / 1
+  lockfile URL-form  (pos / neg) ................... 0 / 1   (NEW; defense-in-depth vs canon v0.9.4 standing law)
+  drift-check @ derived 0.9.4  (pos) ............... 0
+  drift-check tampered-doc  (neg) .................. 1
+  drift-check version-mismatch  (neg, DEBT ③) ...... 1       ("0.0.0-planted-mismatch does not match manifest packageVersion 0.9.4")
+  playwright-e2e ................................... exit 0  (3/3)
+
+  => ALL GATES GREEN (positives passed; every negative fixture failed with exit 1 exactly)
+
+Lockfile hygiene: grep -c 'git@github.com:' pnpm-lock.yaml = 0; 0 proxy leakage;
+git deps recorded as github.com/beurni2/platform-contracts#04af4b5…&path:packages/*.

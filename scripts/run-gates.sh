@@ -52,15 +52,29 @@ capture copy-lint-positive pass pnpm exec copy-lint apps/ops-console/i18n/catalo
 log "gate: French Voice copy-lint — NEGATIVE FIXTURE (veuillez/séquestre + marketing-in-money, must fail)"
 capture copy-lint-negative fail pnpm exec copy-lint scripts/gates/fixtures/negative/catalog.negative.json
 
-log "gate: contracts drift-check — pinned /docs copy vs canon manifest v0.9.1 (must pass)"
-capture drift-check-positive pass pnpm exec drift-check docs --pinned-version 0.9.1
+log "gate: lockfile URL-form — zero SSH-form git URLs in the committed lockfile (defense in depth; canon v0.9.4 standing law) (must pass)"
+capture lockfile-url-form-positive pass node scripts/gates/no-ssh-git-url.mjs
+
+log "gate: lockfile URL-form — NEGATIVE FIXTURE (planted git@github.com: url, must fail)"
+capture lockfile-url-form-negative fail node scripts/gates/no-ssh-git-url.mjs scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml
+
+# DEBT ③ CLOSED: the drift-check's version anchor is DERIVED from the installed
+# @platform/contracts (which the sha pin determines) — no hand-kept string. The
+# CLI already refuses when --pinned-version != the manifest's packageVersion, so
+# a stale or mismatched version fires (proven by the negative below).
+PIN_VERSION="$(node -p "require('@platform/contracts/package.json').version")"
+log "gate: contracts drift-check — /docs vs canon manifest at the INSTALLED version ($PIN_VERSION, DERIVED — debt ③) (must pass)"
+capture drift-check-positive pass pnpm exec drift-check docs --pinned-version "$PIN_VERSION"
 
 log "gate: contracts drift-check — TAMPERED consumer doc (must fail)"
 DRIFT_TMP="$(mktemp -d)"
 cp -r docs "$DRIFT_TMP/docs"
 printf '\nrogue edit — this consumer copy drifted from canon\n' >> "$DRIFT_TMP/docs/ECOSYSTEM-MASTER-REFERENCE.md"
-capture drift-check-negative fail pnpm exec drift-check "$DRIFT_TMP/docs" --pinned-version 0.9.1
+capture drift-check-negative fail pnpm exec drift-check "$DRIFT_TMP/docs" --pinned-version "$PIN_VERSION"
 rm -rf "$DRIFT_TMP"
+
+log "gate: drift-check version coupling (debt ③) — NEGATIVE (planted version mismatch vs installed, must fail)"
+capture drift-check-version-mismatch-negative fail pnpm exec drift-check docs --pinned-version 0.0.0-planted-mismatch
 
 log "ops console — Playwright harness (eight routes render honest empty states)"
 capture playwright-e2e pass pnpm --filter @platform/ops-console test:e2e

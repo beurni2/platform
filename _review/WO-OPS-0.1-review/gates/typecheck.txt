@@ -1,0 +1,28 @@
+$ pnpm typecheck
+
+> platform@0.0.1 typecheck /tmp/claude-0/-home-user/d7e756df-b353-5d8b-889e-4df53351e005/scratchpad/cold-final
+> turbo run typecheck
+
+
+Attention:
+Turborepo now collects completely anonymous telemetry regarding usage.
+This information is used to shape the Turborepo roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://turborepo.dev/docs/telemetry
+
+• turbo 2.10.4
+
+   • Packages in scope: @platform/ops-console
+   • Running typecheck in 1 packages
+   • Remote caching disabled
+
+@platform/ops-console:typecheck: cache miss, executing a5fd1a2414d00794
+@platform/ops-console:typecheck: 
+@platform/ops-console:typecheck: > @platform/ops-console@0.0.1 typecheck /tmp/claude-0/-home-user/d7e756df-b353-5d8b-889e-4df53351e005/scratchpad/cold-final/apps/ops-console
+@platform/ops-console:typecheck: > tsc -p tsconfig.json --noEmit && tsc -p tsconfig.typetest.json
+@platform/ops-console:typecheck: 
+
+ Tasks:    1 successful, 1 total
+Cached:    0 cached, 1 total
+  Time:    3.353s 
+(exit code: 0)

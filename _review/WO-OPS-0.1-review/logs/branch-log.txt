@@ -1,0 +1,21 @@
+e7fbff7 WO-OPS-0.1: README Canon pin section → 04af4b5 / v0.9.4 (finish provenance sweep)
+ README.md | 16 +++++++++-------
+ 1 file changed, 9 insertions(+), 7 deletions(-)
+7e01831 WO-OPS-0.1: fix stale pin provenance in comments (verifier sub-finding)
+ apps/ops-console/scripts/gen-icons.mjs | 5 +++--
+ apps/ops-console/src/icons.ts          | 2 +-
+ apps/ops-console/test/icons.test.ts    | 3 ++-
+ pnpm-workspace.yaml                    | 2 +-
+ 4 files changed, 7 insertions(+), 5 deletions(-)
+518667d WO-OPS-0.1: re-pin canon v0.9.1 → v0.9.4 (04af4b5); close debt ③; lockfile URL-form gate
+ JOURNAL.md                                         | 42 ++++++++++++++
+ apps/ops-console/package.json                      |  6 +-
+ docs/ECOSYSTEM-MASTER-REFERENCE.md                 |  4 +-
+ docs/Ecosystem-Engineering-Execution-Contract.md   | 11 ++++
+ package.json                                       |  6 +-
+ pnpm-lock.yaml                                     | 64 +++++++++++-----------
+ pnpm-workspace.yaml                                |  6 +-
+ .../gates/fixtures/negative/ssh-url/pnpm-lock.yaml |  8 +++
+ scripts/gates/no-ssh-git-url.mjs                   | 34 ++++++++++++
+ scripts/run-gates.sh                               | 20 ++++++-
+ 10 files changed, 155 insertions(+), 46 deletions(-)
