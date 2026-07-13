@@ -1,0 +1,51 @@
+$ pnpm test
+
+> platform@0.0.1 test /home/user/platform
+> turbo run test
+
+• turbo 2.10.4
+
+   • Packages in scope: @platform/ops-console
+   • Running test in 1 packages
+   • Remote caching disabled
+
+@platform/ops-console:build: cache hit, replaying logs d98da6c0150272fd
+@platform/ops-console:build: 
+@platform/ops-console:build: > @platform/ops-console@0.0.1 build /home/user/platform/apps/ops-console
+@platform/ops-console:build: > vite build
+@platform/ops-console:build: 
+@platform/ops-console:build: vite v6.4.3 building for production...
+@platform/ops-console:build: transforming...
+@platform/ops-console:build: ✓ 128 modules transformed.
+@platform/ops-console:build: rendering chunks...
+@platform/ops-console:build: computing gzip size...
+@platform/ops-console:build: dist/index.html                  0.33 kB │ gzip:  0.25 kB
+@platform/ops-console:build: dist/assets/index-CjD42-08.js  117.08 kB │ gzip: 31.43 kB
+@platform/ops-console:build: ✓ built in 672ms
+@platform/ops-console:test: cache hit, replaying logs 6998f72dd3260734
+@platform/ops-console:test: 
+@platform/ops-console:test: > @platform/ops-console@0.0.1 test /home/user/platform/apps/ops-console
+@platform/ops-console:test: > vitest run
+@platform/ops-console:test: 
+@platform/ops-console:test: 
+@platform/ops-console:test:  RUN  v3.2.7 /home/user/platform/apps/ops-console
+@platform/ops-console:test: 
+@platform/ops-console:test:  ✓ test/desk-isolation.test.ts (5 tests) 8ms
+@platform/ops-console:test:  ✓ test/icons.test.ts (4 tests) 13ms
+@platform/ops-console:test:  ✓ test/moderation-decide.test.ts (8 tests) 11ms
+@platform/ops-console:test:  ✓ test/catalog.test.ts (4 tests) 6ms
+@platform/ops-console:test:  ✓ test/breakglass-issue.test.ts (8 tests) 9ms
+@platform/ops-console:test:  ✓ test/audit-log.test.ts (4 tests) 8ms
+@platform/ops-console:test:  ✓ test/maker-checker.test.ts (5 tests) 7ms
+@platform/ops-console:test:  ✓ test/desks.test.ts (3 tests) 7ms
+@platform/ops-console:test: 
+@platform/ops-console:test:  Test Files  8 passed (8)
+@platform/ops-console:test:       Tests  41 passed (41)
+@platform/ops-console:test:    Start at  23:19:53
+@platform/ops-console:test:    Duration  1.17s (transform 275ms, setup 0ms, collect 839ms, tests 68ms, environment 1ms, prepare 668ms)
+@platform/ops-console:test: 
+
+ Tasks:    2 successful, 2 total
+Cached:    2 cached, 2 total
+  Time:    11ms >>> FULL TURBO
+(exit code: 0)

@@ -1,0 +1,6 @@
+$ pnpm exec copy-lint scripts/gates/fixtures/negative/catalog.negative.json
+copy-lint FAILED: 3 violation(s) across 3 entries
+  [banned_register_token] bad.banned_veuillez: banned-register token « veuillez » in fr: "Veuillez patienter, votre demande est en cours de traitement."
+  [banned_register_token] bad.banned_sequestre: banned-register token « séquestre » in fr: "Le séquestre des fonds est en cours."
+  [register_mismatch] bad.money_marketing: marketing/urgency token « profitez » in a register:money string (fr): "Offre spéciale — profitez vite !"
+(exit code: 1)

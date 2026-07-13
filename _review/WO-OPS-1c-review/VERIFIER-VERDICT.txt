@@ -1,0 +1,65 @@
+FRESH-CONTEXT VERIFIER — VERDICT (verbatim) — WO-OPS-1c
+=======================================================
+No memory of the build (CLAUDE.md §6bis + WO VERIFIER MANDATE). Ran the
+subversions itself against the actual repo, canon source at 67bda02, and a live
+gate run. Working tree left clean (HEAD d3b670f, porcelain empty).
+
+A. PIN + CANON — PASS. All three live pin sites (package.json deps,
+   pnpm-workspace.yaml overrides, apps/ops-console/package.json) pin exactly
+   67bda02646019cb4ab28a16fadf388b522da2799. No ba6f16d remains at any live pin
+   site; the surviving ba6f16d references are the frozen negative fixture
+   (scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml), pin-history/
+   provenance prose in JOURNAL.md and README.md, prior-slice _review/ snapshots,
+   and untracked node_modules/.pnpm cache — none are live pins. (Note:
+   apps/ops-console/src/icons.ts and gen-icons.mjs carry stale provenance
+   COMMENTS saying the glyphs came from "canon v0.9.6, pin ba6f16d" — a
+   documentation nit on static assets correctly left outside this slice's scope,
+   not a pin violation.) node -p contracts version → 0.9.8. grep -c
+   'git@github.com:' pnpm-lock.yaml → 0; lockfile references only the one 40-hex
+   sha 67bda02. Independent clone confirms 67bda02 is a real commit, reachable
+   from origin/main (ancestor; main head cfd322b), message "merge(canon): v0.9.8
+   — the payment-operator namespace… founder review passed". At that commit,
+   packages/contracts/src/shapes/custody.ts defines
+   export const PaymentOperatorActorSchema = z.string().regex(/^ops:payment:[A-Za-z0-9._:-]+$/, …)
+   AND HandoffAuthorizationSchema binds authorizedBy: PaymentOperatorActorSchema;
+   package version there is 0.9.8.
+
+B. DELEGATION IS REAL — PASS. git grep PAYMENT_OPERATOR_PATTERN -- apps/ → gone.
+   The only regex-literal occurrences in apps/ are inside comments (the
+   founder-ruling quote at issue.ts:23 and a test comment). assertPaymentOperator
+   (issue.ts:77-83) now calls PaymentOperatorActorSchema.safeParse(id).success,
+   imported from @platform/contracts. Direct parse through canon's built dist:
+   ops:payment:sanou and ops:payment:zerbo ACCEPT; supplier:aicha,
+   logistics-service:dispatch, ops:moderation:diallo, and empty-suffix
+   ops:payment: REJECT. My own throwaway spec drove issueBreakGlass/
+   approveBreakGlass end-to-end and confirmed the same six results at BOTH the
+   maker and checker halves (4/4 passed; deleted after).
+
+C. SCOPE — PASS. git diff --name-only origin/main..HEAD = exactly JOURNAL.md,
+   README.md, package.json, apps/ops-console/package.json, pnpm-workspace.yaml,
+   pnpm-lock.yaml, apps/ops-console/src/breakglass/issue.ts. No test file edited.
+   issue.ts diff is solely the guard delegation (comment update +
+   PaymentOperatorActorSchema import + deletion of the PAYMENT_OPERATOR_PATTERN
+   const + .test() → .safeParse().success); the error string and all request/
+   envelope/command construction are unchanged. audit-log.ts, moderation/
+   decide.ts, breakglass/board.ts, board-view.ts, and sandbox.ts are
+   byte-unchanged (0 diff lines each).
+
+D. THE FOURTH SECRET — PASS. Comment-stripped scan of every file in
+   apps/ops-console/src/breakglass/: no signature and no console. in code. All
+   raw signature hits are prose stating the fourth secret is absent; the single
+   console. raw hit is the English word "console" inside a comment.
+   BreakGlassRequest carries no signature field.
+
+E. DRIFT / DOCS — PASS. git diff origin/main..HEAD -- docs/ = 0 lines (docs
+   untouched). Derived-version drift-check (drift-check docs --pinned-version
+   0.9.8) → "OK: 11 canonical docs match manifest (packageVersion 0.9.8)", exit 0.
+
+F. FULL GATES — PASS. bash scripts/run-gates.sh ended with ALL GATES GREEN
+   (positives passed; every negative fixture failed as required). vitest 41/41
+   (8 files); Playwright 5/5; all four positives passed (zero-hardcode,
+   copy-lint, lockfile URL-form, drift-check); all five negative fixtures exited
+   1 (hardcode, copy-lint, ssh-url lockfile, tampered-doc drift, version-mismatch
+   drift).
+
+OVERALL: PASS
