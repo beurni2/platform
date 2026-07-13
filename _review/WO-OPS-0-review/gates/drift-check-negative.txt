@@ -1,4 +1,4 @@
-$ pnpm exec drift-check /tmp/tmp.t71GSaTSM5/docs --pinned-version 0.9.1
+$ pnpm exec drift-check /tmp/tmp.a9WB06H03z/docs --pinned-version 0.9.1
 drift-check FAILED — consumer /docs diverges from canon:
   - doc drifted from canon: ECOSYSTEM-MASTER-REFERENCE.md (expected sha256 2bafe3eaded062ef2cf43dfa6e0b32e37122b1494a1005bbc7f2e5d2c29fb83a, got 8e7d185cadca4776dc8266599a8d9191916972f1a005d35d512ea5281e2900f9)
 (exit code: 1)

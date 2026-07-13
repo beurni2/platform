@@ -3,6 +3,14 @@ FRESH-CONTEXT VERIFIER — VERDICT (verbatim) — WO-OPS-0
 Dispatched with no memory of the build (CLAUDE.md §6bis + WO VERIFIER MANDATE).
 Attempted the subversions itself; reported only what it ran. Repo left clean.
 
+SCOPE NOTE (2026-07-13): this verdict was produced against commit 383fc2b (the
+spine's behaviour). The code under review is now eade322, which only (a) tightened
+the action-type from `string` to the quarantined closed union and (b) corrected
+directive-provenance wording — it did NOT change maker-checker or audit-log
+behaviour. All four checks are re-proven at eade322 by the green typecheck
+(the @ts-expect-error type-test) and the 20 passing tests; see COLD-PROOF.txt
+and MAKER-CHECKER-COMPILE-PROOF.txt.
+
 A. MAKER-CHECKER, TYPE LEVEL — PASS.
 - test-d/_verify_same.ts (same actor "aicha" as maker and checker, NO
   @ts-expect-error) → `npx tsc -p tsconfig.typetest.json` FAILED (EXIT=2):

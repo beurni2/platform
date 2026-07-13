@@ -1,0 +1,9 @@
+SELF-ANCHORING — local HEAD vs origin (do not trust a sha from prose)
+======================================================================
+reviewable code commit (this packet is built on top of it):
+
+git rev-parse HEAD                : eade3220ced2a084e4901d33f5bc5a8e7388f57f
+git rev-parse --short HEAD        : eade322
+
+git ls-remote origin claude/platform-ops-console-90txec :
+eade3220ced2a084e4901d33f5bc5a8e7388f57f	refs/heads/claude/platform-ops-console-90txec

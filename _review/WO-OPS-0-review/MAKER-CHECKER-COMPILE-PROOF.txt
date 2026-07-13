@@ -1,24 +1,25 @@
-MAKER-CHECKER — COMPILE-LEVEL IMPOSSIBILITY BITES (WO-OPS-0)
-============================================================
+MAKER-CHECKER — COMPILE-LEVEL IMPOSSIBILITY BITES (WO-OPS-0, at eade322)
+=======================================================================
 The same-identity approval is a TYPE-LEVEL impossibility, not a passing
-@ts-expect-error on nothing. Proven by probe:
+@ts-expect-error on nothing. Re-proven at the code under review (eade322, after
+the action-type was tightened to the quarantined closed union):
 
 Probe test-d/_probe.ts calls approve(issued, alice, env('alice')) — same
 identity, WITHOUT any @ts-expect-error — then:
 
   $ npx tsc -p tsconfig.typetest.json
-  test-d/_probe.ts(7,38): error TS2345: Argument of type 'Actor<"alice">'
+  test-d/_probe.ts(8,38): error TS2345: Argument of type 'Actor<"alice">'
       is not assignable to parameter of type 'never'.
   exit: 2
 
-The checker parameter type is `never` when checker identity == maker
-identity (DistinctChecker<M,C> = Actor<C> & (C extends M ? never : Actor<C>)),
-so no value inhabits it. With the probe removed:
+The checker parameter type is `never` when checker identity == maker identity
+(DistinctChecker<M,C> = Actor<C> & (C extends M ? never : Actor<C>)), so no
+value inhabits it. With the probe removed:
 
   $ npx tsc -p tsconfig.typetest.json
   exit: 0   (clean — the shipped test-d/maker-checker.type-test.ts @ts-expect-error
              is satisfied by exactly this real error)
 
 RUNTIME refusal (even when the compiler is subverted) is proven in
-test/maker-checker.test.ts: casting the maker to the checker's type and
-calling approve throws MakerCheckerSameIdentityError. Both levels hold.
+test/maker-checker.test.ts: casting the maker to the checker's type and calling
+approve throws MakerCheckerSameIdentityError. Both levels hold.
