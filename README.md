@@ -27,16 +27,23 @@ another domain's database.**
 - **The audit-log primitive** (`apps/ops-console/src/audit-log.ts`) —
   append-only: who · what · why · when · against which entity · with what
   evidence. An entry cannot be mutated or deleted; both are proven.
+- **The ops action-type** (`apps/ops-console/src/ops-action.ts`) — the "what"
+  the two primitives carry. Canon's closed `EVENT_NAMES` registry has no
+  ops-command event and canon forbids inventing one, so this is NOT canon: a
+  **quarantined local closed union — a named debt**, one debt sentinel today, to
+  be derived later from commands that actually exist (**CTO ruling, 2026-07-13**;
+  see JOURNAL.md).
 
 ## Canon pin
 
 All `@platform/*` packages are pinned to platform-contracts
-**`4440ce0f217372051d9876cf6aaefda8d006a3ba`** (canon **v0.9.1** — the
-founder-reviewed release merge; founder-supplied sha, WO-OPS-0). This repo
+**`4440ce0f217372051d9876cf6aaefda8d006a3ba`** (canon **v0.9.1**; its canon
+commit message records "founder review passed"). The WO reserved the pin pick
+to the founder, so rather than guess I stopped and asked — the sha was supplied
+in-session as a **CTO ruling (2026-07-13)**, not a founder paste. This repo
 consumes that pin; it never edits canon. Moving the pin is a deliberate,
-founder-ratified change across `apps/ops-console/package.json` +
-`pnpm-workspace.yaml` + the `/docs` copy, in one PR (see `CONSUMING.md` in
-platform-contracts).
+reviewed change across `apps/ops-console/package.json` + `pnpm-workspace.yaml` +
+the `/docs` copy, in one PR (see `CONSUMING.md` in platform-contracts).
 
 ## Layout
 

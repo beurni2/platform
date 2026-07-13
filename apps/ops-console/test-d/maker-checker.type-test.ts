@@ -7,6 +7,7 @@
  */
 import type { EventEnvelope } from '@platform/contracts';
 import { actor, issue, approve } from '../src/maker-checker';
+import { OPS_ACTION_PENDING } from '../src/ops-action';
 
 const env = (who: string): EventEnvelope => ({
   command_id: 'c',
@@ -19,7 +20,12 @@ const env = (who: string): EventEnvelope => ({
 
 const alice = actor('alice');
 const bob = actor('bob');
-const issued = issue(alice, { action: 'a', reason: 'r', entity: 'e', envelope: env('alice') });
+const issued = issue(alice, {
+  action: OPS_ACTION_PENDING,
+  reason: 'r',
+  entity: 'e',
+  envelope: env('alice'),
+});
 
 // A DIFFERENT identity approves — this MUST compile.
 const ok = approve(issued, bob, env('bob'));

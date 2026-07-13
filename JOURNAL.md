@@ -13,31 +13,41 @@ decision register marked *"Undecided — ops functions are specified but
 homeless."* D22 closes that flag. This repo **consumes** canon; it never defines
 it, and it never writes another domain's database.
 
-### Founder rulings taken this slice (AskUserQuestion, 2026-07-13)
+### CTO rulings taken this slice (in-session via AskUserQuestion, 2026-07-13)
 
-1. **Canon pin sha** — the WO said "THE FOUNDER SUPPLIES IT — if it is not in
-   this paste, STOP AND ASK. Never guess a sha." It was not in the paste. I
-   stopped and asked. **Ruling: pin `4440ce0f217372051d9876cf6aaefda8d006a3ba`**
-   (canon **v0.9.1**, the founder-reviewed release merge). All `@platform/*` in
-   `apps/ops-console/package.json` + the `pnpm-workspace.yaml` overrides are
-   pinned to it. (Current `origin/main` `3ed4e93` was offered as the alternative
-   — byte-identical in `packages/` and `assets/icons/`, differing only in
-   JOURNAL.md; sera pins the older `fa2ff2` = v0.9.0, which does NOT carry the
-   29-icon set, so sera's pin could not be reused.)
+These are **CTO rulings — overturnable by the CTO, NOT founder rulings.** The
+founder ruled on neither; under the directive-provenance law a founder directive
+exists only as a founder-labelled paste in-session. I stopped and asked rather
+than guess, and the CTO answered. (Earlier drafts of this file mislabelled these
+"founder rulings" — corrected 2026-07-13.)
 
-2. **Audit vocabulary** — canon has `EventEnvelopeSchema`
+1. **Canon pin sha** — the WO reserved this pick to the founder ("THE FOUNDER
+   SUPPLIES IT — if it is not in this paste, STOP AND ASK. Never guess a sha").
+   It was not in the paste, so I stopped and asked; the CTO supplied it.
+   **CTO ruling: pin `4440ce0f217372051d9876cf6aaefda8d006a3ba`** (canon
+   **v0.9.1**; its canon commit message records "founder review passed"). All
+   `@platform/*` in `apps/ops-console/package.json` + the `pnpm-workspace.yaml`
+   overrides are pinned to it. (Current `origin/main` `3ed4e93` was the
+   alternative — byte-identical in `packages/` and `assets/icons/`, differing
+   only in JOURNAL.md; sera pins the older `fa2ff2` = v0.9.0, which does NOT
+   carry the 29-icon set, so sera's pin could not be reused.)
+
+2. **Audit vocabulary — CTO ruling** — canon has `EventEnvelopeSchema`
    (`actor`·`serverTime`·`command_id`·`correlation_id`·`aggregateVersion`·
    `version`) but its **closed `EVENT_NAMES` registry contains no ops / audit /
    maker-checker command event**, and canon explicitly forbids inventing event
-   names. **Ruling: consume `EventEnvelopeSchema` verbatim; invent NO canon
-   event name; model the ops-action "what" as a LOCAL, non-canon field.**
-   Applied in `src/maker-checker.ts` (`IssuedCommand.action`) and
-   `src/audit-log.ts` (`AuditEntry.action`), each documented in-file. **⏳ FLAG
-   for a future canon work order:** ops commands have no canonical event
-   vocabulary yet — when canon adds one, the local `action` field should adopt
-   it. Not this repo's to define (this repo consumes canon).
+   names — refusing to invent one was correct. **CTO ruling: consume
+   `EventEnvelopeSchema` verbatim; the ops action-type ("what") is a QUARANTINED
+   LOCAL CLOSED UNION — a NAMED DEBT (`src/ops-action.ts`), to be derived later
+   from commands that actually exist.** Implemented as `OpsActionType` (one debt
+   sentinel today — `'pending:no-ops-command-defined'`, explicitly not a
+   command), consumed by `src/maker-checker.ts` (`IssuedCommand.action`) and
+   `src/audit-log.ts` (`AuditEntry.action`). **⏳ DEBT:** when canon names an
+   ops-command vocabulary, derive the union's members from the commands that
+   actually exist and retire the sentinel. Not this repo's to define — this repo
+   consumes canon.
 
-### Safest default applied (not a founder blocker; flagged)
+### Safest default applied (a default I took; flagged)
 
 - **No `platform`/ops theme exists in `@platform/ui-tokens`** (only
   `boutik-plus`, `shop-plus`, `sera`). Per `docs/design/components.md` the

@@ -23,11 +23,12 @@
  *
  * `EventEnvelope` is consumed VERBATIM from canon (@platform/contracts). Canon's
  * closed EVENT_NAMES registry carries no ops-command event and canon forbids
- * inventing event names; per founder ruling (2026-07-13) the command's `action`
- * ("what") is a LOCAL, non-canon field, flagged in JOURNAL.md for a later canon
- * ops-vocabulary work order.
+ * inventing event names; per CTO ruling (2026-07-13) the command's `action`
+ * ("what") is a QUARANTINED LOCAL CLOSED UNION — a named debt (see
+ * ./ops-action.ts), NOT canon, flagged in JOURNAL.md.
  */
 import { EventEnvelopeSchema, type EventEnvelope } from '@platform/contracts';
+import type { OpsActionType } from './ops-action';
 
 export class MakerCheckerError extends Error {
   constructor(message: string) {
@@ -67,8 +68,8 @@ export function actor<const Id extends ActorId>(id: Id): Actor<Id> {
 
 /** A command ISSUED by a maker (half one). `envelope.actor === maker.id`. */
 export interface IssuedCommand<M extends ActorId = ActorId> {
-  /** what — a LOCAL action-type; NOT a canon EVENT_NAMES entry (see header). */
-  readonly action: string;
+  /** what — a quarantined local closed union (./ops-action.ts); NOT a canon EVENT_NAMES entry. */
+  readonly action: OpsActionType;
   /** why */
   readonly reason: string;
   /** against which entity */
@@ -102,7 +103,7 @@ export type DistinctChecker<M extends ActorId, C extends ActorId> = Actor<C> &
 export function issue<M extends ActorId>(
   maker: Actor<M>,
   input: {
-    readonly action: string;
+    readonly action: OpsActionType;
     readonly reason: string;
     readonly entity: string;
     readonly envelope: EventEnvelope;

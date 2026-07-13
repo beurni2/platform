@@ -20,16 +20,18 @@
  * mutated or deleted — both are proven in test/audit-log.test.ts.
  *
  * `who` and `when` come from canon's EventEnvelope (`actor`, `serverTime`),
- * consumed VERBATIM. `action` ("what") is a LOCAL, non-canon field: canon's
- * EVENT_NAMES registry has no ops-command event and canon forbids inventing
- * event names (founder ruling 2026-07-13; flagged in JOURNAL.md).
+ * consumed VERBATIM. `action` ("what") is a QUARANTINED LOCAL CLOSED UNION — a
+ * named debt (./ops-action.ts), NOT canon: canon's EVENT_NAMES registry has no
+ * ops-command event and canon forbids inventing event names (CTO ruling
+ * 2026-07-13; flagged in JOURNAL.md).
  */
 import { EventEnvelopeSchema, type EventEnvelope } from '@platform/contracts';
+import type { OpsActionType } from './ops-action';
 
 /** The six facts every audit entry must carry (canon Desk 8). */
 export interface AuditEntryInput {
-  /** what — a LOCAL action-type; NOT a canon EVENT_NAMES entry (see header). */
-  readonly action: string;
+  /** what — a quarantined local closed union (./ops-action.ts); NOT a canon EVENT_NAMES entry. */
+  readonly action: OpsActionType;
   /** why — the operator's stated reason. */
   readonly reason: string;
   /** against which entity — the order / claim / capability the action targets. */

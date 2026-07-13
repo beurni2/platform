@@ -7,6 +7,7 @@ import {
   MakerCheckerError,
   MakerCheckerSameIdentityError,
 } from '../src/maker-checker';
+import { OPS_ACTION_PENDING } from '../src/ops-action';
 
 const env = (who: string, id: string): EventEnvelope => ({
   command_id: id,
@@ -23,7 +24,7 @@ describe('maker-checker — two different people, or it does not happen', () => 
 
   it('a DIFFERENT identity can approve a maker’s command', () => {
     const cmd = issue(alice, {
-      action: 'flag.toggle',
+      action: OPS_ACTION_PENDING,
       reason: 'incident 22h',
       entity: 'capability:checkout',
       envelope: env('alice', 'cmd-issue'),
@@ -35,7 +36,7 @@ describe('maker-checker — two different people, or it does not happen', () => 
 
   it('the SAME identity is refused at RUNTIME even when the compiler is subverted (cast)', () => {
     const cmd = issue(alice, {
-      action: 'flag.toggle',
+      action: OPS_ACTION_PENDING,
       reason: 'incident 22h',
       entity: 'capability:checkout',
       envelope: env('alice', 'cmd-issue'),
@@ -50,13 +51,13 @@ describe('maker-checker — two different people, or it does not happen', () => 
 
   it('the issued envelope actor must equal the maker', () => {
     expect(() =>
-      issue(alice, { action: 'a', reason: 'r', entity: 'e', envelope: env('bob', 'cmd') }),
+      issue(alice, { action: OPS_ACTION_PENDING, reason: 'r', entity: 'e', envelope: env('bob', 'cmd') }),
     ).toThrow(MakerCheckerError);
   });
 
   it('the approval envelope actor must equal the checker', () => {
     const cmd = issue(alice, {
-      action: 'a',
+      action: OPS_ACTION_PENDING,
       reason: 'r',
       entity: 'e',
       envelope: env('alice', 'cmd-issue'),
@@ -74,7 +75,7 @@ describe('maker-checker — two different people, or it does not happen', () => 
       version: '1',
     } as unknown as EventEnvelope;
     expect(() =>
-      issue(alice, { action: 'a', reason: 'r', entity: 'e', envelope: bad }),
+      issue(alice, { action: OPS_ACTION_PENDING, reason: 'r', entity: 'e', envelope: bad }),
     ).toThrow();
   });
 });
