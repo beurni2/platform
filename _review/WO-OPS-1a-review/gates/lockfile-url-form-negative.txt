@@ -1,0 +1,5 @@
+$ node scripts/gates/no-ssh-git-url.mjs scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml
+lockfile URL-form gate FAILED — SSH-form git URLs are forbidden (2):
+  - scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml:7: scp-form git@github.com: — specifier: git@github.com:beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
+  - scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml:8: scp-form git@github.com: — version: 'git@github.com:beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts'
+(exit code: 1)

@@ -1,0 +1,15 @@
+$ pnpm --filter @platform/ops-console test:e2e
+
+> @platform/ops-console@0.0.1 test:e2e /tmp/claude-0/-home-user/d7e756df-b353-5d8b-889e-4df53351e005/scratchpad/cold-1a/apps/ops-console
+> playwright test
+
+
+Running 4 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/shell.spec.ts:28:1 › the shell boots on the shared/neutral palette with catalog strings (305ms)
+  ✓  2 [chromium] › e2e/shell.spec.ts:39:1 › the seven non-moderation desks stay honest empty shells (no queue leaks in) (499ms)
+  ✓  3 [chromium] › e2e/shell.spec.ts:51:1 › DESK 3 (moderation) is live — renders the queue: pending / decided, reasons verbatim (253ms)
+  ✓  4 [chromium] › e2e/shell.spec.ts:73:1 › an unknown route falls back to the first desk — a shell, never blank or fabricated (222ms)
+
+  4 passed (3.7s)
+(exit code: 0)

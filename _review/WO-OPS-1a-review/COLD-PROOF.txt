@@ -1,0 +1,31 @@
+ISOLATION — WARM + CLEAN-HOME COLD PROOF — WO-OPS-1a (at a77f993)
+================================================================
+Per CTO: warm + cold, a CLEAN HOME (not just a clean store), and the AUTH LINE
+SHOWN (the evidence law — infrastructure is not hidden).
+
+WARM (working tree): `bash scripts/run-gates.sh` → ALL GATES GREEN (32 tests,
+typecheck incl. type-test, zero-hardcode 19 files, copy-lint 22 entries,
+lockfile URL-form, drift-check derived 0.9.6, Playwright 4/4; every negative
+exit 1).
+
+COLD (fresh $HOME, empty store, committed bytes), auth line shown verbatim:
+
+  $ export HOME=<fresh empty dir>          # no inherited pnpm store / git config
+  --- THE AUTH LINE (infrastructure; equivalent to CI's PLATFORM_CONTRACTS_READ_TOKEN step) ---
+  $ git config --global url."http://<git-proxy>/git/".insteadOf "https://github.com/"
+  --- verified set in the fresh HOME ---
+  url.http://<git-proxy>/git/.insteadof https://github.com/
+  --- clone committed bytes ---
+  cold HEAD    : a77f993d418353eb321d0657460e1c677f20c612
+  origin branch: a77f993d418353eb321d0657460e1c677f20c612   (identical)
+
+  $ pnpm install --frozen-lockfile         # default store under the fresh HOME = empty = cold
+  Done — @platform/* resolved at pin ba6f16d (canon v0.9.6), lockfile frozen.
+
+  GUARD (DoD): node -p "require('@platform/contracts/package.json').version" → 0.9.6
+
+  $ bash scripts/run-gates.sh
+  => ALL GATES GREEN (positives passed; every negative fixture failed with exit 1 exactly)
+
+Lockfile hygiene: grep -c 'git@github.com:' pnpm-lock.yaml = 0; 0 proxy leakage;
+git deps recorded as github.com/beurni2/platform-contracts#ba6f16d…&path:packages/*.
