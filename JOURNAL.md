@@ -336,3 +336,62 @@ packet (`logs/red-proof.txt`: `Failed to load url ../src/breakglass/issue`).
 inside the operators' payload (it never leaves) · audit-log append-only spine
 untouched · no payout/refund lever · moderation desk untouched beyond shared
 plumbing.
+
+---
+
+## WO-OPS-1c — THE INTERIM'S EXECUTIONER: delegate the payment-operator allow-list to canon — TIER: 🟠 AMBER — **IN REVIEW (do NOT merge — founder review)**
+
+WO-OPS-1b was ruled **PASS (RED)** and **MERGED (`298f67f`)** — a `--no-ff`
+merge onto the 1a head (`5ef51cb`). This slice restarts the branch from that
+merged `main` and does the MENUM arc, exactly: the app-side allow-list interim
+from 1b is now retired because canon owns the constraint.
+
+**Gate verified by own fetch (not trusted from the relay).** Canon
+`origin/main` carries `67bda02` (v0.9.8 release merge — "the payment-operator
+namespace: `ops:payment:*` allow-list; `authorizedBy` constrained"). Built
+contracts prints `0.9.8` and exports **`PaymentOperatorActorSchema`**
+(`packages/contracts/src/shapes/custody.ts`), which is the **same schema that
+types `HandoffAuthorizationSchema.authorizedBy`**. Its regex is
+`/^ops:payment:[A-Za-z0-9._:-]+$/` — **byte-identical** to the founder ruling
+the 1b interim carried; so the delegation is a semantics-preserving move of the
+guard down to the contract layer, not a re-interpretation. Confirmed at runtime:
+parses `ops:payment:sanou`, refuses `supplier:aicha`, refuses empty suffix.
+
+**(1) The one re-pin — `ba6f16d`/v0.9.6 → `67bda02`/v0.9.8.** Six live pin
+sites (`package.json` ×3, `pnpm-workspace.yaml` overrides ×3) swapped;
+`apps/ops-console/package.json` ×3; provenance strings swept in `README.md` and
+the `pnpm-workspace.yaml` comment. Lockfile **regenerated** by `pnpm install`
+(not hand-edited): old-sha 0 · new-sha 28 · `git@github.com:` 0. Docs: the canon
+manifest did **not** move for platform — the 11 mirrored specs are byte-identical
+between v0.9.6 and v0.9.8 (only `packageVersion` bumped; canon's changed docs
+`derivations/QR-DIMENSIONS.md` + `design/tokens.json` are not in platform's
+mirrored set), so **no `/docs` re-sync** was required. drift-check confirms:
+`11 canonical docs match manifest (packageVersion 0.9.8)`, version DERIVED.
+
+**(2) The delegation — `src/breakglass/issue.ts`.** The exported app-side
+`PAYMENT_OPERATOR_PATTERN` regex is **removed**; `assertPaymentOperator` now
+delegates to `PaymentOperatorActorSchema.safeParse(id)` at BOTH halves (still
+throwing `BreakGlassActorError` so the app's error contract is unchanged).
+Because the guarded identity is the actor that would populate
+`HandoffAuthorization.authorizedBy`, and it is now validated by the very schema
+that types that field, **a non-`ops:payment` authorizedBy is unconstructable at
+the contract layer**. Change was imports + the delegation only — no test needed
+editing (per CTO's STOP-AND-FLAG condition; not triggered).
+
+**(3) ⏳→✅ NAMED INTERIM DEBT (from WO-OPS-1b) — CLOSED.** "app-side
+enforcement is temporary; executioner = the re-pin after canon WO-5.12 lands."
+**This slice is that executioner.** The pattern is no longer maintained in app
+code; it lives once, in canon.
+
+**(4) Refusal fixtures unchanged and green.** `test/breakglass-issue.test.ts`
+still refuses supplier · **`logistics-service:dispatch`** (sera's real
+dispatcher literal) · `ops:moderation:diallo` · empty-suffix `ops:payment:` at
+both halves — now against canon's schema. 41 tests + typecheck (incl. the
+compile-guard type-test) green; zero-hardcode · copy-lint · lockfile URL-form ·
+drift-check (derived 0.9.8) · Playwright 5/5; every negative exit 1.
+
+**FORBIDDEN respected:** no new command, surface, or franc · maker-checker,
+audit-log, moderation, and the break-glass request/board shapes untouched
+(delegation is guard-internal) · the fourth secret still absent · no `/docs`
+edit beyond what canon dictates (none) · the ssh-url negative fixture left
+frozen (it tests URL form, not pin currency).

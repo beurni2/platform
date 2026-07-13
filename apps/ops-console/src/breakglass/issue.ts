@@ -23,8 +23,12 @@
  *   "at BOTH halves, only an actor matching ^ops:payment:[A-Za-z0-9._:-]+$
  *    validates; every other actor — supplier, dispatcher, ops:moderation:*,
  *    anything — is refused by non-match. No block-list exists to maintain."
- *   INTERIM: canon will encode this (WO-5.12); until that pin, PLATFORM enforces
- *   the pattern app-side. Executioner of the interim: the re-pin after WO-5.12.
+ *   CANON NOW OWNS IT (WO-OPS-1c): canon v0.9.8 (67bda02) encodes the ruling as
+ *   `PaymentOperatorActorSchema` — the SAME schema that types
+ *   `HandoffAuthorization.authorizedBy`. The guard below delegates to it, so the
+ *   identity that would authorize a break-glass handoff is constrained at the
+ *   contract layer (a non-ops:payment authorizedBy is unconstructable). The
+ *   app-side regex interim (WO-OPS-1b) is retired; this slice is its executioner.
  *
  * THE FOURTH SECRET: this slice models request→approve ONLY. provider_confirmed/
  * issued/consumed are E3-gated and render « en attente » (not modeled here). The
@@ -36,6 +40,7 @@ import {
   IdSchema,
   IsoTimestampSchema,
   mintCommandId,
+  PaymentOperatorActorSchema,
   type EventEnvelope,
 } from '@platform/contracts';
 import {
@@ -48,9 +53,6 @@ import {
   type IssuedCommand,
 } from '../maker-checker';
 import { OPS_ACTION_BREAKGLASS_ISSUE } from '../ops-action';
-
-/** Founder ruling (Beurni, 2026-07-13), verbatim — the payment-operator allow-list. */
-export const PAYMENT_OPERATOR_PATTERN = /^ops:payment:[A-Za-z0-9._:-]+$/;
 
 export class BreakGlassActorError extends Error {
   constructor(message: string) {
@@ -66,9 +68,14 @@ export class BreakGlassRequestError extends Error {
   }
 }
 
-/** Allow-list guard — the ONLY actors that validate are ops:payment:*. */
+/**
+ * Allow-list guard — the ONLY actors that validate are ops:payment:*. Delegated
+ * to canon `PaymentOperatorActorSchema` (v0.9.8), the same schema that types
+ * `HandoffAuthorization.authorizedBy`: the authorizing identity is constrained
+ * at the contract layer, not by an app-side copy of the pattern.
+ */
 function assertPaymentOperator(id: string, half: 'maker' | 'checker'): void {
-  if (!PAYMENT_OPERATOR_PATTERN.test(id)) {
+  if (!PaymentOperatorActorSchema.safeParse(id).success) {
     throw new BreakGlassActorError(
       `${half} "${id}" is not an ops:payment:* actor — break-glass issuance validates by allow-list; supplier, dispatcher, ops:moderation:*, and every other actor are refused`,
     );
