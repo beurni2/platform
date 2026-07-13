@@ -37,13 +37,15 @@ another domain's database.**
 ## Canon pin
 
 All `@platform/*` packages are pinned to platform-contracts
-**`4440ce0f217372051d9876cf6aaefda8d006a3ba`** (canon **v0.9.1**; its canon
-commit message records "founder review passed"). The WO reserved the pin pick
-to the founder, so rather than guess I stopped and asked — the sha was supplied
-in-session as a **CTO ruling (2026-07-13)**, not a founder paste. This repo
-consumes that pin; it never edits canon. Moving the pin is a deliberate,
-reviewed change across `apps/ops-console/package.json` + `pnpm-workspace.yaml` +
-the `/docs` copy, in one PR (see `CONSUMING.md` in platform-contracts).
+**`04af4b5266d53866a2b6d5800e270d3fffac2b35`** (canon **v0.9.4**; its canon
+commit message records "founder review passed"). The pin was supplied by the
+CTO in-session (**CTO ruling, 2026-07-13** — WO-OPS-0.1 re-pin; the original
+WO-OPS-0 pin was `4440ce0` / v0.9.1). This repo consumes that pin; it never
+edits canon. Moving the pin is a deliberate, reviewed change across
+`apps/ops-console/package.json` + `pnpm-workspace.yaml` + the `/docs` copy, in
+one PR (see `CONSUMING.md` in platform-contracts) — the drift-check's
+`--pinned-version` is derived from the installed package so the doc anchor
+follows the sha automatically.
 
 ## Layout
 
