@@ -1,0 +1,19 @@
+packages:
+  - "apps/*"
+
+# pnpm 10 blocks dependency build scripts by default; the @platform/* packages
+# each carry a `prepare` (tsc) build, so this allowlist is required or they
+# install without dist/ (platform-contracts/CONSUMING.md).
+onlyBuiltDependencies:
+  - "@platform/contracts"
+  - "@platform/kernel-types"
+  - "@platform/i18n"
+  - "@platform/ui-tokens"
+
+# Inter-package version-deps exist on no registry: @platform/contracts →
+# @platform/kernel-types. Route every transitive resolution through the same
+# pinned release sha (4440ce0 — canon v0.9.1) so nothing drifts off-pin.
+overrides:
+  "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/contracts"
+  "@platform/kernel-types": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/kernel-types"
+  "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/ui-tokens"

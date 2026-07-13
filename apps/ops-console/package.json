@@ -1,0 +1,29 @@
+{
+  "name": "@platform/ops-console",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Platform ops console shell (WO-OPS-0) — vanilla TS + Vite, zero framework; ui-tokens (shared/neutral); the maker-checker + audit-log spine; Playwright harness.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4273 --strictPort",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.typetest.json",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "gen:icons": "node scripts/gen-icons.mjs"
+  },
+  "dependencies": {
+    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/contracts",
+    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/i18n",
+    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/ui-tokens"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^22.20.1",
+    "typescript": "^5.9.2",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  }
+}

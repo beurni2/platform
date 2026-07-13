@@ -1,0 +1,68 @@
+[
+  {
+    "key": "app.title",
+    "fr": "Console Ops",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "app.principle",
+    "fr": "Aucune écriture du registre — seulement des commandes journalisées.",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "desk.empty_state",
+    "fr": "Aucune donnée — cet établi n'est pas encore branché.",
+    "register": "neutral",
+    "screenClass": "status"
+  },
+  {
+    "key": "desk.fonds_de_protection",
+    "fr": "Fonds de protection",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "desk.reclamations",
+    "fr": "Réclamations",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "desk.moderation",
+    "fr": "Modération",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "desk.confiance_securite",
+    "fr": "Confiance & sécurité",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "desk.reconciliation_operateur",
+    "fr": "Réconciliation opérateur",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "desk.echelle_de_refus",
+    "fr": "Échelle de refus",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "desk.flags_kill_switches",
+    "fr": "Flags & kill-switches",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "desk.journal_audit",
+    "fr": "Journal d'audit",
+    "register": "neutral",
+    "screenClass": "label"
+  }
+]
