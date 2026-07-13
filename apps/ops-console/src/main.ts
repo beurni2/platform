@@ -6,15 +6,19 @@ import {
   interaction,
   band,
   touch,
+  ribbon,
 } from '@platform/ui-tokens';
 import { DESKS, type Desk } from './desks';
 import { opsIcon } from './icons';
 import { t } from './i18n';
+import { buildSandboxQueue } from './moderation/sandbox';
+import { renderModerationQueue } from './moderation/queue-view';
 
 /**
- * WO-OPS-0 — the platform ops console SHELL. The eight desks (canon
- * ECOSYSTEM-MASTER-REFERENCE §9.2) as hash ROUTES, each with an honest empty
- * state. NO desk is wired to real data; NO command exists yet. Everything is
+ * WO-OPS-0 / WO-OPS-1a — the platform ops console SHELL. The eight desks (canon
+ * ECOSYSTEM-MASTER-REFERENCE §9.2) as hash ROUTES. Seven remain honest empty
+ * shells; DESK 3 (moderation) is now LIVE — it renders the moderation queue
+ * (pending / decided, reasons verbatim) from the real command path. Everything is
  * Grand Teint: colours, spacing, type, radius, hairlines come from
  * @platform/ui-tokens — no local values (the zero-hardcode scan enforces it).
  * There is no `platform`/ops theme in ui-tokens (only boutik-plus/shop-plus/
@@ -37,6 +41,10 @@ root.style.setProperty('--desk', C.desk);
 root.style.setProperty('--surface-muted', C.surfaceMuted);
 root.style.setProperty('--hairline', C.hairline);
 root.style.setProperty('--hairline-strong', C.hairlineStrong);
+root.style.setProperty('--success', C.success);
+root.style.setProperty('--success-tint', C.successTint);
+root.style.setProperty('--warning', C.warning);
+root.style.setProperty('--warning-tint', C.warningTint);
 // lengths (all token-derived — no literals)
 root.style.setProperty('--space-xs', px(spacing.xs));
 root.style.setProperty('--space-sm', px(spacing.sm));
@@ -141,6 +149,68 @@ style.textContent = `
     font-weight: ${typo.scale.body.wght};
     line-height: ${typo.scale.body.lh};
   }
+  .desk-content { display: grid; gap: var(--space-md); }
+  .mod-ribbon {
+    margin: 0;
+    align-self: start;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--warning-tint);
+    color: var(--warning);
+    font-size: var(--type-label);
+    font-weight: ${typo.scale.label.wght};
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+  }
+  .mod-note {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--type-caption);
+    font-weight: ${typo.scale.caption.wght};
+  }
+  .mod-queue { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-sm); }
+  .mod-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-sm);
+    align-items: baseline;
+    padding: var(--space-md);
+    background: var(--surface-muted);
+    border: var(--hair) solid var(--hairline);
+    border-radius: var(--radius-btn);
+  }
+  .mod-ref {
+    color: var(--body);
+    font-size: var(--type-row);
+    font-weight: ${typo.scale.row.wght};
+  }
+  .mod-state {
+    justify-self: end;
+    font-size: var(--type-label);
+    font-weight: ${typo.scale.label.wght};
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+  }
+  .mod-state--pending { color: var(--muted); }
+  .mod-state--approved { color: var(--success); }
+  .mod-state--changes_requested { color: var(--warning); }
+  .mod-reasons {
+    grid-column: 1 / -1;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+  .mod-reason {
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--warning-tint);
+    color: var(--warning);
+    font-size: var(--type-label);
+    font-weight: ${typo.scale.label.wght};
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+  }
 `;
 document.head.appendChild(style);
 
@@ -186,23 +256,40 @@ const panel = document.createElement('section');
 panel.className = 'desk-panel';
 const deskTitle = document.createElement('h2');
 deskTitle.className = 'desk-title';
-const emptyState = document.createElement('p');
-emptyState.className = 'empty-state';
-panel.append(deskTitle, emptyState);
+const contentHost = document.createElement('div');
+contentHost.className = 'desk-content';
+panel.append(deskTitle, contentHost);
 main.append(panel);
 
 app.append(strip, header, nav, main);
 
-// ── router: eight desks as hash routes, honest empty state per route ──────────
+// ── router: eight desks as hash routes ────────────────────────────────────────
+// Desk 3 (moderation) renders the live queue; the other seven stay honest shells.
 function currentDesk(): Desk {
   const slug = window.location.hash.replace(/^#\/?/, '');
   return DESKS.find((d) => d.id === slug) ?? DESKS[0]!;
 }
 
+function renderEmptyShell(): void {
+  contentHost.replaceChildren();
+  const empty = document.createElement('p');
+  empty.className = 'empty-state';
+  empty.textContent = t('desk.empty_state');
+  contentHost.append(empty);
+}
+
 function render(): void {
   const desk = currentDesk();
   deskTitle.textContent = t(desk.titleKey);
-  emptyState.textContent = t('desk.empty_state');
+  if (desk.id === 'moderation') {
+    renderModerationQueue(
+      contentHost,
+      buildSandboxQueue(new Date().toISOString()),
+      ribbon.sandbox.label,
+    );
+  } else {
+    renderEmptyShell();
+  }
   for (const [id, link] of navButtons) {
     if (id === desk.id) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');

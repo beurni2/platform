@@ -14,38 +14,44 @@ This repo **consumes** canon (`@platform/*`) at a **pinned git sha**; it never
 defines canon. It reads through the authoritative services and **never writes
 another domain's database.**
 
-## What exists today (WO-OPS-0 — the shell and the spine)
+## What exists today (WO-OPS-0 shell + spine · WO-OPS-1a Desk 3 live)
 
-- **The eight desks as routes**, each with an honest empty state
-  (« Aucune donnée — cet établi n'est pas encore branché. »). No desk is wired
-  to real data; no command exists yet. An empty desk that says so is correct;
+- **The eight desks as routes.** Seven remain honest empty shells
+  (« Aucune donnée — cet établi n'est pas encore branché. »). **Desk 3
+  (moderation) is LIVE** — it renders the moderation queue (pending / decided,
+  reasons verbatim) from the real command path. A shell that says so is correct;
   a desk showing fabricated data would be a defect.
 - **The maker-checker primitive** (`apps/ops-console/src/maker-checker.ts`) —
-  a command cannot be both issued and approved by the same identity. The
-  same-identity attempt is a **type-level impossibility** (it does not compile)
-  **and** a **runtime refusal** (it throws). Both are proven.
+  a command cannot be both issued and approved by the same identity: a
+  **type-level impossibility** (does not compile) for literal ids **and** a
+  **runtime refusal** (throws). Named debt ① (WO-OPS-0, closed as documented
+  WO-OPS-1a): for runtime `string` ids the type guard is vacuous, so production
+  rests on the runtime check alone — proven on the real command under an `any`
+  bypass. Debt ② (closed WO-OPS-1a): approve() re-asserts the issued envelope's
+  actor is the maker, so a hand-built command with a lying envelope is refused.
 - **The audit-log primitive** (`apps/ops-console/src/audit-log.ts`) —
   append-only: who · what · why · when · against which entity · with what
   evidence. An entry cannot be mutated or deleted; both are proven.
-- **The ops action-type** (`apps/ops-console/src/ops-action.ts`) — the "what"
-  the two primitives carry. Canon's closed `EVENT_NAMES` registry has no
-  ops-command event and canon forbids inventing one, so this is NOT canon: a
-  **quarantined local closed union — a named debt**, one debt sentinel today, to
-  be derived later from commands that actually exist (**CTO ruling, 2026-07-13**;
-  see JOURNAL.md).
+- **The first real ops command** (`apps/ops-console/src/moderation/decide.ts`) —
+  `moderation:decide`: a reviewing operator decides (canon
+  `ModerationDecisionSchema`; a supplier is refused at the schema — no
+  self-moderation), a **second** operator approves (supplier refused there too),
+  and the `command_id` is minted by canon `mintCommandId()`. The action-type
+  (`apps/ops-console/src/ops-action.ts`) is a **quarantined local closed union**;
+  its pending sentinel was retired for this real member.
 
 ## Canon pin
 
 All `@platform/*` packages are pinned to platform-contracts
-**`04af4b5266d53866a2b6d5800e270d3fffac2b35`** (canon **v0.9.4**; its canon
-commit message records "founder review passed"). The pin was supplied by the
-CTO in-session (**CTO ruling, 2026-07-13** — WO-OPS-0.1 re-pin; the original
-WO-OPS-0 pin was `4440ce0` / v0.9.1). This repo consumes that pin; it never
-edits canon. Moving the pin is a deliberate, reviewed change across
-`apps/ops-console/package.json` + `pnpm-workspace.yaml` + the `/docs` copy, in
-one PR (see `CONSUMING.md` in platform-contracts) — the drift-check's
-`--pinned-version` is derived from the installed package so the doc anchor
-follows the sha automatically.
+**`ba6f16d78a2a5a13ff6877237cef6d77d35d8d65`** (canon **v0.9.6** — the
+moderation decision shapes; its canon commit message records "founder review
+passed"). Founder-supplied in-session (WO-OPS-1a gate). Pin history:
+`4440ce0`/v0.9.1 (WO-OPS-0) → `04af4b5`/v0.9.4 (WO-OPS-0.1) → `ba6f16d`/v0.9.6
+(WO-OPS-1a). This repo consumes that pin; it never edits canon. Moving the pin
+is a deliberate, reviewed change across `apps/ops-console/package.json` +
+`pnpm-workspace.yaml` + the `/docs` copy, in one PR (see `CONSUMING.md` in
+platform-contracts) — the drift-check's `--pinned-version` is derived from the
+installed package so the doc anchor follows the sha automatically.
 
 ## Layout
 

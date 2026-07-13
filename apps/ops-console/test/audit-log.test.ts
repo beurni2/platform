@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { EventEnvelope } from '@platform/contracts';
 import { AuditLog } from '../src/audit-log';
-import { OPS_ACTION_PENDING } from '../src/ops-action';
+import { OPS_ACTION_MODERATION_DECIDE } from '../src/ops-action';
 
 const env = (who: string, id: string): EventEnvelope => ({
   command_id: id,
@@ -16,7 +16,7 @@ describe('audit log — append-only; nobody “corrects” in silence', () => {
   it('records who · what · why · when · entity · evidence', () => {
     const log = new AuditLog();
     const e = log.append({
-      action: OPS_ACTION_PENDING,
+      action: OPS_ACTION_MODERATION_DECIDE,
       reason: 'incident 22h',
       entity: 'capability:checkout',
       evidence: 'ref:INC-1',
@@ -25,7 +25,7 @@ describe('audit log — append-only; nobody “corrects” in silence', () => {
     expect(e.seq).toBe(0);
     expect(e.envelope.actor).toBe('alice'); // who
     expect(e.envelope.serverTime).toBe('2026-07-13T09:00:00.000Z'); // when
-    expect(e.action).toBe(OPS_ACTION_PENDING); // what
+    expect(e.action).toBe(OPS_ACTION_MODERATION_DECIDE); // what
     expect(e.reason).toBe('incident 22h'); // why
     expect(e.entity).toBe('capability:checkout'); // against which entity
     expect(e.evidence).toBe('ref:INC-1'); // with what evidence
@@ -34,7 +34,7 @@ describe('audit log — append-only; nobody “corrects” in silence', () => {
 
   it('an entry CANNOT be mutated (deep-frozen — the write throws)', () => {
     const log = new AuditLog();
-    log.append({ action: OPS_ACTION_PENDING, reason: 'r', entity: 'e', evidence: 'v', envelope: env('alice', 'c1') });
+    log.append({ action: OPS_ACTION_MODERATION_DECIDE, reason: 'r', entity: 'e', evidence: 'v', envelope: env('alice', 'c1') });
     const entry = log.entries[0]!;
     expect(() => {
       (entry as unknown as { reason: string }).reason = 'tampered';
@@ -49,8 +49,8 @@ describe('audit log — append-only; nobody “corrects” in silence', () => {
 
   it('an entry CANNOT be deleted and the log CANNOT be trimmed', () => {
     const log = new AuditLog();
-    log.append({ action: OPS_ACTION_PENDING, reason: 'r', entity: 'e', evidence: 'v', envelope: env('alice', 'c1') });
-    log.append({ action: OPS_ACTION_PENDING, reason: 'r2', entity: 'e2', evidence: 'v2', envelope: env('bob', 'c2') });
+    log.append({ action: OPS_ACTION_MODERATION_DECIDE, reason: 'r', entity: 'e', evidence: 'v', envelope: env('alice', 'c1') });
+    log.append({ action: OPS_ACTION_MODERATION_DECIDE, reason: 'r2', entity: 'e2', evidence: 'v2', envelope: env('bob', 'c2') });
     const snapshot = log.entries;
     expect(() => {
       (snapshot as unknown as unknown[]).pop();
@@ -77,7 +77,7 @@ describe('audit log — append-only; nobody “corrects” in silence', () => {
       version: '1',
     } as unknown as EventEnvelope;
     expect(() =>
-      log.append({ action: OPS_ACTION_PENDING, reason: 'r', entity: 'e', evidence: 'v', envelope: bad }),
+      log.append({ action: OPS_ACTION_MODERATION_DECIDE, reason: 'r', entity: 'e', evidence: 'v', envelope: bad }),
     ).toThrow();
     expect(log.length).toBe(0);
   });

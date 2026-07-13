@@ -7,27 +7,22 @@
  */
 
 /**
- * THE OPS ACTION-TYPE — a QUARANTINED LOCAL CLOSED UNION · a NAMED DEBT.
- * CTO ruling, 2026-07-13 (a CTO ruling, overturnable by the CTO — NOT a founder
- * ruling; the founder never ruled on the ops action-type).
+ * THE OPS ACTION-TYPE — a QUARANTINED LOCAL CLOSED UNION.
  *
- * The maker-checker command and the audit entry each need a "what". Canon's
- * closed `EVENT_NAMES` registry carries NO ops-command / audit / maker-checker
- * event, and canon forbids inventing event names — refusing to invent one was
- * correct. So the "what" is NOT canon: it is a LOCAL, CLOSED union, quarantined
- * in this one file, consumed alongside canon's `EventEnvelope` (which we take
- * verbatim for who/when/command/correlation/version).
+ * CTO ruling (2026-07-13): canon's closed `EVENT_NAMES` registry carries NO
+ * ops-command event and canon forbids inventing event names, so the "what" of an
+ * ops command is NOT canon — it is a LOCAL, CLOSED union quarantined in this one
+ * file, consumed alongside canon's `EventEnvelope` (taken verbatim for
+ * who/when/command/correlation/version).
  *
- * It carries exactly ONE member today — a sentinel that is explicitly NOT a
- * command — because no ops command exists yet. This keeps the spine exercisable
- * without inventing any ops vocabulary.
- *
- * THE DEBT (to pay down deliberately): when commands that actually exist arrive
- * — and canon names their events — DERIVE the members here from those real
- * commands and retire the sentinel. Do NOT widen this to `string`, and do NOT
- * scatter action literals through the codebase. One quarantined union.
+ * WO-OPS-1a paid the named debt: the union was a single `pending:*` sentinel
+ * while no command existed; it now carries its FIRST REAL member —
+ * `'moderation:decide'`, the Desk 3 command whose PAYLOAD is canon's
+ * `ModerationDecisionSchema` (v0.9.6). The sentinel is retired. Future real
+ * commands (OPS-1b payment / break-glass) add their members HERE, derived from
+ * commands that actually exist — never widened to `string`, never scattered.
  */
-export type OpsActionType = 'pending:no-ops-command-defined';
+export type OpsActionType = 'moderation:decide';
 
-/** The sole current member — a debt placeholder, not an ops command. */
-export const OPS_ACTION_PENDING: OpsActionType = 'pending:no-ops-command-defined';
+/** The Desk 3 command action-type: an operator decides a listing's moderation. */
+export const OPS_ACTION_MODERATION_DECIDE: OpsActionType = 'moderation:decide';

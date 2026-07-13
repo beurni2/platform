@@ -5,23 +5,23 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@platform/contracts': git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
-  '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types
-  '@platform/ui-tokens': git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
+  '@platform/contracts': git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
+  '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types
+  '@platform/ui-tokens': git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
 
 importers:
 
   .:
     dependencies:
       '@platform/contracts':
-        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
-        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
+        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
+        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
       '@platform/i18n':
-        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n
-        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n
+        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n
+        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n
       '@platform/ui-tokens':
-        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
-        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
+        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
+        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
     devDependencies:
       '@types/node':
         specifier: ^22.20.1
@@ -39,14 +39,14 @@ importers:
   apps/ops-console:
     dependencies:
       '@platform/contracts':
-        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
-        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts
+        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
+        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts
       '@platform/i18n':
-        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n
-        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n
+        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n
+        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n
       '@platform/ui-tokens':
-        specifier: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
-        version: git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens
+        specifier: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
+        version: git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens
     devDependencies:
       '@playwright/test':
         specifier: ^1.57.0
@@ -225,23 +225,23 @@ packages:
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
 
-  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts':
-    resolution: {commit: 04af4b5266d53866a2b6d5800e270d3fffac2b35, path: packages/contracts, repo: https://github.com/beurni2/platform-contracts.git, type: git}
-    version: 0.9.4
+  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts':
+    resolution: {commit: ba6f16d78a2a5a13ff6877237cef6d77d35d8d65, path: packages/contracts, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+    version: 0.9.6
     hasBin: true
 
-  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n':
-    resolution: {commit: 04af4b5266d53866a2b6d5800e270d3fffac2b35, path: packages/i18n, repo: https://github.com/beurni2/platform-contracts.git, type: git}
-    version: 0.9.4
+  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n':
+    resolution: {commit: ba6f16d78a2a5a13ff6877237cef6d77d35d8d65, path: packages/i18n, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+    version: 0.9.6
     hasBin: true
 
-  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types':
-    resolution: {commit: 04af4b5266d53866a2b6d5800e270d3fffac2b35, path: packages/kernel-types, repo: https://github.com/beurni2/platform-contracts.git, type: git}
-    version: 0.9.4
+  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types':
+    resolution: {commit: ba6f16d78a2a5a13ff6877237cef6d77d35d8d65, path: packages/kernel-types, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+    version: 0.9.6
 
-  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens':
-    resolution: {commit: 04af4b5266d53866a2b6d5800e270d3fffac2b35, path: packages/ui-tokens, repo: https://github.com/beurni2/platform-contracts.git, type: git}
-    version: 0.9.4
+  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens':
+    resolution: {commit: ba6f16d78a2a5a13ff6877237cef6d77d35d8d65, path: packages/ui-tokens, repo: https://github.com/beurni2/platform-contracts.git, type: git}
+    version: 0.9.6
 
   '@playwright/test@1.61.1':
     resolution: {integrity: sha512-8nKv6+0RJSL9FE4jYOEGXnPeM/Hg12qZpmqzZjRh3qM0Y7c3z1mrOTfFLids72RDQYVh9WpLEfR5WdpNX4fkig==}
@@ -783,20 +783,20 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
-  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/contracts':
+  '@platform/contracts@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/contracts':
     dependencies:
-      '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types
+      '@platform/kernel-types': git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types
       zod: 4.4.3
 
-  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/i18n':
-    dependencies:
-      zod: 4.4.3
-
-  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/kernel-types':
+  '@platform/i18n@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/i18n':
     dependencies:
       zod: 4.4.3
 
-  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#04af4b5266d53866a2b6d5800e270d3fffac2b35&path:packages/ui-tokens': {}
+  '@platform/kernel-types@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/kernel-types':
+    dependencies:
+      zod: 4.4.3
+
+  '@platform/ui-tokens@git+https://github.com/beurni2/platform-contracts.git#ba6f16d78a2a5a13ff6877237cef6d77d35d8d65&path:packages/ui-tokens': {}
 
   '@playwright/test@1.61.1':
     dependencies:

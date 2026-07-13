@@ -202,3 +202,65 @@ canon moved twice since v0.9.1, this is one re-pin to the current release).
 not fixed early. The spine (`maker-checker.ts`, `audit-log.ts`) is unchanged.
 Icons were not refreshed (repo assets, not the pinned package; out of this
 slice's scope).
+
+---
+
+## WO-OPS-1a — DESK 3 GOES LIVE: the first real ops command — TIER: 🔴 RED — **IN REVIEW (do NOT merge — founder review)**
+
+Gated on canon WO-5.10. I held until it merged, then the founder relayed the
+pin. **Self-anchored by content before a line was written:** `ba6f16d` is on
+canon origin/main, is the **v0.9.6** merge ("moderation decision shapes; Boutik
+A1 ratified v1; silent + reasonless rejection unrepresentable; ops-only actor —
+founder review passed"), and the BUILT package prints `0.9.6` and exports
+`ModerationDecisionSchema` + `ModerationReasonCodeSchema` (the six ratified
+codes) + `mintCommandId`/`CommandIdSchema`. Re-pinned all three surfaces to
+`ba6f16d`; `EventEnvelopeSchema.command_id` stays `z.string().min(1)` (no
+breaking change).
+
+**The first real ops command — `moderation:decide`** (`src/moderation/decide.ts`):
+- **Payload is canon** `ModerationDecisionSchema` (v0.9.6): two outcomes only
+  (approved | changes_requested), a reasonless/silent rejection is
+  unrepresentable, `decided_by` must be `ops:moderation:*` — so a **SUPPLIER is
+  refused at ISSUE by the schema itself** (no self-moderation).
+- **`command_id` is minted by canon** `mintCommandId()` (v0.9.5 rule: UUIDv4 · OS
+  CSPRNG · never Math.random) — not fabricated.
+- Maker = the reviewing operator; checker = a **second** operator — the
+  maker-checker seam on a franc-adjacent action. A **supplier is refused at
+  APPROVE** too (checker validated through canon's rule; canon models only the
+  decider, so the checker's ops-actor requirement is the platform seam's).
+- **`OpsActionType` grew** to its first real member `'moderation:decide'`; the
+  `pending:*` sentinel is retired (the named debt paid). Canon still names no ops
+  event; `'moderation:decide'` is a LOCAL closed-union label.
+
+**NAMED DEBTS — this slice was their executioner:**
+- **① CLOSED (documented).** Written down here and in `decide.ts` /
+  `test-d/moderation-decide.type-test.ts`: `DistinctChecker` bites only for
+  LITERAL ids; real operator ids are runtime `string`, where the type guard is
+  VACUOUS — **production rests on the runtime identity check alone.** Proven on
+  the REAL command under a full `any` bypass (`moderation-decide.test.ts` "DEBT
+  ①" → throws `MakerCheckerSameIdentityError`). One layer in production, not two.
+- **② CLOSED (fixed).** `approve()` gained one line:
+  `command.envelope.actor !== command.maker.id → throw`. A hand-built
+  `IssuedCommand` with a lying maker envelope is refused (`moderation-decide.test.ts`
+  "DEBT ②").
+
+**Desk 3 is LIVE.** The router renders the moderation queue (pending / decided,
+reasons verbatim in French Voice) from a **preview (bac à sable) that exercises
+the REAL command path** — the approved/changes rows are genuine two-operator
+issue→approve results, not fabricated. No boutik DB is read (a real source is a
+later slice). The **other seven desks stay honest shells**, proven structurally
+(`test/desk-isolation.test.ts`: every desk descriptor imports only `./types`;
+the queue is wired only by the router under the `moderation` id) and in the e2e
+(the seven show the empty shell, zero `.mod-queue`).
+
+**RED ceremony:** adversarial tests written and run RED *before* implementation
+(`moderation-decide.test.ts`, 8 tests: supplier refused at issue + approve,
+maker≠decided_by, debt ① runtime, debt ② forged envelope, reasonless refused,
+verbatim reasons, minted UUIDv4). 32 tests + typecheck (incl. the type-test)
+green; warm run + clean-HOME cold proof (auth line shown); zero-hardcode (19
+files) · copy-lint (22 entries) · lockfile URL-form · drift-check (derived
+0.9.6) · Playwright (4/4) all green, every negative exit 1. Icons byte-stable
+v0.9.1→v0.9.6 (not re-copied); provenance swept to `ba6f16d`/v0.9.6.
+
+**FORBIDDEN respected:** no payment/break-glass issuing (that is OPS-1b) · no
+franc moves · the audit-log append-only spine is untouched.

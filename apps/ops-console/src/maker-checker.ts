@@ -136,6 +136,15 @@ export function approve<M extends ActorId, C extends ActorId>(
   // At runtime the brand/guard is erased; the checker is structurally Actor<C>.
   const checkerActor = checker as Actor<C>;
   EventEnvelopeSchema.parse(envelope);
+  // DEBT ② (WO-OPS-1a): `IssuedCommand` is an exported interface, so a command
+  // can be hand-built as an object literal, bypassing issue()'s guarantee that
+  // the issued envelope's actor IS the maker. Re-assert it here — an invariant a
+  // constructor establishes but the type does not preserve is not an invariant.
+  if ((command.envelope.actor as string) !== (command.maker.id as string)) {
+    throw new MakerCheckerError(
+      `issued envelope actor "${command.envelope.actor}" does not match the command's maker "${command.maker.id}" — a forged or tampered command`,
+    );
+  }
   // Compare as plain strings: at the type level M and C are provably distinct
   // (that is the guard), so TS considers `maker.id === checker.id` a no-overlap
   // comparison — but at runtime the brands are erased and a subverted call CAN

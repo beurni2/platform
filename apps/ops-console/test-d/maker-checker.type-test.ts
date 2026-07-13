@@ -7,7 +7,7 @@
  */
 import type { EventEnvelope } from '@platform/contracts';
 import { actor, issue, approve } from '../src/maker-checker';
-import { OPS_ACTION_PENDING } from '../src/ops-action';
+import { OPS_ACTION_MODERATION_DECIDE } from '../src/ops-action';
 
 const env = (who: string): EventEnvelope => ({
   command_id: 'c',
@@ -21,7 +21,7 @@ const env = (who: string): EventEnvelope => ({
 const alice = actor('alice');
 const bob = actor('bob');
 const issued = issue(alice, {
-  action: OPS_ACTION_PENDING,
+  action: OPS_ACTION_MODERATION_DECIDE,
   reason: 'r',
   entity: 'e',
   envelope: env('alice'),

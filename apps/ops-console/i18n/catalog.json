@@ -64,5 +64,71 @@
     "fr": "Journal d'audit",
     "register": "neutral",
     "screenClass": "label"
+  },
+  {
+    "key": "moderation.queue_heading",
+    "fr": "File de modération",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "moderation.state_pending",
+    "fr": "En attente",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "moderation.state_approved",
+    "fr": "Approuvé",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "moderation.state_changes",
+    "fr": "Corrections demandées",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "moderation.two_operator_note",
+    "fr": "Deux personnes valident — jamais la même.",
+    "register": "neutral",
+    "screenClass": "status"
+  },
+  {
+    "key": "moderation.reason.facts_incomplete",
+    "fr": "Informations incomplètes",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "moderation.reason.no_public_safe_proof",
+    "fr": "Preuve de l'article manquante",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "moderation.reason.price_or_contact_in_image",
+    "fr": "Prix ou contact sur la photo",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "moderation.reason.not_neutral_packaging",
+    "fr": "Emballage non neutre",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "moderation.reason.prohibited_or_unlaunched_category",
+    "fr": "Catégorie non autorisée",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "moderation.reason.authenticity_concern",
+    "fr": "Doute sur l'authenticité",
+    "register": "neutral",
+    "screenClass": "label"
   }
 ]
