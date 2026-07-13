@@ -1,0 +1,31 @@
+ISOLATION / COLD-PROOF — WO-OPS-0
+=================================
+The bundling/greenness claims below come from a cache-isolated cold clone of
+the COMMITTED bytes (the isolation-evidence law), not from the working tree.
+
+Cold clone (single-branch, committed tip):
+  $ git clone --single-branch --branch claude/platform-ops-console-90txec \
+      http://<git-proxy>/beurni2/platform  <cold>
+  cold HEAD    : 383fc2b399bc9996ff901d5ef7ae23e72fa4cbef
+  working HEAD : 383fc2b399bc9996ff901d5ef7ae23e72fa4cbef   (identical)
+
+Fresh install, isolated pnpm store, frozen lockfile:
+  $ pnpm install --frozen-lockfile --store-dir <isolated-store>
+  Done — @platform/* resolved at pin 4440ce0 (canon v0.9.1), lockfile frozen.
+
+Gates from the cold clone (EVIDENCE_DIR=_review/evidence bash scripts/run-gates.sh):
+  typecheck ............................. exit 0  (incl. tsc typetest — maker-checker compile proof)
+  tests ................................. exit 0  (20 passed: icons 4 · audit-log 4 · maker-checker 5 · catalog 4 · desks 3)
+  zero-hardcode-positive ................ exit 0  (15 src files, no literals)
+  zero-hardcode-negative ................ exit 1  (fails as required — hex/px/rem/rgb)
+  copy-lint-positive .................... exit 0  (11 entries, 0 violations)
+  copy-lint-negative .................... exit 1  (fails as required — veuillez/séquestre/marketing-in-money)
+  drift-check-positive .................. exit 0  (11 canonical docs match manifest v0.9.1)
+  drift-check-negative .................. exit 1  (fails as required — tampered doc)
+  playwright-e2e ........................ exit 0  (3/3: shell boots on tokens · 8 routes honest empty states · unknown route fallback)
+
+  => ALL GATES GREEN (positives passed; every negative fixture failed with exit 1 exactly)
+
+Lockfile hygiene: pnpm-lock.yaml records git deps as
+github.com/beurni2/platform-contracts#4440ce0…&path:packages/* — zero
+local-proxy / token leakage.

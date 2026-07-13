@@ -85,6 +85,25 @@ it, and it never writes another domain's database.
   render honest empty states, unknown route falls back). Every negative fixture
   failed with exit 1 exactly (zero-hardcode, copy-lint, drift-check).
 
+### Fresh-context verifier (CLAUDE.md §6bis + WO VERIFIER MANDATE)
+
+A verifier subagent with no memory of the build attempted the subversions
+itself and returned **OVERALL PASS**: (A) same-identity `approve` fails to
+compile (`TS2345` → `never`) and deleting the shipped `@ts-expect-error` makes
+typecheck fail — the directive guards a real error; (B) the subverted-types
+same-identity call throws `MakerCheckerSameIdentityError`, a different identity
+is accepted; (C) audit entry field + nested-envelope mutation throw, `pop`/
+`delete` throw, no remove/delete/update affordance, length unchanged; (D) no
+desk touches real data — the spine is imported nowhere in `src/`, desks render
+only the honest empty state. Repo left clean. Verdict verbatim in the packet.
+
+### Isolation-evidence + packet
+
+Cold clone of the committed tip (`383fc2b`, == working HEAD) with an isolated
+pnpm store + frozen lockfile ran **ALL GATES GREEN**. Evidence packet:
+`_review/WO-OPS-0-review.zip` (README · COLD-PROOF · MAKER-CHECKER-COMPILE-PROOF
+· VERIFIER-VERDICT · gates/*). **Not merged.**
+
 ### Not done here (out of scope, by the WO)
 
 Wiring any desk to real data · any command that moves money · defining canon ·

@@ -1,0 +1,46 @@
+FRESH-CONTEXT VERIFIER — VERDICT (verbatim) — WO-OPS-0
+======================================================
+Dispatched with no memory of the build (CLAUDE.md §6bis + WO VERIFIER MANDATE).
+Attempted the subversions itself; reported only what it ran. Repo left clean.
+
+A. MAKER-CHECKER, TYPE LEVEL — PASS.
+- test-d/_verify_same.ts (same actor "aicha" as maker and checker, NO
+  @ts-expect-error) → `npx tsc -p tsconfig.typetest.json` FAILED (EXIT=2):
+  test-d/_verify_same.ts(17,29): error TS2345: Argument of type 'Actor<"aicha">'
+  is not assignable to parameter of type 'never'.
+- test-d/_verify_diff.ts (different checker "boubacar") → tsc clean (EXIT=0).
+- Deleting ONLY the shipped @ts-expect-error directive made tsc FAIL with the
+  real underlying error (Actor<"alice"> not assignable to 'never') — the
+  directive guards a genuine error, not a phantom. Restored → clean.
+Deciding observation: same-identity approve collapses the checker parameter to
+`never` and does not compile; different identity compiles.
+
+B. MAKER-CHECKER, RUNTIME — PASS.
+- `const subverted: any = aicha; approve(cmd, subverted, env('aicha', …))` THREW:
+  MakerCheckerSameIdentityError :: same identity "aicha" cannot both issue and
+  approve a command — maker-checker means two different people.
+- Different identity accepted: ACCEPTED: aicha -> boubacar.
+Deciding observation: the runtime id compare throws even when the compiler is
+fully bypassed.
+
+C. AUDIT LOG — PASS.
+- Mutating a returned entry field → TypeError; mutating nested
+  entry.envelope.actor → TypeError; stored values unchanged.
+- snapshot.pop() → TypeError; delete snapshot[0] → TypeError.
+- Log surface has NO remove/delete/update (prototype: constructor, append,
+  entries, length); length before/after = 2 / 2.
+Deciding observation: entries deep-frozen, backing array #private, no mutator
+except append.
+
+D. NO DESK TOUCHES REAL DATA — PASS.
+- Grep of app src/ for network/DB/persistence returned only non-network hits
+  (SVG xmlns literals in icons.ts, Map.get in i18n.ts). No network/DB.
+- Eight desks are pure static descriptors; main.ts render() sets every desk
+  body to the single honest empty state. No fabricated counts.
+- The spine (maker-checker.ts/audit-log.ts) is imported NOWHERE in src/; reachable
+  only from tests — matches the DoD "no command exists yet".
+
+OVERALL — PASS. Every subversion that should have been refused was refused
+(type-level `never`, runtime throw, frozen writes); legitimate paths work; no
+desk reads real data. No subversion succeeded. Repo left as found: git clean,
+typecheck EXIT=0, 20/20 tests.
