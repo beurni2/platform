@@ -1,0 +1,29 @@
+{
+  "name": "platform",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Platform — the Boutik+ × Shop+ × Séra cross-app ops console (founder decision D22). Consumes @platform/* from platform-contracts at a pinned git sha; reads through authoritative services and NEVER writes another domain's database.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "gates": "bash scripts/run-gates.sh"
+  },
+  "dependencies": {
+    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/contracts",
+    "@platform/i18n": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/i18n",
+    "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#4440ce0f217372051d9876cf6aaefda8d006a3ba&path:packages/ui-tokens"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "turbo": "^2.5.4",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

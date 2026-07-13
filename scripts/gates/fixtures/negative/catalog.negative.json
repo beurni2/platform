@@ -1,0 +1,20 @@
+[
+  {
+    "key": "bad.banned_veuillez",
+    "fr": "Veuillez patienter, votre demande est en cours de traitement.",
+    "register": "neutral",
+    "screenClass": "status"
+  },
+  {
+    "key": "bad.banned_sequestre",
+    "fr": "Le séquestre des fonds est en cours.",
+    "register": "neutral",
+    "screenClass": "status"
+  },
+  {
+    "key": "bad.money_marketing",
+    "fr": "Offre spéciale — profitez vite !",
+    "register": "money",
+    "screenClass": "label"
+  }
+]
