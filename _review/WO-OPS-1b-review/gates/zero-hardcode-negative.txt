@@ -1,0 +1,7 @@
+$ node scripts/gates/no-hardcode.mjs scripts/gates/fixtures/negative/hardcode
+zero-hardcode scan FAILED — styling must come from @platform/ui-tokens:
+  - scripts/gates/fixtures/negative/hardcode/bad-styling.ts:3: hex colour « #C2571B »
+  - scripts/gates/fixtures/negative/hardcode/bad-styling.ts:4: px literal « 12px »
+  - scripts/gates/fixtures/negative/hardcode/bad-styling.ts:5: rem literal « 0.375rem »
+  - scripts/gates/fixtures/negative/hardcode/bad-styling.ts:6: rgb()/rgba() « rgba( »
+(exit code: 1)

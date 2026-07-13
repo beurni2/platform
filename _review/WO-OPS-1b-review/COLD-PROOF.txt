@@ -1,0 +1,29 @@
+ISOLATION — WARM + CLEAN-HOME COLD PROOF — WO-OPS-1b (at dc86e8a)
+================================================================
+Per CTO: warm + cold, a CLEAN HOME (not just a clean store), and the AUTH LINE
+SHOWN (the evidence law).
+
+WARM (working tree): bash scripts/run-gates.sh → ALL GATES GREEN (41 tests,
+typecheck incl. the compile-guard type-test, zero-hardcode 23 files, copy-lint
+39 entries, lockfile URL-form, drift-check derived 0.9.6, Playwright 5/5; every
+negative exit 1).
+
+COLD (fresh $HOME, empty store, committed bytes), auth line shown verbatim:
+
+  $ export HOME=<fresh empty dir>          # no inherited pnpm store / git config
+  $ git config --global url."http://<git-proxy>/git/".insteadOf "https://github.com/"
+        # infrastructure, = CI's PLATFORM_CONTRACTS_READ_TOKEN step
+  url.http://<git-proxy>/git/.insteadof https://github.com/    (verified set)
+  cold HEAD : dc86e8a8db7c7fee520c409288324b13b7ccf77a  (== origin)
+
+  $ pnpm install --frozen-lockfile         # default store under the fresh HOME = empty = cold
+  Done — @platform/* resolved at pin ba6f16d (canon v0.9.6), lockfile frozen.
+
+  GUARD: node -p "require('@platform/contracts/package.json').version" → 0.9.6
+
+  $ bash scripts/run-gates.sh
+  => ALL GATES GREEN (positives passed; every negative fixture failed with exit 1 exactly)
+
+Lockfile hygiene: grep -c 'git@github.com:' pnpm-lock.yaml = 0; git deps recorded
+as github.com/beurni2/platform-contracts#ba6f16d…&path:packages/*. No re-pin this
+slice (branched from the merged 1a head).

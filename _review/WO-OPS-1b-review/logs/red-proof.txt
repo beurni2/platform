@@ -1,0 +1,38 @@
+RED-PROOF — WO-OPS-1b (breakglass:issue) — the failing run captured verbatim
+============================================================================
+WHAT THIS IS: the adversarial test run on THIS branch BEFORE the implementation
+existed. test/breakglass-issue.test.ts imports ../src/breakglass/issue; with the
+module absent, vitest fails to load it (1 failed, no tests) — the test cannot
+pass vacuously. Captured before src/breakglass/issue.ts was written; chronology
+rests on the session record, as for every red-proof.
+
+--- $ npx vitest run test/breakglass-issue.test.ts   (impl absent) ---
+
+ RUN  v3.2.7 /home/user/platform/apps/ops-console
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/breakglass-issue.test.ts [ test/breakglass-issue.test.ts ]
+Error: Cannot find module '../src/breakglass/issue' imported from '/home/user/platform/apps/ops-console/test/breakglass-issue.test.ts'
+ ❯ test/breakglass-issue.test.ts:8:1
+      6|   MakerCheckerSameIdentityError,
+      7| } from '../src/maker-checker';
+      8| import {
+       | ^
+      9|   issueBreakGlass,
+     10|   approveBreakGlass,
+
+Caused by: Error: Failed to load url ../src/breakglass/issue (resolved id: ../src/breakglass/issue) in /home/user/platform/apps/ops-console/test/breakglass-issue.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../node_modules/.pnpm/vite@6.4.3_@types+node@22.20.1/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35835:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  21:20:46
+   Duration  972ms (transform 135ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 253ms)
+
+
+(exit code: 1 — Test Files 1 failed, Tests: no tests — the module could not load)

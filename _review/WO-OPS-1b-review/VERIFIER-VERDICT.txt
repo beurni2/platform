@@ -1,0 +1,50 @@
+FRESH-CONTEXT VERIFIER — VERDICT (verbatim) — WO-OPS-1b
+=======================================================
+No memory of the build (CLAUDE.md §6bis + RED mandate). Ran the subversions
+itself on branch @ dc86e8a; trusted no prose. Working tree left clean.
+
+A. PIN + CANON — PASS. Three pin sites pin ba6f16d78a2a5a13ff6877237cef6d77d35d8d65;
+   no off-pin sha. No re-pin this slice (git diff origin/main on all pin/lock
+   files empty). contracts version → 0.9.6. ESM: HandoffAuthorizationSchema,
+   HANDOFF_AUTHORIZATION_STATES, FcfaSchema, IdSchema, mintCommandId, CommandIdSchema
+   all present. grep -c 'git@github.com:' pnpm-lock.yaml → 0.
+
+B. ALLOW-LIST AT BOTH HALVES — PASS. A fresh snippet proved at BOTH issueBreakGlass
+   and approveBreakGlass that supplier:aicha, logistics-service:dispatch,
+   ops:moderation:diallo, and empty-suffix ops:payment: all throw
+   BreakGlassActorError. logistics-service:dispatch confirmed as sera's real
+   DISPATCH_AUTHORITY_HOLDER (services/logistics-service/src/assignment-lease.ts:27).
+   Two different operator pairs succeed request→approve; every command_id passes
+   CommandIdSchema, is a real minted UUIDv4, differs per mint. Empty breakGlassCaseId
+   refused (IdSchema); negative/fractional exactAmount refused (canon FcfaSchema).
+
+C. THE SEAM — PASS. Same identity via `any` bypass → MakerCheckerSameIdentityError.
+   Forged issued command (envelope.actor='ops:payment:EVIL' != maker.id) →
+   MakerCheckerError at approve (debt-② re-assert, maker-checker.ts:143).
+
+D. THE FOURTH SECRET — PASS. Comments stripped: zero `signature` and zero
+   `console.` in src/breakglass/ code (all raw hits are JSDoc). BreakGlassRequest
+   and the board carry no signature key at runtime (JSON.stringify: no /signature/i).
+   Desk 5 e2e asserts getByText(/signature/i) count 0.
+
+E. PROVIDER-CONFIRM « EN ATTENTE » — PASS. Runtime board: requested=done,
+   operator_verifying=current, provider_confirmed/issued/consumed=pending. No code
+   advances to issued/consumed.
+
+F. DESK 5 LIVE + SIX SHELLS — PASS. main.ts: exactly two live desk-id branches
+   (moderation, reconciliation-operateur); all else renderEmptyShell(). All 8
+   descriptors import ONLY ./types. desk-isolation 5/5. e2e: six shells show 0
+   .mod-queue/.bg-case; Desk 5 shows both operators, the amount, 3 pending « En
+   attente » steps, no signature.
+
+G. FORBIDDEN — PASS. Only franc is exactAmount (canon Fcfa, passed through
+   untouched; formatFcfa is digit-grouping, not computation; no fee/commission/
+   total/price). git diff origin/main on src/audit-log.ts and src/moderation/decide.ts
+   both empty (byte-identical). No payout/refund lever.
+
+H. FULL GATES — PASS. run-gates.sh → ALL GATES GREEN; every negative fixture exit
+   1; drift-check 11 docs @ v0.9.6; Playwright 5/5; fresh vitest 41/41.
+
+OVERALL: PASS. No non-ops:payment actor slipped through either half; no fabricated
+command_id; no signature reachable anywhere; no modeled issued/consumed transition;
+no leaked franc; no desk leak. Working tree clean; all temp files removed.
