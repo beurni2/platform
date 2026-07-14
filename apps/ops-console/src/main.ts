@@ -15,6 +15,9 @@ import { buildSandboxQueue } from './moderation/sandbox';
 import { renderModerationQueue } from './moderation/queue-view';
 import { buildSandboxBreakGlass } from './breakglass/sandbox';
 import { renderBreakGlassBoard } from './breakglass/board-view';
+import { buildSandboxRefusalLadder, SANDBOX_NOW } from './refusal/sandbox';
+import { deriveRefusalLadder } from './refusal/ladder';
+import { renderRefusalLadder } from './refusal/ladder-view';
 
 /**
  * WO-OPS-0 / WO-OPS-1a — the platform ops console SHELL. The eight desks (canon
@@ -260,6 +263,73 @@ style.textContent = `
   .bg-step-status--done { color: var(--success); }
   .bg-step-status--current { color: var(--ink); }
   .bg-step-status--pending { color: var(--muted); }
+  .rf-legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+  .rf-legend-rung {
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--surface-muted);
+    color: var(--muted);
+    border: var(--hair) solid var(--hairline);
+    border-radius: var(--radius-btn);
+    font-size: var(--type-label);
+    font-weight: ${typo.scale.label.wght};
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+  }
+  .rf-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-sm); }
+  .rf-row {
+    display: grid;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: var(--surface-muted);
+    border: var(--hair) solid var(--hairline);
+    border-radius: var(--radius-btn);
+  }
+  .rf-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-sm);
+  }
+  .rf-buyer { flex: 1 1 auto; }
+  .rf-field { display: flex; flex-direction: column; gap: var(--space-xs); }
+  .rf-label {
+    color: var(--muted);
+    font-size: var(--type-label);
+    font-weight: ${typo.scale.label.wght};
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+  }
+  .rf-value {
+    color: var(--ink);
+    font-size: var(--type-row);
+    font-weight: ${typo.scale.row.wght};
+  }
+  .rf-rung, .rf-elig {
+    align-self: center;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-btn);
+    font-size: var(--type-label);
+    font-weight: ${typo.scale.label.wght};
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+  }
+  .rf-rung { background: var(--surface-muted); color: var(--body); border: var(--hair) solid var(--hairline); }
+  .rf-rung--good_standing { color: var(--success); }
+  .rf-rung--suspended { color: var(--warning); }
+  .rf-elig--allowed { background: var(--success-tint); color: var(--success); }
+  .rf-elig--restricted { background: var(--warning-tint); color: var(--warning); }
+  .rf-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm) var(--space-lg);
+  }
 `;
 document.head.appendChild(style);
 
@@ -313,7 +383,8 @@ main.append(panel);
 app.append(strip, header, nav, main);
 
 // ── router: eight desks as hash routes ────────────────────────────────────────
-// Desk 3 (moderation) renders the live queue; the other seven stay honest shells.
+// Desks 3 (moderation), 5 (reconciliation-operateur) and 6 (echelle-de-refus)
+// render live surfaces; the other five stay honest shells.
 function currentDesk(): Desk {
   const slug = window.location.hash.replace(/^#\/?/, '');
   return DESKS.find((d) => d.id === slug) ?? DESKS[0]!;
@@ -339,6 +410,13 @@ function render(): void {
   } else if (desk.id === 'reconciliation-operateur') {
     // Desk 5 — the payment operator's break-glass issuing surface (WO-OPS-1b).
     renderBreakGlassBoard(contentHost, buildSandboxBreakGlass(new Date().toISOString()));
+  } else if (desk.id === 'echelle-de-refus') {
+    // Desk 6 — refusal-ladder oversight (read-only; no lever). Fixed clock so
+    // the preview is deterministic (WO-OPS-DESK-6).
+    renderRefusalLadder(
+      contentHost,
+      deriveRefusalLadder(buildSandboxRefusalLadder(), SANDBOX_NOW),
+    );
   } else {
     renderEmptyShell();
   }

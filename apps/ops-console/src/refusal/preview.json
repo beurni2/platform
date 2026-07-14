@@ -1,0 +1,36 @@
+{
+  "records": [
+    {
+      "buyerRef": "buyer:awa",
+      "state": "allowed",
+      "buyerRefusalCount": 0,
+      "buyerRiskState": "normal",
+      "requiredDeposit": 0
+    },
+    {
+      "buyerRef": "buyer:fatou",
+      "state": "allowed",
+      "reason": "Absente au premier passage",
+      "buyerRefusalCount": 1,
+      "buyerRiskState": "normal",
+      "requiredDeposit": 2000
+    },
+    {
+      "buyerRef": "buyer:salif",
+      "state": "allowed",
+      "reason": "Deux refus sans motif",
+      "buyerRefusalCount": 2,
+      "buyerRiskState": "watch",
+      "requiredDeposit": 0,
+      "prepayOnlyUntil": "2026-07-21T00:00:00.000Z"
+    },
+    {
+      "buyerRef": "buyer:issa",
+      "state": "suspended",
+      "reason": "Refus répétés — paiement à la porte suspendu",
+      "buyerRefusalCount": 4,
+      "buyerRiskState": "restricted",
+      "requiredDeposit": 0
+    }
+  ]
+}

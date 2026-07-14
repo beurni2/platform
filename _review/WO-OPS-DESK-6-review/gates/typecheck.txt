@@ -1,0 +1,21 @@
+$ pnpm typecheck
+
+> platform@0.0.1 typecheck /home/user/platform
+> turbo run typecheck
+
+• turbo 2.10.4
+
+   • Packages in scope: @platform/ops-console
+   • Running typecheck in 1 packages
+   • Remote caching disabled
+
+@platform/ops-console:typecheck: cache hit, replaying logs 6422407710e400d9
+@platform/ops-console:typecheck: 
+@platform/ops-console:typecheck: > @platform/ops-console@0.0.1 typecheck /home/user/platform/apps/ops-console
+@platform/ops-console:typecheck: > tsc -p tsconfig.json --noEmit && tsc -p tsconfig.typetest.json
+@platform/ops-console:typecheck: 
+
+ Tasks:    1 successful, 1 total
+Cached:    1 cached, 1 total
+  Time:    9ms >>> FULL TURBO
+(exit code: 0)

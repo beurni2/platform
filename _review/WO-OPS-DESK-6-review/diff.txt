@@ -1,0 +1,1114 @@
+diff --git a/JOURNAL.md b/JOURNAL.md
+index e74c2f0..3ede823 100644
+--- a/JOURNAL.md
++++ b/JOURNAL.md
+@@ -395,3 +395,233 @@ audit-log, moderation, and the break-glass request/board shapes untouched
+ (delegation is guard-internal) · the fourth secret still absent · no `/docs`
+ edit beyond what canon dictates (none) · the ssh-url negative fixture left
+ frozen (it tests URL form, not pin currency).
++
++---
++
++## GP-OPS — GROUNDING PASS: the six remaining desks — 🟢 (JOURNAL-only; no product code)
++
++Grounding for the CTO's desk build orders. Method: read canon §9.2 (the desks),
++the canon shape/event inventory (`platform-contracts@67bda02`, v0.9.8), grep the
++three app repos for what is actually emitted/consumed, and record what platform
++renders today. No product code; the diff is this entry only.
++
++### 0. Scope reconciliation — the CTO's names vs the repo's six shells (FLAG)
++
++The order named the scope as "incidents · reconciliation · payouts · refunds/
++claims · protection fund · riders/fleet". That list does NOT map 1:1 to the six
++REMAINING shells. Ground truth from `apps/ops-console/src/desks/*.ts` + canon
++§9.2 (Desk N titles are canon):
++
++| CTO name | Maps to | Note |
++|---|---|---|
++| protection fund | **Desk 1 — Protection Fund** | direct |
++| refunds/claims | **Desk 2 — Claims adjudication** | direct (refund LEVER is E3, see §2) |
++| reconciliation | **Desk 5 — Provider reconciliation** | **already LIVE** (break-glass issuing half, WO-OPS-1b/1c) — NOT a remaining shell |
++| incidents | **Desk 4 — Trust & safety** (`incident.opened`, `safety.sos`) | closest; T&S also owns related-party |
++| payouts | *(no distinct desk)* | payouts = the settlement waterfall / `payout.*`; surfaced under Desk 5 reconciliation + Desk 2 claims, not a shell of its own |
++| riders/fleet | *(no ops desk)* | fleet/HR is a **Séra** surface (§9.3 "Ops/fleet manager"); no fleet desk exists in platform's eight |
++
++**The six actual remaining shells are Desk 1, 2, 4, 6, 7, 8.** Desks 3 (Moderation)
++and 5 (Reconciliation-operateur) are live. I grounded the six real shells below
++and mapped the CTO's names onto them; **"payouts" and "riders/fleet" have no
++remaining-shell home** — flag for the founder/CTO before writing orders against
++those two names.
++
++### 1. Presence-check — canon shapes/events + emission hit-counts
++
++Canon SHAPES (defined @ v0.9.8) and EVENTS (`events.ts` `EVENT_NAMES`) per desk,
++with app-repo emission hit-counts (grep `--include=*.ts`, excl node_modules/
++_review/docs) and what **platform** consumes TODAY.
++
++| Desk | Canon shapes (DEFINED) | Canon events | App-repo emission (hits) | Platform today |
++|---|---|---|---|---|
++| **1 Protection Fund** | `ProtectionFundSchema` (solvency/balances/allocation/in-outflows), `ProtectionClaimSchema`, `FUND_SOLVENCY_STATES`, `FAULT_CLASSES` | `protection.capitalized`, `protection.solvency_changed`, `protection.claim_opened` | `ProtectionClaim` boutik 11; `protection.claim_opened` boutik 5 / sera 10. **`ProtectionFund` solvency shape: 0 emission anywhere** | shell only |
++| **2 Claims adjudication** | `ProtectionClaimSchema`, `CustodyLiabilityClaimSchema`, `CUSTODY_LIABILITY_CAUSES`, `FaultClassSchema`, `DELIVERY_OUTCOME_FAMILIES` | `protection.claim_opened`, `custody_liability.claim_opened`, `package.lost/damaged`, `goodwill.granted` | `CustodyLiabilityClaim` sera 11; `custody_liability.claim` sera 2; `protection.claim_opened` boutik 5 / sera 10 | shell only |
++| **4 Trust & safety** | `SellerTrustStateSchema`, `SELLER_TRUST_TIERS`; **NO related-party shape** | `seller.trust_state_changed`, `incident.opened`, `safety.sos_created/acknowledged`, `supplier.verification_restricted` | `SellerTrustState` boutik 19 / shop 2; `incident.opened` sera 6 / shop 4; `safety.sos` sera 13 | shell only |
++| **6 Refusal ladder** | `PayAtDoorEligibilitySchema` (refusalCount/riskState/requiredDeposit/prepayOnlyUntil), `ProbationLimitsSchema` | `buyer.eligibility_changed`, `delivery.refused` | `PayAtDoorEligibility` shop 16 | shell only |
++| **7 Flags & kill-switches** | **NONE** (no flag/kill-switch/capability shape in contracts) | none | 0 | shell only |
++| **8 Audit log** | `EventEnvelopeSchema`, `PlatformEventSchema` (the append-only surface) | *(every event)* | *(every event)* | **`AuditLog` primitive exists** (append-only, in-memory) |
++
++Platform's total contract consumption today (both live desks): `EventEnvelope(Schema)`,
++`ModerationDecision(Schema)`, `PaymentOperatorActorSchema`, `Id/Fcfa/IsoTimestampSchema`,
++`mintCommandId`, `HANDOFF_AUTHORIZATION_STATES`. Every shell renders `t('desk.empty_state')`.
++
++### 2. Per-desk: the E3 line + maker-checker + restore/replay
++
++Iron rule over all of it (§9.1, quoted): *"Ops never edits the ledger. No human
++ever 'just fixes' money … maker-checker on anything touching money or custody. If
++a human can silently move a franc, every guarantee in this document is theater."*
++
++**Desk 1 — Protection Fund.** NOW (read-model): solvency/balance/claims-by-faultClass
++view — the shapes exist. **Gap:** `ProtectionFund` solvency numbers are emitted by
++NO app yet (0 hits), so the honest-view half needs either an upstream emitter or a
++§3 certified-mock projection; the claims list CAN read `protection.claim_opened`
++(emitted). GATED lever (aggregator/Real-Money): capitalizing with real money and
++PAYING a claim — money movement. Doctrine, B+I-13 (quoted): *"buyer refunds are
++NEVER gated on the fund's solvency."* Maker-checker: recording capitalization /
++adjudicating a payout = money → maker-checker (union grows); solvency view =
++render-only.
++
++**Desk 2 — Claims adjudication.** NOW (read-model): the fault→instrument routing
++TABLE (canon §9.2, fixed) + the open-claims list (`protection.claim_opened` +
++`custody_liability.claim_opened`, both emitted). GATED: the "who pays" EXECUTION
++(route/pay to fund · `CustodyLiabilityClaim` · loss account) and the refund/
++earning-reversal saga. Doctrine (`events.ts`, quoted): *"The specs list NO refund/
++reversal event names (the refund/earning-reversal saga is E3 …) — none are invented
++here"*; Real-Money Gate §8: *"Refunds work end-to-end (incl. the earning-reversal
++saga)."* So the lever is E3/E5, buildable only as a §3 certified mock. Maker-checker:
++adjudicate/route = money command (union grows).
++
++**Desk 4 — Trust & safety / related-party.** NOW (read-model): `SellerTrustState`
++view (emitted), incident + SOS lists (emitted). Auto-void tier is deterministic
++(no human). **STOP-AND-FLAG:** the related-party manual-review lever (SP-I17) has
++**no canon shape** — you cannot build a read model against a shape that does not
++exist. This is *shape-gated*, not aggregator-gated: it needs a canon shape first
++(or a FOUNDER DECISION on where related-party state lives). Doctrine (§9.2 Desk 4,
++quoted): *"a low-confidence signal may not auto-void a legitimate reward or order.
++Suspicion is not proof."* Maker-checker: manual-review void = command (union grows);
++auto-void = automatic.
++
++**Desk 6 — Buyer refusal ladder oversight.** NOW (read-model, the cleanest of the
++six): `PayAtDoorEligibility` is actively emitted by shop (16) — refusalCount,
++riskState, requiredDeposit (a CEILING, never a held amount — zero-deposit law),
++prepayOnlyUntil, `ProbationLimits`. The whole oversight VIEW is buildable now; the
++ladder writes automatically upstream. GATED: none money-moving. Doctrine (§9.2 Desk
++6, quoted): *"Justified refusals never count against a buyer."* Maker-checker:
++render-first; a policy-tuning command (if any) is permissioned but not money/custody.
++
++**Desk 7 — Flags & kill-switches.** **STOP-AND-FLAG:** no canon shape at all. Kill-
++switches are **E0 service infrastructure**, not a contract shape — Execution Contract
++§7 (quoted): *"Every high-risk capability ships behind a remotely controlled flag;
++rollback MUST NOT require a new mobile build … Kill switches: checkout · dispatch ·
++payout · any single product category."* Building this desk means wiring to the flag/
++kill-switch SERVICE (infra), which platform consumes nowhere today — its interface
++must be named first. Maker-checker: toggling a money kill-switch (payout, checkout)
++= high-stakes command → maker-checker.
++
++**Desk 8 — The audit log.** NOW (read-model): platform ALREADY has the `AuditLog`
++primitive (append-only, deep-frozen, in-memory). Every `EventEnvelope` is the audit
++surface; the desk is a read VIEW over the ops command journal — buildable now, no
++gate. Doctrine (§9.2 Desk 8, quoted): *"Append-only. Every ops action: who, what,
++why, when, against which order, with which evidence."* Maker-checker: render-only.
++
++### 3. Restore / replay audit surface (in THIS repo)
++
++Platform holds **no domain database** (per its own charter: *"reads through the
++authoritative services and NEVER writes another domain's database"*). So a rollback
++drill in platform restores exactly two things: **(a) the ops command journal** (the
++audit entries — who/what/why/when) and **(b) any local read-model projections**
++(none exist yet — the two live desks build in-memory boards per session). **Write
++paths to replay-check = the only four command emitters:** `issueModerationDecision`
++/ `approveModerationDecision` (`moderation/decide.ts`) and `issueBreakGlass` /
++`approveBreakGlass` (`breakglass/issue.ts`). Replay = re-applying their
++`EventEnvelope`s reproduces the same audit log deterministically (canonical-json,
++byte-stable). **Prerequisite gap:** the `AuditLog` is in-memory only — a restore
++drill has nothing to restore FROM until the ops command journal is persisted.
++Persistence + a replay harness is the first restore/replay slice, and it underpins
++Desk 8.
++
++### 4. Proposed split (tiers + fixtures) — for the CTO's build orders
++
++Recommendation, not a work order. RED = money/custody-adjacent; AMBER = read-model
++over an emitted shape; GREEN = render/no lever.
++
++- **Desk 8 audit-log VIEW (AMBER)** — build FIRST: a read view over the ops command
++  journal; unblocks the restore/replay narrative. Fixture: replay a fixed envelope
++  sequence → byte-identical rendered log.
++- **Desk 6 refusal-ladder oversight (AMBER)** — cleanest read model; `PayAtDoorEligibility`
++  is emitted today. Fixture: a population of eligibility states → the three-rung
++  ladder renders; "justified refusal" row unchanged.
++- **Desk 1 solvency view + Desk 2 claims list (AMBER read / RED lever)** — render
++  solvency + the routing table + open claims from emitted `*.claim_opened`; the
++  PAY/refund lever stays a §3 certified mock behind the Real-Money Gate. Fixture:
++  claims by faultClass route to the canon table; buyer-refund row proves B+I-13
++  (never gated on the fund).
++- **Desk 4 T&S (AMBER for trust/incident/SOS view; BLOCKED for related-party)** —
++  build the trust-state/incident/SOS read views; **hold** the related-party lever
++  pending a canon shape (§2 flag).
++- **Desk 7 flags/kill-switches (BLOCKED)** — needs the flag-service interface named
++  before any desk work; no contract shape exists.
++- **Restore/replay persistence (RED, cross-cutting)** — persist the ops command
++  journal + a replay harness; prerequisite for a real rollback drill.
++
++**Two hard flags for the founder/CTO before orders:** (1) Desk 7 and Desk 4's
++related-party half have **no canon shape/interface** — building either now would be
++inventing canon; (2) the CTO's "payouts" and "riders/fleet" names have no
++remaining-shell home in platform's eight.
++
++---
++
++## WO-OPS-DESK-6 — THE REFUSAL-OVERSIGHT READ MODEL (Desk 6 live) — TIER: 🟠 AMBER — **IN REVIEW (do NOT merge — founder review)**
++
++Desk 6 (`echelle-de-refus`) goes live as the third live desk — **RENDER-ONLY**.
++The `OpsActionType` union does NOT grow; there is no command, no lever, no write.
++GP-OPS grounded this as the cleanest live-able desk (`PayAtDoorEligibility`
++emitted by shop, 16 hits).
++
++**Derive-or-stop → the shape is real, the feed is not (flagged, not invented).**
++The read model consumes canon `PayAtDoorEligibility` from platform's own pinned
++bytes (v0.9.8). But that shape is emitted **inside shop-plus** and does **not**
++cross into platform's boundary — there is no live feed here (confirmed: platform
++has zero inbound transport; the desk-isolation gate even forbids `fetch`/socket
++in desk code). Per the WO's derive-or-stop, this **transport gap** is flagged,
++not papered over. Following the house pattern of the two live desks, the desk
++renders a **certified preview** (« Aperçu ») seeded from a DATA file
++(`preview.json`) — every record parsed through `PayAtDoorEligibilitySchema` so
++the states are shape-true, would-throw-if-not. **No feed is invented**; a real
++shop feed replaces `preview.json` byte-for-byte at the integration slice.
++
++**Custody of truth, verbatim.** Every field (`state`, `buyerRiskState`,
++`buyerRefusalCount`, `reason`, `requiredDeposit`, `prepayOnlyUntil`) is carried
++through untouched. The ONLY derived values are a presentation `rung` +
++`eligibility`, and they follow **shop's OWN precedence**, quoted from its bytes
++(`shop-plus/packages/commerce-core/src/pay-at-door-policy.ts`): `state !==
++'allowed'` → suspended · active `prepayOnlyUntil` → prepay-only · `requiredDeposit
++> 0` → deposit-required · else good-standing. It is a MIRROR of a decision shop
++already made — not a new decision, and it touches no franc.
++
++**« Vue sans levier » — the house pattern, fourth application** (after sera D1/D3
++and the platform live desks). `ladder.ts` imports ONLY the canon TYPE
++`PayAtDoorEligibility` (no runtime schema, no spine) → it structurally cannot
++write. Proven: desk-isolation extends with a render-only gate (no
++`maker-checker`/`OpsAction`/`issue(`/`approve(`/`fetch`/`console.` in `refusal/`;
++`ladder.ts` imports type-only); a **planted mutation lever fails it** (verified:
++a planted `fetch(`/`console.log` turns the gate red, reverted). A `test-d`
++type-test proves the board + rows are read-only (`@ts-expect-error` on every
++write). Three desks live, **five** honest shells; no live surface leaks into a
++shell (e2e).
++
++**French Voice, trust register.** A ladder state is a consequence, never blame —
++« Bon standing / Acompte / Paiement d'avance / À la porte suspendu », eligibility
++« Permis à la porte / Restreint ». All strings register-tagged in the catalog;
++the `reason` is DATA (shop's, rendered verbatim), so it lives in `preview.json`,
++never inline (the no-inline-French gate stays green). Fixed-clock preview
++(`SANDBOX_NOW`) renders the degradation: one buyer per rung.
++
++**Evidence:** 51 tests + typecheck (incl. the read-only type-test) green;
++zero-hardcode · copy-lint · lockfile URL-form · drift-check (derived 0.9.8) ·
++Playwright 6/6; every negative exit 1. Screenshot (390px, low-end width) in the
++packet.
++
++**HONEST FRAMING (per the WO).** At zero real orders, this desk watches DEMO
++refusals — the preview, not a live population. Its meaning arrives with the
++pilot's first live day; it is built now **so the eyes exist before the traffic
++does**. The refusal ladder is an operational safety mechanism: a human must see
++eligibility degrading before it becomes a street problem. The wiring of the real
++shop feed (closing the transport gap) is a later integration slice.
++
++**FORBIDDEN respected:** no command · union unchanged (still
++`moderation:decide | breakglass:issue`) · no franc computed (the `requiredDeposit`
++is canon Fcfa, shown verbatim via digit-grouping, never computed) · no write
++path · the other five shells untouched · no invented feed.
++
++**CTO PRE-MERGE FIX (ruling on WO-OPS-DESK-6):** the `prepayOnlyUntil` rendered
++raw ISO (`2026-07-21T00:00:00.000Z`) on a French trust surface. The ecosystem
++has **no** date convention (its `fr-FR` usage is all money/number formatting), so
++per the ruling the view now renders the simplest honest human French form —
++« 21 juillet 2026 » — with the 12 month names in the catalog (`date.month_01..12`,
++register-tagged, never inline). Formatted deterministically from the UTC parts
++(no locale/ICU), so the fixed-clock preview stays byte-stable. Custody of truth
++is untouched: the read model still carries the raw ISO; only the VIEW presents it
++humanly (exactly as `formatFcfa` digit-groups a verbatim franc). e2e asserts the
++human date renders and the raw ISO is absent from the desk.
+diff --git a/apps/ops-console/e2e/shell.spec.ts b/apps/ops-console/e2e/shell.spec.ts
+index f262770..0a690bd 100644
+--- a/apps/ops-console/e2e/shell.spec.ts
++++ b/apps/ops-console/e2e/shell.spec.ts
+@@ -24,12 +24,12 @@ function hexToRgb(hex: string): string {
+   return `rgb(${parseInt(n.slice(0, 2), 16)}, ${parseInt(n.slice(2, 4), 16)}, ${parseInt(n.slice(4, 6), 16)})`;
+ }
+ 
+-// The six desks that stay honest shells (everything except moderation + reconciliation-operateur).
++// The five desks that stay honest shells (everything except the three live
++// desks: moderation + reconciliation-operateur + echelle-de-refus).
+ const SHELL_DESKS: ReadonlyArray<{ slug: string; title: string }> = [
+   { slug: 'fonds-de-protection', title: 'Fonds de protection' },
+   { slug: 'reclamations', title: 'Réclamations' },
+   { slug: 'confiance-securite', title: 'Confiance & sécurité' },
+-  { slug: 'echelle-de-refus', title: 'Échelle de refus' },
+   { slug: 'flags-kill-switches', title: 'Flags & kill-switches' },
+   { slug: 'journal-audit', title: "Journal d'audit" },
+ ];
+@@ -46,16 +46,17 @@ test('the shell boots on the shared/neutral palette with catalog strings', async
+   await expect(page.locator('nav .desk-link .glyph svg')).toHaveCount(8);
+ });
+ 
+-test('the six remaining desks stay honest empty shells (no live surface leaks in)', async ({
++test('the five remaining desks stay honest empty shells (no live surface leaks in)', async ({
+   page,
+ }) => {
+   for (const desk of SHELL_DESKS) {
+     await page.goto(`/#/${desk.slug}`);
+     await expect(page.locator('.desk-title')).toHaveText(desk.title);
+     await expect(page.locator('.empty-state')).toHaveText(EMPTY);
+-    // neither live desk (moderation queue, break-glass board) may leak in.
++    // no live desk (moderation queue, break-glass board, refusal ladder) may leak in.
+     await expect(page.locator('.mod-queue')).toHaveCount(0);
+     await expect(page.locator('.bg-case')).toHaveCount(0);
++    await expect(page.locator('.rf-list')).toHaveCount(0);
+   }
+ });
+ 
+@@ -84,6 +85,45 @@ test('DESK 5 (reconciliation-operateur) is live — the break-glass case: both o
+   await expect(page.getByText(/signature/i)).toHaveCount(0);
+ });
+ 
++test('DESK 6 (echelle-de-refus) is live — the refusal ladder: rungs, eligibility, custody-of-truth verbatim, no lever', async ({
++  page,
++}) => {
++  await page.goto('/#/echelle-de-refus');
++  await expect(page.locator('.desk-title')).toHaveText('Échelle de refus');
++  await expect(page.locator('.empty-state')).toHaveCount(0);
++  await expect(page.locator('.mod-queue')).toHaveCount(0);
++  await expect(page.locator('.bg-case')).toHaveCount(0);
++
++  // the four rungs render as a legend — the ladder, best → most restricted (trend)
++  await expect(page.locator('.rf-legend .rf-legend-rung')).toHaveCount(4);
++  // one buyer per rung — the degradation across the population
++  await expect(page.locator('.rf-list .rf-row')).toHaveCount(4);
++  for (const rung of ['good_standing', 'deposit_required', 'prepay_only', 'suspended']) {
++    await expect(page.locator(`.rf-row[data-rung="${rung}"]`)).toHaveCount(1);
++  }
++
++  // good standing is « permis », suspended is « restreint »
++  await expect(page.locator('.rf-row[data-rung="good_standing"] .rf-elig--allowed')).toHaveCount(1);
++  await expect(page.locator('.rf-row[data-rung="suspended"] .rf-elig--restricted')).toHaveCount(1);
++
++  // CUSTODY OF TRUTH — a seeded reason renders verbatim
++  await expect(page.getByText('Refus répétés — paiement à la porte suspendu')).toBeVisible();
++  // the deposit rung shows the required amount in canon money format
++  await expect(page.locator('.rf-row[data-rung="deposit_required"] .rf-deposit .rf-value')).toHaveText(
++    fcfa(2000),
++  );
++  // the prépaiement date renders as a HUMAN French date — never raw ISO
++  await expect(page.locator('.rf-row[data-rung="prepay_only"] .rf-prepay .rf-value')).toHaveText(
++    '21 juillet 2026',
++  );
++  await expect(page.getByText('2026-07-21T00:00:00.000Z')).toHaveCount(0);
++
++  // NO LEVER — the desk content carries no interactive control (render-only)
++  await expect(
++    page.locator('.desk-content button, .desk-content input, .desk-content form, .desk-content [contenteditable]'),
++  ).toHaveCount(0);
++});
++
+ test('DESK 3 (moderation) is live — renders the queue: pending / decided, reasons verbatim', async ({
+   page,
+ }) => {
+diff --git a/apps/ops-console/i18n/catalog.json b/apps/ops-console/i18n/catalog.json
+index b1fb02c..cf1f7f3 100644
+--- a/apps/ops-console/i18n/catalog.json
++++ b/apps/ops-console/i18n/catalog.json
+@@ -232,5 +232,155 @@
+     "fr": "En attente",
+     "register": "neutral",
+     "screenClass": "label"
++  },
++  {
++    "key": "refusal.sandbox_note",
++    "fr": "Aperçu — échelle de refus",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "refusal.buyer",
++    "fr": "Client",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "refusal.refusals",
++    "fr": "Refus",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "refusal.reason",
++    "fr": "Motif",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "refusal.risk",
++    "fr": "Signal",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "refusal.deposit",
++    "fr": "Acompte demandé",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "refusal.prepay_until",
++    "fr": "Prépaiement jusqu'au",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "refusal.rung_good_standing",
++    "fr": "Bon standing",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "refusal.rung_deposit_required",
++    "fr": "Acompte",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "refusal.rung_prepay_only",
++    "fr": "Paiement d'avance",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "refusal.rung_suspended",
++    "fr": "À la porte suspendu",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "refusal.eligibility_allowed",
++    "fr": "Permis à la porte",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "refusal.eligibility_restricted",
++    "fr": "Restreint",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_01",
++    "fr": "janvier",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_02",
++    "fr": "février",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_03",
++    "fr": "mars",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_04",
++    "fr": "avril",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_05",
++    "fr": "mai",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_06",
++    "fr": "juin",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_07",
++    "fr": "juillet",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_08",
++    "fr": "août",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_09",
++    "fr": "septembre",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_10",
++    "fr": "octobre",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_11",
++    "fr": "novembre",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_12",
++    "fr": "décembre",
++    "register": "neutral",
++    "screenClass": "label"
+   }
+ ]
+diff --git a/apps/ops-console/src/main.ts b/apps/ops-console/src/main.ts
+index 5a30beb..6f04cec 100644
+--- a/apps/ops-console/src/main.ts
++++ b/apps/ops-console/src/main.ts
+@@ -15,6 +15,9 @@ import { buildSandboxQueue } from './moderation/sandbox';
+ import { renderModerationQueue } from './moderation/queue-view';
+ import { buildSandboxBreakGlass } from './breakglass/sandbox';
+ import { renderBreakGlassBoard } from './breakglass/board-view';
++import { buildSandboxRefusalLadder, SANDBOX_NOW } from './refusal/sandbox';
++import { deriveRefusalLadder } from './refusal/ladder';
++import { renderRefusalLadder } from './refusal/ladder-view';
+ 
+ /**
+  * WO-OPS-0 / WO-OPS-1a — the platform ops console SHELL. The eight desks (canon
+@@ -260,6 +263,73 @@ style.textContent = `
+   .bg-step-status--done { color: var(--success); }
+   .bg-step-status--current { color: var(--ink); }
+   .bg-step-status--pending { color: var(--muted); }
++  .rf-legend {
++    list-style: none;
++    margin: 0;
++    padding: 0;
++    display: flex;
++    flex-wrap: wrap;
++    gap: var(--space-xs);
++  }
++  .rf-legend-rung {
++    padding: var(--space-xs) var(--space-sm);
++    background: var(--surface-muted);
++    color: var(--muted);
++    border: var(--hair) solid var(--hairline);
++    border-radius: var(--radius-btn);
++    font-size: var(--type-label);
++    font-weight: ${typo.scale.label.wght};
++    letter-spacing: var(--ls-label);
++    text-transform: uppercase;
++  }
++  .rf-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-sm); }
++  .rf-row {
++    display: grid;
++    gap: var(--space-sm);
++    padding: var(--space-md);
++    background: var(--surface-muted);
++    border: var(--hair) solid var(--hairline);
++    border-radius: var(--radius-btn);
++  }
++  .rf-head {
++    display: flex;
++    flex-wrap: wrap;
++    align-items: baseline;
++    gap: var(--space-sm);
++  }
++  .rf-buyer { flex: 1 1 auto; }
++  .rf-field { display: flex; flex-direction: column; gap: var(--space-xs); }
++  .rf-label {
++    color: var(--muted);
++    font-size: var(--type-label);
++    font-weight: ${typo.scale.label.wght};
++    letter-spacing: var(--ls-label);
++    text-transform: uppercase;
++  }
++  .rf-value {
++    color: var(--ink);
++    font-size: var(--type-row);
++    font-weight: ${typo.scale.row.wght};
++  }
++  .rf-rung, .rf-elig {
++    align-self: center;
++    padding: var(--space-xs) var(--space-sm);
++    border-radius: var(--radius-btn);
++    font-size: var(--type-label);
++    font-weight: ${typo.scale.label.wght};
++    letter-spacing: var(--ls-label);
++    text-transform: uppercase;
++  }
++  .rf-rung { background: var(--surface-muted); color: var(--body); border: var(--hair) solid var(--hairline); }
++  .rf-rung--good_standing { color: var(--success); }
++  .rf-rung--suspended { color: var(--warning); }
++  .rf-elig--allowed { background: var(--success-tint); color: var(--success); }
++  .rf-elig--restricted { background: var(--warning-tint); color: var(--warning); }
++  .rf-facts {
++    display: flex;
++    flex-wrap: wrap;
++    gap: var(--space-sm) var(--space-lg);
++  }
+ `;
+ document.head.appendChild(style);
+ 
+@@ -313,7 +383,8 @@ main.append(panel);
+ app.append(strip, header, nav, main);
+ 
+ // ── router: eight desks as hash routes ────────────────────────────────────────
+-// Desk 3 (moderation) renders the live queue; the other seven stay honest shells.
++// Desks 3 (moderation), 5 (reconciliation-operateur) and 6 (echelle-de-refus)
++// render live surfaces; the other five stay honest shells.
+ function currentDesk(): Desk {
+   const slug = window.location.hash.replace(/^#\/?/, '');
+   return DESKS.find((d) => d.id === slug) ?? DESKS[0]!;
+@@ -339,6 +410,13 @@ function render(): void {
+   } else if (desk.id === 'reconciliation-operateur') {
+     // Desk 5 — the payment operator's break-glass issuing surface (WO-OPS-1b).
+     renderBreakGlassBoard(contentHost, buildSandboxBreakGlass(new Date().toISOString()));
++  } else if (desk.id === 'echelle-de-refus') {
++    // Desk 6 — refusal-ladder oversight (read-only; no lever). Fixed clock so
++    // the preview is deterministic (WO-OPS-DESK-6).
++    renderRefusalLadder(
++      contentHost,
++      deriveRefusalLadder(buildSandboxRefusalLadder(), SANDBOX_NOW),
++    );
+   } else {
+     renderEmptyShell();
+   }
+diff --git a/apps/ops-console/src/refusal/ladder-view.ts b/apps/ops-console/src/refusal/ladder-view.ts
+new file mode 100644
+index 0000000..f83dd13
+--- /dev/null
++++ b/apps/ops-console/src/refusal/ladder-view.ts
+@@ -0,0 +1,138 @@
++import { money } from '@platform/ui-tokens';
++import { t } from '../i18n';
++import type { LadderRung, RefusalLadderBoard, RefusalLadderRow } from './ladder';
++
++/**
++ * Desk 6 refusal-ladder view (WO-OPS-DESK-6). RENDER-ONLY: it reads a
++ * `RefusalLadderBoard` and appends DOM — it never writes back, holds no lever,
++ * issues no command. Every DATA field (buyerRef, state, riskState, reason,
++ * refusalCount, deposit) is rendered VERBATIM; only the rung/eligibility badges
++ * are the board's derived presentation. Class-only styling (token-driven classes
++ * live in main.ts) → no literals here. French Voice, trust register: a ladder
++ * state is a consequence, never blame.
++ */
++const RUNG_KEY: Record<LadderRung, string> = {
++  good_standing: 'refusal.rung_good_standing',
++  deposit_required: 'refusal.rung_deposit_required',
++  prepay_only: 'refusal.rung_prepay_only',
++  suspended: 'refusal.rung_suspended',
++};
++
++/**
++ * The 12 month names live in the catalog (register-tagged, never inline). A date
++ * is DATA (custody of truth stays the raw ISO in the read model); the view only
++ * PRESENTS it in human French — deterministically, from the UTC parts, so the
++ * fixed-clock preview is byte-stable (no locale/ICU dependency).
++ */
++const MONTH_KEYS = [
++  'date.month_01',
++  'date.month_02',
++  'date.month_03',
++  'date.month_04',
++  'date.month_05',
++  'date.month_06',
++  'date.month_07',
++  'date.month_08',
++  'date.month_09',
++  'date.month_10',
++  'date.month_11',
++  'date.month_12',
++] as const;
++
++/** Human French date « 21 juillet 2026 » from an ISO timestamp (UTC parts). */
++function formatFrenchDate(iso: string): string {
++  const d = new Date(iso);
++  return `${d.getUTCDate()} ${t(MONTH_KEYS[d.getUTCMonth()]!)} ${d.getUTCFullYear()}`;
++}
++
++/** Canon money format: narrow-space group separator + « F » suffix (tokens). */
++function formatFcfa(amount: number): string {
++  const digits = String(amount);
++  let grouped = '';
++  for (let i = 0; i < digits.length; i++) {
++    if (i > 0 && (digits.length - i) % 3 === 0) grouped += money.groupSeparator;
++    grouped += digits[i];
++  }
++  return grouped + money.currencySuffix;
++}
++
++function field(labelKey: string, value: string, cls: string): HTMLElement {
++  const row = document.createElement('div');
++  row.className = `rf-field ${cls}`;
++  const label = document.createElement('span');
++  label.className = 'rf-label';
++  label.textContent = t(labelKey);
++  const val = document.createElement('span');
++  val.className = 'rf-value';
++  val.textContent = value; // DATA — verbatim, never translated
++  row.append(label, val);
++  return row;
++}
++
++function badge(text: string, cls: string): HTMLElement {
++  const span = document.createElement('span');
++  span.className = cls;
++  span.textContent = text;
++  return span;
++}
++
++function rowEl(row: RefusalLadderRow): HTMLElement {
++  const li = document.createElement('li');
++  li.className = 'rf-row';
++  li.dataset['rung'] = row.rung;
++  li.dataset['eligibility'] = row.eligibility;
++
++  const head = document.createElement('div');
++  head.className = 'rf-head';
++  head.append(
++    field('refusal.buyer', row.buyerRef, 'rf-buyer'),
++    badge(t(RUNG_KEY[row.rung]), `rf-rung rf-rung--${row.rung}`),
++    badge(
++      t(row.eligibility === 'allowed' ? 'refusal.eligibility_allowed' : 'refusal.eligibility_restricted'),
++      `rf-elig rf-elig--${row.eligibility}`,
++    ),
++  );
++
++  const facts = document.createElement('div');
++  facts.className = 'rf-facts';
++  facts.append(
++    field('refusal.refusals', String(row.refusalCount), 'rf-refusals'),
++    field('refusal.risk', row.riskState, 'rf-risk'),
++  );
++  if (row.reason !== undefined) {
++    facts.append(field('refusal.reason', row.reason, 'rf-reason'));
++  }
++  if (row.requiredDeposit > 0) {
++    facts.append(field('refusal.deposit', formatFcfa(row.requiredDeposit), 'rf-deposit'));
++  }
++  if (row.prepayOnlyUntil !== undefined) {
++    facts.append(field('refusal.prepay_until', formatFrenchDate(row.prepayOnlyUntil), 'rf-prepay'));
++  }
++
++  li.append(head, facts);
++  return li;
++}
++
++export function renderRefusalLadder(host: HTMLElement, board: RefusalLadderBoard): void {
++  host.replaceChildren();
++
++  const ribbon = document.createElement('p');
++  ribbon.className = 'mod-ribbon';
++  ribbon.textContent = t('refusal.sandbox_note');
++
++  // "trend at a glance": the rungs in canon order, best → most restricted.
++  const legend = document.createElement('ol');
++  legend.className = 'rf-legend';
++  for (const rung of board.rungs) {
++    const li = document.createElement('li');
++    li.className = `rf-legend-rung rf-rung--${rung}`;
++    li.textContent = t(RUNG_KEY[rung]);
++    legend.append(li);
++  }
++
++  const list = document.createElement('ul');
++  list.className = 'rf-list';
++  for (const row of board.rows) list.append(rowEl(row));
++
++  host.append(ribbon, legend, list);
++}
+diff --git a/apps/ops-console/src/refusal/ladder.ts b/apps/ops-console/src/refusal/ladder.ts
+new file mode 100644
+index 0000000..ffef29f
+--- /dev/null
++++ b/apps/ops-console/src/refusal/ladder.ts
+@@ -0,0 +1,96 @@
++/*
++ * OPS NE MODIFIE JAMAIS LE REGISTRE. Ce bureau REGARDE, il n'actionne rien.
++ * L'échelle de refus est une vue en lecture seule : aucune commande, aucun
++ * levier, aucune écriture. Un état d'échelle est une CONSÉQUENCE de ce que le
++ * client a déjà fait — jamais un jugement, jamais un drame.
++ */
++
++/**
++ * DESK 6 — BUYER REFUSAL-LADDER OVERSIGHT (read model, WO-OPS-DESK-6).
++ * RENDER-ONLY. This desk issues NO command; the `OpsActionType` union does NOT
++ * grow. The read model imports ONLY the canon TYPE `PayAtDoorEligibility` —
++ * no runtime schema, no maker-checker, no spine — so it structurally cannot
++ * write (the sera D1/D3 « vue sans levier » pattern, applied here).
++ *
++ * CUSTODY OF TRUTH: every underlying field (state, riskState, refusalCount,
++ * reason, requiredDeposit, prepayOnlyUntil) is carried through VERBATIM from the
++ * emitted `PayAtDoorEligibility` — never recomputed, never editorialised. The
++ * only DERIVED value is a presentation `rung` + `eligibility`, and it follows
++ * shop's OWN precedence, quoted from its bytes
++ * (shop-plus/packages/commerce-core/src/pay-at-door-policy.ts):
++ *   state !== 'allowed' → refuse  ·  active prepayOnlyUntil → prepay-only
++ *   requiredDeposit > 0 → refuse.
++ * The canon rung names are §9.2 Desk 6 ("good standing → deposit required →
++ * prepay-only") + §11 ("pay-at-door suspended"). This is a MIRROR of a decision
++ * shop already made and emitted — not a new decision, and it touches no franc.
++ *
++ * TRANSPORT GAP (flagged, honest): `PayAtDoorEligibility` is emitted INSIDE
++ * shop-plus and does not yet cross into platform's boundary — there is no live
++ * feed here. Until an integration slice wires it, this desk renders a certified
++ * PREVIEW (see `sandbox.ts`), clearly labelled « Aperçu ». No feed is invented.
++ */
++import type { PayAtDoorEligibility } from '@platform/contracts';
++
++/** The rungs, best → most restricted (§9.2 Desk 6 + §11). */
++export type LadderRung = 'good_standing' | 'deposit_required' | 'prepay_only' | 'suspended';
++
++export const LADDER_RUNGS: readonly LadderRung[] = [
++  'good_standing',
++  'deposit_required',
++  'prepay_only',
++  'suspended',
++];
++
++export interface RefusalLadderRow {
++  readonly buyerRef: string;
++  /** DERIVED (presentation only) — shop's precedence, see header. */
++  readonly rung: LadderRung;
++  /** DERIVED — 'allowed' iff good standing; else 'restricted'. */
++  readonly eligibility: 'allowed' | 'restricted';
++  // ── VERBATIM from the emitted shape — custody of truth, never recomputed ──
++  readonly state: string;
++  readonly riskState: string;
++  readonly refusalCount: number;
++  readonly reason: string | undefined;
++  readonly requiredDeposit: number;
++  readonly prepayOnlyUntil: string | undefined;
++}
++
++export interface RefusalLadderBoard {
++  readonly rungs: readonly LadderRung[];
++  readonly rows: readonly RefusalLadderRow[];
++}
++
++/**
++ * Derive the read-only board. Pure: no write, no command, no wall-clock (the
++ * caller passes `nowIso` — a fixed clock in the preview). The prepay-only window
++ * is "active" only while `nowIso < prepayOnlyUntil`, exactly as shop evaluates it.
++ */
++export function deriveRefusalLadder(
++  records: readonly PayAtDoorEligibility[],
++  nowIso: string,
++): RefusalLadderBoard {
++  const rows: RefusalLadderRow[] = records.map((r) => {
++    const activePrepay = r.prepayOnlyUntil !== undefined && nowIso < r.prepayOnlyUntil;
++    const rung: LadderRung =
++      r.state !== 'allowed'
++        ? 'suspended'
++        : activePrepay
++          ? 'prepay_only'
++          : r.requiredDeposit > 0
++            ? 'deposit_required'
++            : 'good_standing';
++    return {
++      buyerRef: r.buyerRef,
++      rung,
++      eligibility: rung === 'good_standing' ? 'allowed' : 'restricted',
++      state: r.state,
++      riskState: r.buyerRiskState,
++      refusalCount: r.buyerRefusalCount,
++      reason: r.reason,
++      requiredDeposit: r.requiredDeposit,
++      prepayOnlyUntil: r.prepayOnlyUntil,
++    };
++  });
++  return { rungs: LADDER_RUNGS, rows };
++}
+diff --git a/apps/ops-console/src/refusal/preview.json b/apps/ops-console/src/refusal/preview.json
+new file mode 100644
+index 0000000..be63b81
+--- /dev/null
++++ b/apps/ops-console/src/refusal/preview.json
+@@ -0,0 +1,36 @@
++{
++  "records": [
++    {
++      "buyerRef": "buyer:awa",
++      "state": "allowed",
++      "buyerRefusalCount": 0,
++      "buyerRiskState": "normal",
++      "requiredDeposit": 0
++    },
++    {
++      "buyerRef": "buyer:fatou",
++      "state": "allowed",
++      "reason": "Absente au premier passage",
++      "buyerRefusalCount": 1,
++      "buyerRiskState": "normal",
++      "requiredDeposit": 2000
++    },
++    {
++      "buyerRef": "buyer:salif",
++      "state": "allowed",
++      "reason": "Deux refus sans motif",
++      "buyerRefusalCount": 2,
++      "buyerRiskState": "watch",
++      "requiredDeposit": 0,
++      "prepayOnlyUntil": "2026-07-21T00:00:00.000Z"
++    },
++    {
++      "buyerRef": "buyer:issa",
++      "state": "suspended",
++      "reason": "Refus répétés — paiement à la porte suspendu",
++      "buyerRefusalCount": 4,
++      "buyerRiskState": "restricted",
++      "requiredDeposit": 0
++    }
++  ]
++}
+diff --git a/apps/ops-console/src/refusal/sandbox.ts b/apps/ops-console/src/refusal/sandbox.ts
+new file mode 100644
+index 0000000..5f3f254
+--- /dev/null
++++ b/apps/ops-console/src/refusal/sandbox.ts
+@@ -0,0 +1,32 @@
++/*
++ * OPS NE MODIFIE JAMAIS LE REGISTRE. Ce bureau REGARDE, il n'actionne rien.
++ */
++
++/**
++ * Desk 6 sandbox ladder (WO-OPS-DESK-6) — a PREVIEW (« Aperçu ») exercised
++ * against the REAL canon shape so the states are honest, not fabricated: every
++ * record from `preview.json` is parsed through `PayAtDoorEligibilitySchema` and
++ * would THROW if it were not shape-true. No shop feed is read —
++ * `PayAtDoorEligibility` is emitted inside shop-plus and never reaches this repo
++ * yet (the transport gap, flagged in ladder.ts).
++ *
++ * The seed lives in `preview.json` (DATA, not source): a feed delivers data, and
++ * the `reason` / `state` / `buyerRiskState` fields are shop's DATA rendered
++ * verbatim — never platform copy — so they do not belong inline in the source
++ * catalog. A real feed replaces this file, byte for byte, at the integration
++ * slice.
++ */
++import { PayAtDoorEligibilitySchema, type PayAtDoorEligibility } from '@platform/contracts';
++import preview from './preview.json';
++
++/** Fixed clock so the gallery/degradation render is deterministic. */
++export const SANDBOX_NOW = '2026-07-14T12:00:00.000Z';
++
++/**
++ * One buyer per rung — good standing, a first fault (deposit), a repeat within
++ * an active prepay-only window, and a suspended buyer: the ladder tightening
++ * across the population, never blame. Shape-true or it throws.
++ */
++export function buildSandboxRefusalLadder(): readonly PayAtDoorEligibility[] {
++  return preview.records.map((r) => PayAtDoorEligibilitySchema.parse(r));
++}
+diff --git a/apps/ops-console/test-d/refusal-ladder.type-test.ts b/apps/ops-console/test-d/refusal-ladder.type-test.ts
+new file mode 100644
+index 0000000..762aaea
+--- /dev/null
++++ b/apps/ops-console/test-d/refusal-ladder.type-test.ts
+@@ -0,0 +1,31 @@
++/**
++ * DESK 6 refusal ladder — COMPILE-LEVEL « vue sans levier » guard
++ * (WO-OPS-DESK-6). The read model is RENDER-ONLY: its board and rows are
++ * readonly, so no caller can write back through the view — the desk holds no
++ * lever. Proven by @ts-expect-error on every mutation attempt.
++ */
++import { deriveRefusalLadder, type RefusalLadderBoard } from '../src/refusal/ladder';
++import type { PayAtDoorEligibility } from '@platform/contracts';
++
++const record: PayAtDoorEligibility = {
++  buyerRef: 'buyer:x',
++  state: 'allowed',
++  buyerRefusalCount: 0,
++  buyerRiskState: 'normal',
++  requiredDeposit: 0,
++};
++const board: RefusalLadderBoard = deriveRefusalLadder([record], '2026-07-14T12:00:00.000Z');
++const row = board.rows[0]!;
++
++// reading MUST compile
++const rung = row.rung;
++
++// writing through the view MUST NOT compile — a row field is read-only
++// @ts-expect-error a refusal-ladder row is read-only; the desk holds no lever
++row.eligibility = 'allowed';
++
++// the rows collection itself is read-only — no splicing a lever in
++// @ts-expect-error the board's rows array is read-only
++board.rows[0] = row;
++
++export { rung };
+diff --git a/apps/ops-console/test/desk-isolation.test.ts b/apps/ops-console/test/desk-isolation.test.ts
+index 49bad14..2019714 100644
+--- a/apps/ops-console/test/desk-isolation.test.ts
++++ b/apps/ops-console/test/desk-isolation.test.ts
+@@ -40,10 +40,12 @@ describe('desk isolation — Desk 3 is contained; the seven stay honest shells',
+     expect(main).toMatch(/renderModerationQueue\(/);
+     expect(main).toMatch(/desk\.id === 'reconciliation-operateur'/);
+     expect(main).toMatch(/renderBreakGlassBoard\(/);
++    expect(main).toMatch(/desk\.id === 'echelle-de-refus'/);
++    expect(main).toMatch(/renderRefusalLadder\(/);
+     expect(main).toMatch(/renderEmptyShell\(\)/);
+-    // EXACTLY two desks go live; the remaining six fall to the shell.
++    // EXACTLY three desks go live; the remaining five fall to the shell.
+     const liveBranches = [...main.matchAll(/desk\.id === '([^']+)'/g)].map((m) => m[1]).sort();
+-    expect(liveBranches).toEqual(['moderation', 'reconciliation-operateur']);
++    expect(liveBranches).toEqual(['echelle-de-refus', 'moderation', 'reconciliation-operateur']);
+   });
+ 
+   it('no desk descriptor reaches a command module (moderation/ or breakglass/) (imports)', () => {
+@@ -57,6 +59,34 @@ describe('desk isolation — Desk 3 is contained; the seven stay honest shells',
+     }
+   });
+ 
++  it('DESK 6 refusal surface is RENDER-ONLY — no command, no lever, no write (« vue sans levier »; a planted mutation lever fails here)', () => {
++    const rfDir = join(srcDir, 'refusal');
++    for (const file of readdirSync(rfDir).filter((f) => f.endsWith('.ts'))) {
++      const src = readFileSync(join(rfDir, file), 'utf8');
++      const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
++      // no command machinery: no maker-checker, no OpsActionType, no issue/approve lever
++      expect(
++        codeOnly,
++        `${file} code reaches a command/lever`,
++      ).not.toMatch(/maker-checker|ops-action|OpsAction|OPS_ACTION|\bissue[A-Za-z]*\(|\bapprove[A-Za-z]*\(/);
++      // no write path / side channel / logging
++      expect(
++        codeOnly,
++        `${file} code has a write path`,
++      ).not.toMatch(/fetch\(|XMLHttpRequest|WebSocket|indexedDB|localStorage|console\.(log|info|warn|error|debug)/);
++    }
++    // the read model imports the canon shape as a TYPE only — no runtime schema,
++    // so it structurally cannot construct or mutate anything.
++    const ladder = readFileSync(join(rfDir, 'ladder.ts'), 'utf8');
++    const ladderContractsImports = [
++      ...ladder.matchAll(/^import\s+([^;]*?)\s+from\s+'@platform\/contracts';/gm),
++    ];
++    expect(ladderContractsImports, 'ladder.ts imports exactly one contracts line').toHaveLength(1);
++    expect(ladderContractsImports[0]![1], 'ladder.ts must import type-only from canon').toMatch(
++      /^type\b/,
++    );
++  });
++
+   it('THE FOURTH SECRET is structurally absent from the break-glass surface (no signature in code, no logging)', () => {
+     const bgDir = join(srcDir, 'breakglass');
+     for (const file of readdirSync(bgDir).filter((f) => f.endsWith('.ts'))) {
+diff --git a/apps/ops-console/test/refusal-ladder.test.ts b/apps/ops-console/test/refusal-ladder.test.ts
+new file mode 100644
+index 0000000..a91112a
+--- /dev/null
++++ b/apps/ops-console/test/refusal-ladder.test.ts
+@@ -0,0 +1,96 @@
++import { describe, it, expect } from 'vitest';
++import { PayAtDoorEligibilitySchema, type PayAtDoorEligibility } from '@platform/contracts';
++import { deriveRefusalLadder, LADDER_RUNGS } from '../src/refusal/ladder';
++import { buildSandboxRefusalLadder, SANDBOX_NOW } from '../src/refusal/sandbox';
++
++const NOW = '2026-07-14T12:00:00.000Z';
++const rec = (over: Partial<PayAtDoorEligibility>): PayAtDoorEligibility => ({
++  buyerRef: 'buyer:x',
++  state: 'allowed',
++  buyerRefusalCount: 0,
++  buyerRiskState: 'normal',
++  requiredDeposit: 0,
++  ...over,
++});
++const oneRow = (r: PayAtDoorEligibility, now = NOW) => deriveRefusalLadder([r], now).rows[0]!;
++
++describe('WO-OPS-DESK-6 — the refusal-ladder read model (render-only)', () => {
++  it('good standing → allowed (state allowed · no deposit · no prepay window)', () => {
++    const row = oneRow(rec({}));
++    expect(row.rung).toBe('good_standing');
++    expect(row.eligibility).toBe('allowed');
++  });
++
++  it('a required deposit → deposit_required · restricted', () => {
++    const row = oneRow(rec({ requiredDeposit: 2000, buyerRefusalCount: 1 }));
++    expect(row.rung).toBe('deposit_required');
++    expect(row.eligibility).toBe('restricted');
++  });
++
++  it('an ACTIVE prepay-only window → prepay_only · restricted (and expires by the clock)', () => {
++    const withWindow = rec({ prepayOnlyUntil: '2026-07-21T00:00:00.000Z', buyerRefusalCount: 2 });
++    expect(oneRow(withWindow, NOW).rung).toBe('prepay_only'); // NOW < until → active
++    // once the clock passes the window, it is no longer prepay-only (custody of the clock)
++    expect(oneRow(withWindow, '2026-07-22T00:00:00.000Z').rung).toBe('good_standing');
++  });
++
++  it('state !== allowed → suspended · restricted', () => {
++    const row = oneRow(rec({ state: 'suspended', buyerRefusalCount: 4 }));
++    expect(row.rung).toBe('suspended');
++    expect(row.eligibility).toBe('restricted');
++  });
++
++  it("follows shop's OWN precedence: state first, then prepay, then deposit", () => {
++    // suspended state wins even with a deposit present
++    expect(oneRow(rec({ state: 'suspended', requiredDeposit: 2000 })).rung).toBe('suspended');
++    // an active prepay window wins over a deposit (shop checks prepay before deposit)
++    expect(
++      oneRow(rec({ prepayOnlyUntil: '2026-07-21T00:00:00.000Z', requiredDeposit: 2000 })).rung,
++    ).toBe('prepay_only');
++  });
++
++  it('CUSTODY OF TRUTH: every underlying field is carried VERBATIM, never recomputed', () => {
++    const source = rec({
++      buyerRef: 'buyer:fatou',
++      state: 'allowed',
++      reason: 'Absente au premier passage',
++      buyerRefusalCount: 1,
++      buyerRiskState: 'watch',
++      requiredDeposit: 2000,
++      prepayOnlyUntil: '2026-07-21T00:00:00.000Z',
++    });
++    const row = oneRow(source);
++    expect(row.buyerRef).toBe(source.buyerRef);
++    expect(row.state).toBe(source.state);
++    expect(row.reason).toBe(source.reason);
++    expect(row.refusalCount).toBe(source.buyerRefusalCount);
++    expect(row.riskState).toBe(source.buyerRiskState);
++    expect(row.requiredDeposit).toBe(source.requiredDeposit);
++    expect(row.prepayOnlyUntil).toBe(source.prepayOnlyUntil);
++  });
++
++  it('VIEW CANNOT WRITE: derive is pure — it never mutates its input source', () => {
++    const source = rec({ buyerRef: 'buyer:issa', state: 'suspended', requiredDeposit: 2000 });
++    const snapshot = JSON.stringify(source);
++    deriveRefusalLadder([source], NOW);
++    deriveRefusalLadder([source], NOW); // twice — still no mutation
++    expect(JSON.stringify(source)).toBe(snapshot);
++  });
++
++  it('the board exposes the rungs best → most restricted (trend at a glance)', () => {
++    expect([...LADDER_RUNGS]).toEqual([
++      'good_standing',
++      'deposit_required',
++      'prepay_only',
++      'suspended',
++    ]);
++  });
++
++  it('the sandbox preview is SHAPE-TRUE and renders one buyer per rung (the degradation)', () => {
++    const records = buildSandboxRefusalLadder();
++    // shape-true: every seed record round-trips through canon
++    for (const r of records) expect(PayAtDoorEligibilitySchema.safeParse(r).success).toBe(true);
++    const rungs = deriveRefusalLadder(records, SANDBOX_NOW).rows.map((r) => r.rung);
++    expect(rungs).toEqual(['good_standing', 'deposit_required', 'prepay_only', 'suspended']);
++  });
++});

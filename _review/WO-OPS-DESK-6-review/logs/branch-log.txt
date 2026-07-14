@@ -1,0 +1,32 @@
+1feecf3 WO-OPS-DESK-6 fix: render the prépaiement date as human French, not raw ISO
+ JOURNAL.md                                  | 11 +++++
+ apps/ops-console/e2e/shell.spec.ts          |  5 ++
+ apps/ops-console/i18n/catalog.json          | 72 +++++++++++++++++++++++++++++
+ apps/ops-console/src/refusal/ladder-view.ts | 29 +++++++++++-
+ 4 files changed, 116 insertions(+), 1 deletion(-)
+923e1a1 WO-OPS-DESK-6: evidence packet (review artifacts only, no code change)
+ _review/WO-OPS-DESK-6-review.zip                   | Bin 0 -> 135633 bytes
+ _review/WO-OPS-DESK-6-review/COLD-PROOF.txt        |  37 +
+ _review/WO-OPS-DESK-6-review/HEAD-ANCHOR.txt       |   7 +
+ _review/WO-OPS-DESK-6-review/JOURNAL.md            | 616 +++++++++++++
+ _review/WO-OPS-DESK-6-review/README.txt            |  90 ++
+ _review/WO-OPS-DESK-6-review/VERIFIER-VERDICT.txt  |  59 ++
+ .../desk6-echelle-de-refus.png                     | Bin 0 -> 95023 bytes
+ _review/WO-OPS-DESK-6-review/diff.txt              | 999 +++++++++++++++++++++
+ .../gates/copy-lint-negative.txt                   |   6 +
+ .../gates/copy-lint-positive.txt                   |   3 +
+ .../gates/drift-check-negative.txt                 |   4 +
+ .../gates/drift-check-positive.txt                 |   3 +
+ .../drift-check-version-mismatch-negative.txt      |   4 +
+ .../gates/lockfile-url-form-negative.txt           |   5 +
+ .../gates/lockfile-url-form-positive.txt           |   3 +
+ .../WO-OPS-DESK-6-review/gates/playwright-e2e.txt  |  17 +
+ _review/WO-OPS-DESK-6-review/gates/tests.txt       |  52 ++
+ _review/WO-OPS-DESK-6-review/gates/typecheck.txt   |  21 +
+ .../gates/zero-hardcode-negative.txt               |   7 +
+ .../gates/zero-hardcode-positive.txt               |   3 +
+ _review/WO-OPS-DESK-6-review/logs/branch-log.txt   |  15 +
+ 21 files changed, 1951 insertions(+)
+7f95ae7 WO-OPS-DESK-6: journal the refusal-oversight read model + the honest framing
+ JOURNAL.md | 65 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 65 insertions(+)

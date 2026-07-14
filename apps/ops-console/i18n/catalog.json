@@ -232,5 +232,155 @@
     "fr": "En attente",
     "register": "neutral",
     "screenClass": "label"
+  },
+  {
+    "key": "refusal.sandbox_note",
+    "fr": "Aperçu — échelle de refus",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.buyer",
+    "fr": "Client",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.refusals",
+    "fr": "Refus",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.reason",
+    "fr": "Motif",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.risk",
+    "fr": "Signal",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.deposit",
+    "fr": "Acompte demandé",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.prepay_until",
+    "fr": "Prépaiement jusqu'au",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.rung_good_standing",
+    "fr": "Bon standing",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.rung_deposit_required",
+    "fr": "Acompte",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.rung_prepay_only",
+    "fr": "Paiement d'avance",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.rung_suspended",
+    "fr": "À la porte suspendu",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.eligibility_allowed",
+    "fr": "Permis à la porte",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.eligibility_restricted",
+    "fr": "Restreint",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "date.month_01",
+    "fr": "janvier",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "date.month_02",
+    "fr": "février",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "date.month_03",
+    "fr": "mars",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "date.month_04",
+    "fr": "avril",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "date.month_05",
+    "fr": "mai",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "date.month_06",
+    "fr": "juin",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "date.month_07",
+    "fr": "juillet",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "date.month_08",
+    "fr": "août",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "date.month_09",
+    "fr": "septembre",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "date.month_10",
+    "fr": "octobre",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "date.month_11",
+    "fr": "novembre",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "date.month_12",
+    "fr": "décembre",
+    "register": "neutral",
+    "screenClass": "label"
   }
 ]

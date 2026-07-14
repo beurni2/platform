@@ -1,0 +1,7 @@
+SELF-ANCHOR — WO-OPS-DESK-6 (post pre-merge fix)
+HEAD code (fix): 1feecf3e957d5d50b61da40901dacbcdae2169fd
+  = origin     : 1feecf3e957d5d50b61da40901dacbcdae2169fd
+prior code     : 923e1a14b97e9dfb7776e63f72cf7fcdbbea781b  (pre-fix Desk 6 code)
+grounding base : rides this branch (GP-OPS)
+main           : 1176f6963d07f2847e606c4f09ed98be970fc577
+canon pin      : 67bda02 (v0.9.8)

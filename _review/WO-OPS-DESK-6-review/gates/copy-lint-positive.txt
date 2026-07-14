@@ -1,0 +1,3 @@
+$ pnpm exec copy-lint apps/ops-console/i18n/catalog.json
+copy-lint OK: 64 entries, 0 violations
+(exit code: 0)
