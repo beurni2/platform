@@ -5,7 +5,7 @@ Slice   : WO-OPS-DESK-6 (AMBER) — Desk 6 (echelle-de-refus) goes live as a
           no lever; the OpsActionType union does not grow.
 Repo    : github.com/beurni2/platform
 Branch  : claude/platform-ops-console-90txec
-HEAD    : 7f95ae7  (journal)  — code commit 2a3f005 — == origin (HEAD-ANCHOR.txt)
+HEAD    : 1feecf3  (code, incl. the CTO pre-merge date fix) — == origin (HEAD-ANCHOR.txt)
 Rides   : GP-OPS grounding 3207770 (JOURNAL-only) also sits on this branch,
           unmerged; it merges with this slice unless pulled out first.
 Base    : merged main 1176f69 — no re-pin (canon stays v0.9.8 / 67bda02)
@@ -15,8 +15,19 @@ Status  : DO NOT MERGE — founder review.
 
 0. FAILURES-FIRST (read this before the green)
 -----------------------------------------------
-Nothing failed at the final bytes; all gates green at 7f95ae7 (§F). The honest
+Nothing failed at the final bytes; all gates green at 1feecf3 (§F). The honest
 caveats, all by design and journaled:
+
+  • CTO PRE-MERGE FIX APPLIED. The prépaiement date rendered raw ISO on a French
+    trust surface; it now renders « 21 juillet 2026 » (human French, month names
+    in the catalog, formatted from UTC parts — byte-stable), the raw ISO absent
+    from the desk (e2e asserts both). The read model still carries the raw ISO —
+    custody of truth untouched; only the VIEW formats it. The fresh-context
+    verifier verdict (VERIFIER-VERDICT.txt) was rendered on the pre-fix code head
+    7f95ae7; the date fix is a display-only change independently re-proven here:
+    gates green, e2e asserts the human date + absent ISO, the planted-lever
+    desk-isolation guard re-run red-then-green on the fix bytes, cold proof at
+    1feecf3.
 
   • TRANSPORT GAP (flagged, not invented). PayAtDoorEligibility is emitted
     INSIDE shop-plus (16 hits) and does NOT reach platform's boundary — there

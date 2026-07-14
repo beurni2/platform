@@ -1,9 +1,9 @@
-ISOLATION — WARM + CLEAN-HOME COLD PROOF — WO-OPS-DESK-6 (at 7f95ae7)
+ISOLATION — WARM + CLEAN-HOME COLD PROOF — WO-OPS-DESK-6 (at 1feecf3)
 ====================================================================
 Per the DoD: warm + cold, a CLEAN HOME (not just a clean store), the AUTH LINE
 SHOWN, the cold proof shows its own isolation (WO-7.1 evidence law).
 
-WARM (working tree == committed bytes; git status clean at 7f95ae7):
+WARM (working tree == committed bytes; git status clean at 1feecf3):
   bash scripts/run-gates.sh → ALL GATES GREEN (51 tests; typecheck incl. the
   read-only type-test; zero-hardcode; copy-lint; lockfile URL-form; drift-check
   derived 0.9.8; Playwright 6/6; every negative fixture exit 1).
@@ -22,7 +22,7 @@ COLD (fresh $HOME, empty store, committed bytes of the pushed branch):
       url.http://<git-proxy>/git/.insteadof https://github.com/
 
   $ git clone --branch claude/platform-ops-console-90txec <origin> clone
-      cold HEAD : 7f95ae7c1042cd8275936a37f2cd94fce03f6db3   (== origin)
+      cold HEAD : 1feecf3e957d5d50b61da40901dacbcdae2169fd   (== origin)
 
   $ pnpm install --frozen-lockfile          # default store under fresh HOME = empty = cold
       Done — @platform/* resolved at pin 67bda02 (canon v0.9.8), lockfile frozen.
@@ -35,3 +35,8 @@ COLD (fresh $HOME, empty store, committed bytes of the pushed branch):
 No re-pin this slice (branched from merged main 1176f69, canon stays v0.9.8).
 This desk holds no lever, no command, no franc computation, no live feed — a
 render-only preview over the real canon shape.
+
+PRE-MERGE FIX (this refresh): the prépaiement date renders « 21 juillet 2026 »
+(human French, month names in the catalog, formatted from UTC parts — byte
+stable); the raw ISO is absent from the desk (e2e asserts both). Planted-lever
+desk-isolation re-proven red-then-green on the fix bytes.

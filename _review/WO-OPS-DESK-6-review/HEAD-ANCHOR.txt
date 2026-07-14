@@ -1,7 +1,7 @@
-SELF-ANCHOR — WO-OPS-DESK-6
-HEAD (journal) : 7f95ae7c1042cd8275936a37f2cd94fce03f6db3
-code commit    : 2a3f005636ae50977f43cbcd2550e5cbbb5c45b2
-grounding base : 32077704c73ba8a1457cfd1a829ccd1996698cf6  (GP-OPS, rides this branch)
-origin branch  : 7f95ae7c1042cd8275936a37f2cd94fce03f6db3
+SELF-ANCHOR — WO-OPS-DESK-6 (post pre-merge fix)
+HEAD code (fix): 1feecf3e957d5d50b61da40901dacbcdae2169fd
+  = origin     : 1feecf3e957d5d50b61da40901dacbcdae2169fd
+prior code     : 923e1a14b97e9dfb7776e63f72cf7fcdbbea781b  (pre-fix Desk 6 code)
+grounding base : rides this branch (GP-OPS)
 main           : 1176f6963d07f2847e606c4f09ed98be970fc577
 canon pin      : 67bda02 (v0.9.8)

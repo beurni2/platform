@@ -614,3 +614,14 @@ shop feed (closing the transport gap) is a later integration slice.
 `moderation:decide | breakglass:issue`) · no franc computed (the `requiredDeposit`
 is canon Fcfa, shown verbatim via digit-grouping, never computed) · no write
 path · the other five shells untouched · no invented feed.
+
+**CTO PRE-MERGE FIX (ruling on WO-OPS-DESK-6):** the `prepayOnlyUntil` rendered
+raw ISO (`2026-07-21T00:00:00.000Z`) on a French trust surface. The ecosystem
+has **no** date convention (its `fr-FR` usage is all money/number formatting), so
+per the ruling the view now renders the simplest honest human French form —
+« 21 juillet 2026 » — with the 12 month names in the catalog (`date.month_01..12`,
+register-tagged, never inline). Formatted deterministically from the UTC parts
+(no locale/ICU), so the fixed-clock preview stays byte-stable. Custody of truth
+is untouched: the read model still carries the raw ISO; only the VIEW presents it
+humanly (exactly as `formatFcfa` digit-groups a verbatim franc). e2e asserts the
+human date renders and the raw ISO is absent from the desk.

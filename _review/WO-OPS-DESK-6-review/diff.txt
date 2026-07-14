@@ -1,8 +1,8 @@
 diff --git a/JOURNAL.md b/JOURNAL.md
-index e74c2f0..69a8dca 100644
+index e74c2f0..3ede823 100644
 --- a/JOURNAL.md
 +++ b/JOURNAL.md
-@@ -395,3 +395,222 @@ audit-log, moderation, and the break-glass request/board shapes untouched
+@@ -395,3 +395,233 @@ audit-log, moderation, and the break-glass request/board shapes untouched
  (delegation is guard-internal) · the fourth secret still absent · no `/docs`
  edit beyond what canon dictates (none) · the ssh-url negative fixture left
  frozen (it tests URL form, not pin currency).
@@ -225,8 +225,19 @@ index e74c2f0..69a8dca 100644
 +`moderation:decide | breakglass:issue`) · no franc computed (the `requiredDeposit`
 +is canon Fcfa, shown verbatim via digit-grouping, never computed) · no write
 +path · the other five shells untouched · no invented feed.
++
++**CTO PRE-MERGE FIX (ruling on WO-OPS-DESK-6):** the `prepayOnlyUntil` rendered
++raw ISO (`2026-07-21T00:00:00.000Z`) on a French trust surface. The ecosystem
++has **no** date convention (its `fr-FR` usage is all money/number formatting), so
++per the ruling the view now renders the simplest honest human French form —
++« 21 juillet 2026 » — with the 12 month names in the catalog (`date.month_01..12`,
++register-tagged, never inline). Formatted deterministically from the UTC parts
++(no locale/ICU), so the fixed-clock preview stays byte-stable. Custody of truth
++is untouched: the read model still carries the raw ISO; only the VIEW presents it
++humanly (exactly as `formatFcfa` digit-groups a verbatim franc). e2e asserts the
++human date renders and the raw ISO is absent from the desk.
 diff --git a/apps/ops-console/e2e/shell.spec.ts b/apps/ops-console/e2e/shell.spec.ts
-index f262770..b8c4c19 100644
+index f262770..0a690bd 100644
 --- a/apps/ops-console/e2e/shell.spec.ts
 +++ b/apps/ops-console/e2e/shell.spec.ts
 @@ -24,12 +24,12 @@ function hexToRgb(hex: string): string {
@@ -264,7 +275,7 @@ index f262770..b8c4c19 100644
    }
  });
  
-@@ -84,6 +85,40 @@ test('DESK 5 (reconciliation-operateur) is live — the break-glass case: both o
+@@ -84,6 +85,45 @@ test('DESK 5 (reconciliation-operateur) is live — the break-glass case: both o
    await expect(page.getByText(/signature/i)).toHaveCount(0);
  });
  
@@ -295,6 +306,11 @@ index f262770..b8c4c19 100644
 +  await expect(page.locator('.rf-row[data-rung="deposit_required"] .rf-deposit .rf-value')).toHaveText(
 +    fcfa(2000),
 +  );
++  // the prépaiement date renders as a HUMAN French date — never raw ISO
++  await expect(page.locator('.rf-row[data-rung="prepay_only"] .rf-prepay .rf-value')).toHaveText(
++    '21 juillet 2026',
++  );
++  await expect(page.getByText('2026-07-21T00:00:00.000Z')).toHaveCount(0);
 +
 +  // NO LEVER — the desk content carries no interactive control (render-only)
 +  await expect(
@@ -306,10 +322,10 @@ index f262770..b8c4c19 100644
    page,
  }) => {
 diff --git a/apps/ops-console/i18n/catalog.json b/apps/ops-console/i18n/catalog.json
-index b1fb02c..db39373 100644
+index b1fb02c..cf1f7f3 100644
 --- a/apps/ops-console/i18n/catalog.json
 +++ b/apps/ops-console/i18n/catalog.json
-@@ -232,5 +232,83 @@
+@@ -232,5 +232,155 @@
      "fr": "En attente",
      "register": "neutral",
      "screenClass": "label"
@@ -389,6 +405,78 @@ index b1fb02c..db39373 100644
 +  {
 +    "key": "refusal.eligibility_restricted",
 +    "fr": "Restreint",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_01",
++    "fr": "janvier",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_02",
++    "fr": "février",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_03",
++    "fr": "mars",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_04",
++    "fr": "avril",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_05",
++    "fr": "mai",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_06",
++    "fr": "juin",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_07",
++    "fr": "juillet",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_08",
++    "fr": "août",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_09",
++    "fr": "septembre",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_10",
++    "fr": "octobre",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_11",
++    "fr": "novembre",
++    "register": "neutral",
++    "screenClass": "label"
++  },
++  {
++    "key": "date.month_12",
++    "fr": "décembre",
 +    "register": "neutral",
 +    "screenClass": "label"
    }
@@ -507,10 +595,10 @@ index 5a30beb..6f04cec 100644
    }
 diff --git a/apps/ops-console/src/refusal/ladder-view.ts b/apps/ops-console/src/refusal/ladder-view.ts
 new file mode 100644
-index 0000000..eaf4605
+index 0000000..f83dd13
 --- /dev/null
 +++ b/apps/ops-console/src/refusal/ladder-view.ts
-@@ -0,0 +1,111 @@
+@@ -0,0 +1,138 @@
 +import { money } from '@platform/ui-tokens';
 +import { t } from '../i18n';
 +import type { LadderRung, RefusalLadderBoard, RefusalLadderRow } from './ladder';
@@ -530,6 +618,33 @@ index 0000000..eaf4605
 +  prepay_only: 'refusal.rung_prepay_only',
 +  suspended: 'refusal.rung_suspended',
 +};
++
++/**
++ * The 12 month names live in the catalog (register-tagged, never inline). A date
++ * is DATA (custody of truth stays the raw ISO in the read model); the view only
++ * PRESENTS it in human French — deterministically, from the UTC parts, so the
++ * fixed-clock preview is byte-stable (no locale/ICU dependency).
++ */
++const MONTH_KEYS = [
++  'date.month_01',
++  'date.month_02',
++  'date.month_03',
++  'date.month_04',
++  'date.month_05',
++  'date.month_06',
++  'date.month_07',
++  'date.month_08',
++  'date.month_09',
++  'date.month_10',
++  'date.month_11',
++  'date.month_12',
++] as const;
++
++/** Human French date « 21 juillet 2026 » from an ISO timestamp (UTC parts). */
++function formatFrenchDate(iso: string): string {
++  const d = new Date(iso);
++  return `${d.getUTCDate()} ${t(MONTH_KEYS[d.getUTCMonth()]!)} ${d.getUTCFullYear()}`;
++}
 +
 +/** Canon money format: narrow-space group separator + « F » suffix (tokens). */
 +function formatFcfa(amount: number): string {
@@ -592,7 +707,7 @@ index 0000000..eaf4605
 +    facts.append(field('refusal.deposit', formatFcfa(row.requiredDeposit), 'rf-deposit'));
 +  }
 +  if (row.prepayOnlyUntil !== undefined) {
-+    facts.append(field('refusal.prepay_until', row.prepayOnlyUntil, 'rf-prepay'));
++    facts.append(field('refusal.prepay_until', formatFrenchDate(row.prepayOnlyUntil), 'rf-prepay'));
 +  }
 +
 +  li.append(head, facts);
