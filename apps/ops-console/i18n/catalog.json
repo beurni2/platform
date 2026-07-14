@@ -232,5 +232,83 @@
     "fr": "En attente",
     "register": "neutral",
     "screenClass": "label"
+  },
+  {
+    "key": "refusal.sandbox_note",
+    "fr": "Aperçu — échelle de refus",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.buyer",
+    "fr": "Client",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.refusals",
+    "fr": "Refus",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.reason",
+    "fr": "Motif",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.risk",
+    "fr": "Signal",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.deposit",
+    "fr": "Acompte demandé",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.prepay_until",
+    "fr": "Prépaiement jusqu'au",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.rung_good_standing",
+    "fr": "Bon standing",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.rung_deposit_required",
+    "fr": "Acompte",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.rung_prepay_only",
+    "fr": "Paiement d'avance",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.rung_suspended",
+    "fr": "À la porte suspendu",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.eligibility_allowed",
+    "fr": "Permis à la porte",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.eligibility_restricted",
+    "fr": "Restreint",
+    "register": "neutral",
+    "screenClass": "label"
   }
 ]

@@ -40,10 +40,12 @@ describe('desk isolation — Desk 3 is contained; the seven stay honest shells',
     expect(main).toMatch(/renderModerationQueue\(/);
     expect(main).toMatch(/desk\.id === 'reconciliation-operateur'/);
     expect(main).toMatch(/renderBreakGlassBoard\(/);
+    expect(main).toMatch(/desk\.id === 'echelle-de-refus'/);
+    expect(main).toMatch(/renderRefusalLadder\(/);
     expect(main).toMatch(/renderEmptyShell\(\)/);
-    // EXACTLY two desks go live; the remaining six fall to the shell.
+    // EXACTLY three desks go live; the remaining five fall to the shell.
     const liveBranches = [...main.matchAll(/desk\.id === '([^']+)'/g)].map((m) => m[1]).sort();
-    expect(liveBranches).toEqual(['moderation', 'reconciliation-operateur']);
+    expect(liveBranches).toEqual(['echelle-de-refus', 'moderation', 'reconciliation-operateur']);
   });
 
   it('no desk descriptor reaches a command module (moderation/ or breakglass/) (imports)', () => {
@@ -55,6 +57,34 @@ describe('desk isolation — Desk 3 is contained; the seven stay honest shells',
         `${file} code must not import a command module`,
       ).toBe(false);
     }
+  });
+
+  it('DESK 6 refusal surface is RENDER-ONLY — no command, no lever, no write (« vue sans levier »; a planted mutation lever fails here)', () => {
+    const rfDir = join(srcDir, 'refusal');
+    for (const file of readdirSync(rfDir).filter((f) => f.endsWith('.ts'))) {
+      const src = readFileSync(join(rfDir, file), 'utf8');
+      const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+      // no command machinery: no maker-checker, no OpsActionType, no issue/approve lever
+      expect(
+        codeOnly,
+        `${file} code reaches a command/lever`,
+      ).not.toMatch(/maker-checker|ops-action|OpsAction|OPS_ACTION|\bissue[A-Za-z]*\(|\bapprove[A-Za-z]*\(/);
+      // no write path / side channel / logging
+      expect(
+        codeOnly,
+        `${file} code has a write path`,
+      ).not.toMatch(/fetch\(|XMLHttpRequest|WebSocket|indexedDB|localStorage|console\.(log|info|warn|error|debug)/);
+    }
+    // the read model imports the canon shape as a TYPE only — no runtime schema,
+    // so it structurally cannot construct or mutate anything.
+    const ladder = readFileSync(join(rfDir, 'ladder.ts'), 'utf8');
+    const ladderContractsImports = [
+      ...ladder.matchAll(/^import\s+([^;]*?)\s+from\s+'@platform\/contracts';/gm),
+    ];
+    expect(ladderContractsImports, 'ladder.ts imports exactly one contracts line').toHaveLength(1);
+    expect(ladderContractsImports[0]![1], 'ladder.ts must import type-only from canon').toMatch(
+      /^type\b/,
+    );
   });
 
   it('THE FOURTH SECRET is structurally absent from the break-glass surface (no signature in code, no logging)', () => {

@@ -24,12 +24,12 @@ function hexToRgb(hex: string): string {
   return `rgb(${parseInt(n.slice(0, 2), 16)}, ${parseInt(n.slice(2, 4), 16)}, ${parseInt(n.slice(4, 6), 16)})`;
 }
 
-// The six desks that stay honest shells (everything except moderation + reconciliation-operateur).
+// The five desks that stay honest shells (everything except the three live
+// desks: moderation + reconciliation-operateur + echelle-de-refus).
 const SHELL_DESKS: ReadonlyArray<{ slug: string; title: string }> = [
   { slug: 'fonds-de-protection', title: 'Fonds de protection' },
   { slug: 'reclamations', title: 'Réclamations' },
   { slug: 'confiance-securite', title: 'Confiance & sécurité' },
-  { slug: 'echelle-de-refus', title: 'Échelle de refus' },
   { slug: 'flags-kill-switches', title: 'Flags & kill-switches' },
   { slug: 'journal-audit', title: "Journal d'audit" },
 ];
@@ -46,16 +46,17 @@ test('the shell boots on the shared/neutral palette with catalog strings', async
   await expect(page.locator('nav .desk-link .glyph svg')).toHaveCount(8);
 });
 
-test('the six remaining desks stay honest empty shells (no live surface leaks in)', async ({
+test('the five remaining desks stay honest empty shells (no live surface leaks in)', async ({
   page,
 }) => {
   for (const desk of SHELL_DESKS) {
     await page.goto(`/#/${desk.slug}`);
     await expect(page.locator('.desk-title')).toHaveText(desk.title);
     await expect(page.locator('.empty-state')).toHaveText(EMPTY);
-    // neither live desk (moderation queue, break-glass board) may leak in.
+    // no live desk (moderation queue, break-glass board, refusal ladder) may leak in.
     await expect(page.locator('.mod-queue')).toHaveCount(0);
     await expect(page.locator('.bg-case')).toHaveCount(0);
+    await expect(page.locator('.rf-list')).toHaveCount(0);
   }
 });
 
@@ -82,6 +83,40 @@ test('DESK 5 (reconciliation-operateur) is live — the break-glass case: both o
 
   // THE FOURTH SECRET is never rendered
   await expect(page.getByText(/signature/i)).toHaveCount(0);
+});
+
+test('DESK 6 (echelle-de-refus) is live — the refusal ladder: rungs, eligibility, custody-of-truth verbatim, no lever', async ({
+  page,
+}) => {
+  await page.goto('/#/echelle-de-refus');
+  await expect(page.locator('.desk-title')).toHaveText('Échelle de refus');
+  await expect(page.locator('.empty-state')).toHaveCount(0);
+  await expect(page.locator('.mod-queue')).toHaveCount(0);
+  await expect(page.locator('.bg-case')).toHaveCount(0);
+
+  // the four rungs render as a legend — the ladder, best → most restricted (trend)
+  await expect(page.locator('.rf-legend .rf-legend-rung')).toHaveCount(4);
+  // one buyer per rung — the degradation across the population
+  await expect(page.locator('.rf-list .rf-row')).toHaveCount(4);
+  for (const rung of ['good_standing', 'deposit_required', 'prepay_only', 'suspended']) {
+    await expect(page.locator(`.rf-row[data-rung="${rung}"]`)).toHaveCount(1);
+  }
+
+  // good standing is « permis », suspended is « restreint »
+  await expect(page.locator('.rf-row[data-rung="good_standing"] .rf-elig--allowed')).toHaveCount(1);
+  await expect(page.locator('.rf-row[data-rung="suspended"] .rf-elig--restricted')).toHaveCount(1);
+
+  // CUSTODY OF TRUTH — a seeded reason renders verbatim
+  await expect(page.getByText('Refus répétés — paiement à la porte suspendu')).toBeVisible();
+  // the deposit rung shows the required amount in canon money format
+  await expect(page.locator('.rf-row[data-rung="deposit_required"] .rf-deposit .rf-value')).toHaveText(
+    fcfa(2000),
+  );
+
+  // NO LEVER — the desk content carries no interactive control (render-only)
+  await expect(
+    page.locator('.desk-content button, .desk-content input, .desk-content form, .desk-content [contenteditable]'),
+  ).toHaveCount(0);
 });
 
 test('DESK 3 (moderation) is live — renders the queue: pending / decided, reasons verbatim', async ({
