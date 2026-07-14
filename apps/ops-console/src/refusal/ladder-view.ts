@@ -18,6 +18,33 @@ const RUNG_KEY: Record<LadderRung, string> = {
   suspended: 'refusal.rung_suspended',
 };
 
+/**
+ * The 12 month names live in the catalog (register-tagged, never inline). A date
+ * is DATA (custody of truth stays the raw ISO in the read model); the view only
+ * PRESENTS it in human French — deterministically, from the UTC parts, so the
+ * fixed-clock preview is byte-stable (no locale/ICU dependency).
+ */
+const MONTH_KEYS = [
+  'date.month_01',
+  'date.month_02',
+  'date.month_03',
+  'date.month_04',
+  'date.month_05',
+  'date.month_06',
+  'date.month_07',
+  'date.month_08',
+  'date.month_09',
+  'date.month_10',
+  'date.month_11',
+  'date.month_12',
+] as const;
+
+/** Human French date « 21 juillet 2026 » from an ISO timestamp (UTC parts). */
+function formatFrenchDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getUTCDate()} ${t(MONTH_KEYS[d.getUTCMonth()]!)} ${d.getUTCFullYear()}`;
+}
+
 /** Canon money format: narrow-space group separator + « F » suffix (tokens). */
 function formatFcfa(amount: number): string {
   const digits = String(amount);
@@ -79,7 +106,7 @@ function rowEl(row: RefusalLadderRow): HTMLElement {
     facts.append(field('refusal.deposit', formatFcfa(row.requiredDeposit), 'rf-deposit'));
   }
   if (row.prepayOnlyUntil !== undefined) {
-    facts.append(field('refusal.prepay_until', row.prepayOnlyUntil, 'rf-prepay'));
+    facts.append(field('refusal.prepay_until', formatFrenchDate(row.prepayOnlyUntil), 'rf-prepay'));
   }
 
   li.append(head, facts);

@@ -112,6 +112,11 @@ test('DESK 6 (echelle-de-refus) is live — the refusal ladder: rungs, eligibili
   await expect(page.locator('.rf-row[data-rung="deposit_required"] .rf-deposit .rf-value')).toHaveText(
     fcfa(2000),
   );
+  // the prépaiement date renders as a HUMAN French date — never raw ISO
+  await expect(page.locator('.rf-row[data-rung="prepay_only"] .rf-prepay .rf-value')).toHaveText(
+    '21 juillet 2026',
+  );
+  await expect(page.getByText('2026-07-21T00:00:00.000Z')).toHaveCount(0);
 
   // NO LEVER — the desk content carries no interactive control (render-only)
   await expect(
