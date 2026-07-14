@@ -395,3 +395,157 @@ audit-log, moderation, and the break-glass request/board shapes untouched
 (delegation is guard-internal) · the fourth secret still absent · no `/docs`
 edit beyond what canon dictates (none) · the ssh-url negative fixture left
 frozen (it tests URL form, not pin currency).
+
+---
+
+## GP-OPS — GROUNDING PASS: the six remaining desks — 🟢 (JOURNAL-only; no product code)
+
+Grounding for the CTO's desk build orders. Method: read canon §9.2 (the desks),
+the canon shape/event inventory (`platform-contracts@67bda02`, v0.9.8), grep the
+three app repos for what is actually emitted/consumed, and record what platform
+renders today. No product code; the diff is this entry only.
+
+### 0. Scope reconciliation — the CTO's names vs the repo's six shells (FLAG)
+
+The order named the scope as "incidents · reconciliation · payouts · refunds/
+claims · protection fund · riders/fleet". That list does NOT map 1:1 to the six
+REMAINING shells. Ground truth from `apps/ops-console/src/desks/*.ts` + canon
+§9.2 (Desk N titles are canon):
+
+| CTO name | Maps to | Note |
+|---|---|---|
+| protection fund | **Desk 1 — Protection Fund** | direct |
+| refunds/claims | **Desk 2 — Claims adjudication** | direct (refund LEVER is E3, see §2) |
+| reconciliation | **Desk 5 — Provider reconciliation** | **already LIVE** (break-glass issuing half, WO-OPS-1b/1c) — NOT a remaining shell |
+| incidents | **Desk 4 — Trust & safety** (`incident.opened`, `safety.sos`) | closest; T&S also owns related-party |
+| payouts | *(no distinct desk)* | payouts = the settlement waterfall / `payout.*`; surfaced under Desk 5 reconciliation + Desk 2 claims, not a shell of its own |
+| riders/fleet | *(no ops desk)* | fleet/HR is a **Séra** surface (§9.3 "Ops/fleet manager"); no fleet desk exists in platform's eight |
+
+**The six actual remaining shells are Desk 1, 2, 4, 6, 7, 8.** Desks 3 (Moderation)
+and 5 (Reconciliation-operateur) are live. I grounded the six real shells below
+and mapped the CTO's names onto them; **"payouts" and "riders/fleet" have no
+remaining-shell home** — flag for the founder/CTO before writing orders against
+those two names.
+
+### 1. Presence-check — canon shapes/events + emission hit-counts
+
+Canon SHAPES (defined @ v0.9.8) and EVENTS (`events.ts` `EVENT_NAMES`) per desk,
+with app-repo emission hit-counts (grep `--include=*.ts`, excl node_modules/
+_review/docs) and what **platform** consumes TODAY.
+
+| Desk | Canon shapes (DEFINED) | Canon events | App-repo emission (hits) | Platform today |
+|---|---|---|---|---|
+| **1 Protection Fund** | `ProtectionFundSchema` (solvency/balances/allocation/in-outflows), `ProtectionClaimSchema`, `FUND_SOLVENCY_STATES`, `FAULT_CLASSES` | `protection.capitalized`, `protection.solvency_changed`, `protection.claim_opened` | `ProtectionClaim` boutik 11; `protection.claim_opened` boutik 5 / sera 10. **`ProtectionFund` solvency shape: 0 emission anywhere** | shell only |
+| **2 Claims adjudication** | `ProtectionClaimSchema`, `CustodyLiabilityClaimSchema`, `CUSTODY_LIABILITY_CAUSES`, `FaultClassSchema`, `DELIVERY_OUTCOME_FAMILIES` | `protection.claim_opened`, `custody_liability.claim_opened`, `package.lost/damaged`, `goodwill.granted` | `CustodyLiabilityClaim` sera 11; `custody_liability.claim` sera 2; `protection.claim_opened` boutik 5 / sera 10 | shell only |
+| **4 Trust & safety** | `SellerTrustStateSchema`, `SELLER_TRUST_TIERS`; **NO related-party shape** | `seller.trust_state_changed`, `incident.opened`, `safety.sos_created/acknowledged`, `supplier.verification_restricted` | `SellerTrustState` boutik 19 / shop 2; `incident.opened` sera 6 / shop 4; `safety.sos` sera 13 | shell only |
+| **6 Refusal ladder** | `PayAtDoorEligibilitySchema` (refusalCount/riskState/requiredDeposit/prepayOnlyUntil), `ProbationLimitsSchema` | `buyer.eligibility_changed`, `delivery.refused` | `PayAtDoorEligibility` shop 16 | shell only |
+| **7 Flags & kill-switches** | **NONE** (no flag/kill-switch/capability shape in contracts) | none | 0 | shell only |
+| **8 Audit log** | `EventEnvelopeSchema`, `PlatformEventSchema` (the append-only surface) | *(every event)* | *(every event)* | **`AuditLog` primitive exists** (append-only, in-memory) |
+
+Platform's total contract consumption today (both live desks): `EventEnvelope(Schema)`,
+`ModerationDecision(Schema)`, `PaymentOperatorActorSchema`, `Id/Fcfa/IsoTimestampSchema`,
+`mintCommandId`, `HANDOFF_AUTHORIZATION_STATES`. Every shell renders `t('desk.empty_state')`.
+
+### 2. Per-desk: the E3 line + maker-checker + restore/replay
+
+Iron rule over all of it (§9.1, quoted): *"Ops never edits the ledger. No human
+ever 'just fixes' money … maker-checker on anything touching money or custody. If
+a human can silently move a franc, every guarantee in this document is theater."*
+
+**Desk 1 — Protection Fund.** NOW (read-model): solvency/balance/claims-by-faultClass
+view — the shapes exist. **Gap:** `ProtectionFund` solvency numbers are emitted by
+NO app yet (0 hits), so the honest-view half needs either an upstream emitter or a
+§3 certified-mock projection; the claims list CAN read `protection.claim_opened`
+(emitted). GATED lever (aggregator/Real-Money): capitalizing with real money and
+PAYING a claim — money movement. Doctrine, B+I-13 (quoted): *"buyer refunds are
+NEVER gated on the fund's solvency."* Maker-checker: recording capitalization /
+adjudicating a payout = money → maker-checker (union grows); solvency view =
+render-only.
+
+**Desk 2 — Claims adjudication.** NOW (read-model): the fault→instrument routing
+TABLE (canon §9.2, fixed) + the open-claims list (`protection.claim_opened` +
+`custody_liability.claim_opened`, both emitted). GATED: the "who pays" EXECUTION
+(route/pay to fund · `CustodyLiabilityClaim` · loss account) and the refund/
+earning-reversal saga. Doctrine (`events.ts`, quoted): *"The specs list NO refund/
+reversal event names (the refund/earning-reversal saga is E3 …) — none are invented
+here"*; Real-Money Gate §8: *"Refunds work end-to-end (incl. the earning-reversal
+saga)."* So the lever is E3/E5, buildable only as a §3 certified mock. Maker-checker:
+adjudicate/route = money command (union grows).
+
+**Desk 4 — Trust & safety / related-party.** NOW (read-model): `SellerTrustState`
+view (emitted), incident + SOS lists (emitted). Auto-void tier is deterministic
+(no human). **STOP-AND-FLAG:** the related-party manual-review lever (SP-I17) has
+**no canon shape** — you cannot build a read model against a shape that does not
+exist. This is *shape-gated*, not aggregator-gated: it needs a canon shape first
+(or a FOUNDER DECISION on where related-party state lives). Doctrine (§9.2 Desk 4,
+quoted): *"a low-confidence signal may not auto-void a legitimate reward or order.
+Suspicion is not proof."* Maker-checker: manual-review void = command (union grows);
+auto-void = automatic.
+
+**Desk 6 — Buyer refusal ladder oversight.** NOW (read-model, the cleanest of the
+six): `PayAtDoorEligibility` is actively emitted by shop (16) — refusalCount,
+riskState, requiredDeposit (a CEILING, never a held amount — zero-deposit law),
+prepayOnlyUntil, `ProbationLimits`. The whole oversight VIEW is buildable now; the
+ladder writes automatically upstream. GATED: none money-moving. Doctrine (§9.2 Desk
+6, quoted): *"Justified refusals never count against a buyer."* Maker-checker:
+render-first; a policy-tuning command (if any) is permissioned but not money/custody.
+
+**Desk 7 — Flags & kill-switches.** **STOP-AND-FLAG:** no canon shape at all. Kill-
+switches are **E0 service infrastructure**, not a contract shape — Execution Contract
+§7 (quoted): *"Every high-risk capability ships behind a remotely controlled flag;
+rollback MUST NOT require a new mobile build … Kill switches: checkout · dispatch ·
+payout · any single product category."* Building this desk means wiring to the flag/
+kill-switch SERVICE (infra), which platform consumes nowhere today — its interface
+must be named first. Maker-checker: toggling a money kill-switch (payout, checkout)
+= high-stakes command → maker-checker.
+
+**Desk 8 — The audit log.** NOW (read-model): platform ALREADY has the `AuditLog`
+primitive (append-only, deep-frozen, in-memory). Every `EventEnvelope` is the audit
+surface; the desk is a read VIEW over the ops command journal — buildable now, no
+gate. Doctrine (§9.2 Desk 8, quoted): *"Append-only. Every ops action: who, what,
+why, when, against which order, with which evidence."* Maker-checker: render-only.
+
+### 3. Restore / replay audit surface (in THIS repo)
+
+Platform holds **no domain database** (per its own charter: *"reads through the
+authoritative services and NEVER writes another domain's database"*). So a rollback
+drill in platform restores exactly two things: **(a) the ops command journal** (the
+audit entries — who/what/why/when) and **(b) any local read-model projections**
+(none exist yet — the two live desks build in-memory boards per session). **Write
+paths to replay-check = the only four command emitters:** `issueModerationDecision`
+/ `approveModerationDecision` (`moderation/decide.ts`) and `issueBreakGlass` /
+`approveBreakGlass` (`breakglass/issue.ts`). Replay = re-applying their
+`EventEnvelope`s reproduces the same audit log deterministically (canonical-json,
+byte-stable). **Prerequisite gap:** the `AuditLog` is in-memory only — a restore
+drill has nothing to restore FROM until the ops command journal is persisted.
+Persistence + a replay harness is the first restore/replay slice, and it underpins
+Desk 8.
+
+### 4. Proposed split (tiers + fixtures) — for the CTO's build orders
+
+Recommendation, not a work order. RED = money/custody-adjacent; AMBER = read-model
+over an emitted shape; GREEN = render/no lever.
+
+- **Desk 8 audit-log VIEW (AMBER)** — build FIRST: a read view over the ops command
+  journal; unblocks the restore/replay narrative. Fixture: replay a fixed envelope
+  sequence → byte-identical rendered log.
+- **Desk 6 refusal-ladder oversight (AMBER)** — cleanest read model; `PayAtDoorEligibility`
+  is emitted today. Fixture: a population of eligibility states → the three-rung
+  ladder renders; "justified refusal" row unchanged.
+- **Desk 1 solvency view + Desk 2 claims list (AMBER read / RED lever)** — render
+  solvency + the routing table + open claims from emitted `*.claim_opened`; the
+  PAY/refund lever stays a §3 certified mock behind the Real-Money Gate. Fixture:
+  claims by faultClass route to the canon table; buyer-refund row proves B+I-13
+  (never gated on the fund).
+- **Desk 4 T&S (AMBER for trust/incident/SOS view; BLOCKED for related-party)** —
+  build the trust-state/incident/SOS read views; **hold** the related-party lever
+  pending a canon shape (§2 flag).
+- **Desk 7 flags/kill-switches (BLOCKED)** — needs the flag-service interface named
+  before any desk work; no contract shape exists.
+- **Restore/replay persistence (RED, cross-cutting)** — persist the ops command
+  journal + a replay harness; prerequisite for a real rollback drill.
+
+**Two hard flags for the founder/CTO before orders:** (1) Desk 7 and Desk 4's
+related-party half have **no canon shape/interface** — building either now would be
+inventing canon; (2) the CTO's "payouts" and "riders/fleet" names have no
+remaining-shell home in platform's eight.
