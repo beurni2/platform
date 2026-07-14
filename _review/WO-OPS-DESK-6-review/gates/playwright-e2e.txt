@@ -1,0 +1,17 @@
+$ pnpm --filter @platform/ops-console test:e2e
+
+> @platform/ops-console@0.0.1 test:e2e /home/user/platform/apps/ops-console
+> playwright test
+
+
+Running 6 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/shell.spec.ts:38:1 › the shell boots on the shared/neutral palette with catalog strings (313ms)
+  ✓  2 [chromium] › e2e/shell.spec.ts:49:1 › the five remaining desks stay honest empty shells (no live surface leaks in) (348ms)
+  ✓  3 [chromium] › e2e/shell.spec.ts:63:1 › DESK 5 (reconciliation-operateur) is live — the break-glass case: both operators, amount, « en attente » downstream (285ms)
+  ✓  4 [chromium] › e2e/shell.spec.ts:88:1 › DESK 6 (echelle-de-refus) is live — the refusal ladder: rungs, eligibility, custody-of-truth verbatim, no lever (345ms)
+  ✓  5 [chromium] › e2e/shell.spec.ts:122:1 › DESK 3 (moderation) is live — renders the queue: pending / decided, reasons verbatim (253ms)
+  ✓  6 [chromium] › e2e/shell.spec.ts:144:1 › an unknown route falls back to the first desk — a shell, never blank or fabricated (310ms)
+
+  6 passed (4.3s)
+(exit code: 0)

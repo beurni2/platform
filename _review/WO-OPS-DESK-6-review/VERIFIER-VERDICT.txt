@@ -1,0 +1,59 @@
+FRESH-CONTEXT VERIFIER — VERDICT (verbatim) — WO-OPS-DESK-6
+==========================================================
+No memory of the build. Ran the subversions itself; trusted no prose. Working
+tree left clean, HEAD unchanged at 7f95ae7, no stray files.
+
+A. RENDER-ONLY / NO LEVER — PASS. ops-action.ts:25 is still exactly
+   `export type OpsActionType = 'moderation:decide' | 'breakglass:issue'` — Desk 6
+   added no member. ladder.ts:32 imports the canon TYPE only
+   (`import type { PayAtDoorEligibility } from '@platform/contracts'`); grep of
+   src/refusal/ finds no fetch/socket/console./maker-checker/issue(/approve(/
+   ops-action. I planted `function x(){ fetch("/y"); }` into ladder.ts:
+   test/desk-isolation.test.ts went red at the write-path assertion (fetch();
+   after restore it returned 6/6 green. The guard bites.
+
+B. CUSTODY OF TRUTH — PASS. In deriveRefusalLadder, state, buyerRiskState→
+   riskState, buyerRefusalCount→refusalCount, reason, requiredDeposit,
+   prepayOnlyUntil are copied through unchanged; only rung + eligibility are
+   derived. The precedence (state !== 'allowed' → suspended; active
+   prepayOnlyUntil with strict nowIso < prepayOnlyUntil → prepay_only;
+   requiredDeposit > 0 → deposit_required; else good_standing) matches shop's own
+   order in shop-plus/packages/commerce-core/src/pay-at-door-policy.ts:102-109.
+   My own throwaway spec (11 assertions, since deleted) proved good→allowed,
+   deposit→restricted, active window→prepay_only, expiry once the clock passes,
+   the now == until boundary is NOT active (strict <), suspended→restricted, both
+   precedence orders, verbatim carry, and no input mutation. requiredDeposit is
+   only digit-grouped (formatFcfa), no franc arithmetic.
+
+C. NO INVENTED FEED / SHAPE-TRUE PREVIEW — PASS. sandbox.ts:31 maps preview.json
+   records through PayAtDoorEligibilitySchema.parse (the schema is .strict(); my
+   throwaway confirmed it throws on a rogue extra field and on a missing required
+   field). No http/socket/live source anywhere in src/refusal/.
+   PayAtDoorEligibility is referenced in platform only within the Desk 6 files;
+   in shop-plus it lives in commerce-core (emission side) — the transport gap is
+   real and flagged, not papered. The seed renders exactly one buyer per rung at
+   SANDBOX_NOW in ladder order, and the prepay buyer is genuinely inside an active
+   window at that clock.
+
+D. ISOLATION / SHELLS — PASS. main.ts wires exactly three live desks
+   (moderation, reconciliation-operateur, echelle-de-refus); everything else hits
+   renderEmptyShell(). All 8 desk descriptors import only
+   `import type { Desk } from './types'`. e2e/shell.spec.ts asserts the five
+   shells render zero .mod-queue/.bg-case/.rf-list, and the Desk 6 test asserts
+   no interactive control (button, input, form, [contenteditable] count 0).
+
+E. FRENCH VOICE / NO INLINE FRENCH — PASS. No inline French literal in
+   src/refusal/*.ts — every string there is an import path, a class name, an i18n
+   key, an enum value, or comment text; the reason prose lives in preview.json
+   (data). All 14 refusal.* catalog keys carry register + screenClass tags.
+   copy-lint: 52 entries, 0 violations (negative fixture fails with exit 1).
+
+F. FULL GATES — PASS. bash scripts/run-gates.sh → ALL GATES GREEN. vitest 51
+   passed (9 files); Playwright 6/6; every negative fixture exited exactly 1
+   (zero-hardcode, copy-lint, lockfile-ssh, drift tamper, drift version-mismatch);
+   typecheck passed. I confirmed the test-d type-test is genuinely compiled
+   (tsconfig.typetest.json): making one @ts-expect-error unused broke typecheck
+   with TS2578, proving the board/rows readonly (no-lever) guard actually bites —
+   then restored to clean.
+
+OVERALL: PASS

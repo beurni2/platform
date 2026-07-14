@@ -1,0 +1,4 @@
+$ pnpm exec drift-check docs --pinned-version 0.0.0-planted-mismatch
+drift-check FAILED — consumer /docs diverges from canon:
+  - pinned package version 0.0.0-planted-mismatch does not match manifest packageVersion 0.9.8
+(exit code: 1)

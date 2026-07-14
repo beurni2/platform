@@ -1,0 +1,7 @@
+SELF-ANCHOR — WO-OPS-DESK-6
+HEAD (journal) : 7f95ae7c1042cd8275936a37f2cd94fce03f6db3
+code commit    : 2a3f005636ae50977f43cbcd2550e5cbbb5c45b2
+grounding base : 32077704c73ba8a1457cfd1a829ccd1996698cf6  (GP-OPS, rides this branch)
+origin branch  : 7f95ae7c1042cd8275936a37f2cd94fce03f6db3
+main           : 1176f6963d07f2847e606c4f09ed98be970fc577
+canon pin      : 67bda02 (v0.9.8)

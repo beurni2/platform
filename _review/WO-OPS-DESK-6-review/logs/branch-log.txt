@@ -1,0 +1,15 @@
+7f95ae7 WO-OPS-DESK-6: journal the refusal-oversight read model + the honest framing
+ JOURNAL.md | 65 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 65 insertions(+)
+2a3f005 WO-OPS-DESK-6: refusal-ladder oversight read model (Desk 6 live, render-only)
+ apps/ops-console/e2e/shell.spec.ts                 |  43 +++++++-
+ apps/ops-console/i18n/catalog.json                 |  78 +++++++++++++++
+ apps/ops-console/src/main.ts                       |  80 ++++++++++++++-
+ apps/ops-console/src/refusal/ladder-view.ts        | 111 +++++++++++++++++++++
+ apps/ops-console/src/refusal/ladder.ts             |  96 ++++++++++++++++++
+ apps/ops-console/src/refusal/preview.json          |  36 +++++++
+ apps/ops-console/src/refusal/sandbox.ts            |  32 ++++++
+ .../ops-console/test-d/refusal-ladder.type-test.ts |  31 ++++++
+ apps/ops-console/test/desk-isolation.test.ts       |  34 ++++++-
+ apps/ops-console/test/refusal-ladder.test.ts       |  96 ++++++++++++++++++
+ 10 files changed, 630 insertions(+), 7 deletions(-)
