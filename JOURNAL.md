@@ -549,3 +549,68 @@ over an emitted shape; GREEN = render/no lever.
 related-party half have **no canon shape/interface** — building either now would be
 inventing canon; (2) the CTO's "payouts" and "riders/fleet" names have no
 remaining-shell home in platform's eight.
+
+---
+
+## WO-OPS-DESK-6 — THE REFUSAL-OVERSIGHT READ MODEL (Desk 6 live) — TIER: 🟠 AMBER — **IN REVIEW (do NOT merge — founder review)**
+
+Desk 6 (`echelle-de-refus`) goes live as the third live desk — **RENDER-ONLY**.
+The `OpsActionType` union does NOT grow; there is no command, no lever, no write.
+GP-OPS grounded this as the cleanest live-able desk (`PayAtDoorEligibility`
+emitted by shop, 16 hits).
+
+**Derive-or-stop → the shape is real, the feed is not (flagged, not invented).**
+The read model consumes canon `PayAtDoorEligibility` from platform's own pinned
+bytes (v0.9.8). But that shape is emitted **inside shop-plus** and does **not**
+cross into platform's boundary — there is no live feed here (confirmed: platform
+has zero inbound transport; the desk-isolation gate even forbids `fetch`/socket
+in desk code). Per the WO's derive-or-stop, this **transport gap** is flagged,
+not papered over. Following the house pattern of the two live desks, the desk
+renders a **certified preview** (« Aperçu ») seeded from a DATA file
+(`preview.json`) — every record parsed through `PayAtDoorEligibilitySchema` so
+the states are shape-true, would-throw-if-not. **No feed is invented**; a real
+shop feed replaces `preview.json` byte-for-byte at the integration slice.
+
+**Custody of truth, verbatim.** Every field (`state`, `buyerRiskState`,
+`buyerRefusalCount`, `reason`, `requiredDeposit`, `prepayOnlyUntil`) is carried
+through untouched. The ONLY derived values are a presentation `rung` +
+`eligibility`, and they follow **shop's OWN precedence**, quoted from its bytes
+(`shop-plus/packages/commerce-core/src/pay-at-door-policy.ts`): `state !==
+'allowed'` → suspended · active `prepayOnlyUntil` → prepay-only · `requiredDeposit
+> 0` → deposit-required · else good-standing. It is a MIRROR of a decision shop
+already made — not a new decision, and it touches no franc.
+
+**« Vue sans levier » — the house pattern, fourth application** (after sera D1/D3
+and the platform live desks). `ladder.ts` imports ONLY the canon TYPE
+`PayAtDoorEligibility` (no runtime schema, no spine) → it structurally cannot
+write. Proven: desk-isolation extends with a render-only gate (no
+`maker-checker`/`OpsAction`/`issue(`/`approve(`/`fetch`/`console.` in `refusal/`;
+`ladder.ts` imports type-only); a **planted mutation lever fails it** (verified:
+a planted `fetch(`/`console.log` turns the gate red, reverted). A `test-d`
+type-test proves the board + rows are read-only (`@ts-expect-error` on every
+write). Three desks live, **five** honest shells; no live surface leaks into a
+shell (e2e).
+
+**French Voice, trust register.** A ladder state is a consequence, never blame —
+« Bon standing / Acompte / Paiement d'avance / À la porte suspendu », eligibility
+« Permis à la porte / Restreint ». All strings register-tagged in the catalog;
+the `reason` is DATA (shop's, rendered verbatim), so it lives in `preview.json`,
+never inline (the no-inline-French gate stays green). Fixed-clock preview
+(`SANDBOX_NOW`) renders the degradation: one buyer per rung.
+
+**Evidence:** 51 tests + typecheck (incl. the read-only type-test) green;
+zero-hardcode · copy-lint · lockfile URL-form · drift-check (derived 0.9.8) ·
+Playwright 6/6; every negative exit 1. Screenshot (390px, low-end width) in the
+packet.
+
+**HONEST FRAMING (per the WO).** At zero real orders, this desk watches DEMO
+refusals — the preview, not a live population. Its meaning arrives with the
+pilot's first live day; it is built now **so the eyes exist before the traffic
+does**. The refusal ladder is an operational safety mechanism: a human must see
+eligibility degrading before it becomes a street problem. The wiring of the real
+shop feed (closing the transport gap) is a later integration slice.
+
+**FORBIDDEN respected:** no command · union unchanged (still
+`moderation:decide | breakglass:issue`) · no franc computed (the `requiredDeposit`
+is canon Fcfa, shown verbatim via digit-grouping, never computed) · no write
+path · the other five shells untouched · no invented feed.
