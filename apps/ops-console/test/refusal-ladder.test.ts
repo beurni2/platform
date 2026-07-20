@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { PayAtDoorEligibilitySchema, type PayAtDoorEligibility } from '@platform/contracts';
+import { type PayAtDoorEligibility } from '@platform/contracts';
 import { deriveRefusalLadder, LADDER_RUNGS } from '../src/refusal/ladder';
-import { buildSandboxRefusalLadder, SANDBOX_NOW } from '../src/refusal/sandbox';
 
 const NOW = '2026-07-14T12:00:00.000Z';
 const rec = (over: Partial<PayAtDoorEligibility>): PayAtDoorEligibility => ({
@@ -84,13 +83,5 @@ describe('WO-OPS-DESK-6 — the refusal-ladder read model (render-only)', () => 
       'prepay_only',
       'suspended',
     ]);
-  });
-
-  it('the sandbox preview is SHAPE-TRUE and renders one buyer per rung (the degradation)', () => {
-    const records = buildSandboxRefusalLadder();
-    // shape-true: every seed record round-trips through canon
-    for (const r of records) expect(PayAtDoorEligibilitySchema.safeParse(r).success).toBe(true);
-    const rungs = deriveRefusalLadder(records, SANDBOX_NOW).rows.map((r) => r.rung);
-    expect(rungs).toEqual(['good_standing', 'deposit_required', 'prepay_only', 'suspended']);
   });
 });

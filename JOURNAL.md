@@ -625,3 +625,95 @@ register-tagged, never inline). Formatted deterministically from the UTC parts
 is untouched: the read model still carries the raw ISO; only the VIEW presents it
 humanly (exactly as `formatFcfa` digit-groups a verbatim franc). e2e asserts the
 human date renders and the raw ISO is absent from the desk.
+
+---
+
+## WO-OPS-DESK-6-FEED — the eligibility feed (consumer + certified mock, fresh-or-fail) — TIER: 🟠 AMBER — **IN REVIEW (do NOT merge — founder review)**
+
+Desk 6 gains its FEED: the transport consumer, freshness, and the console's
+consume/block states. Still RENDER-ONLY (the `OpsActionType` union does not grow).
+
+**Re-grounding at build time (verified against pinned SHAs — my earlier grounding
+held, and corrected the order).** SW-1 (boutik-plus, the SERVER) at
+`3c052161e757…` — parents `99dadef` + `74123bd`, on boutik `origin/main`
+(`5193b9a`), endpoint bytes identical at the merge and main. SW-2 (shop-plus, the
+CONSUMER) at `79a89534…`, on shop `origin/main` (`f0cbf02`), identical at merge
+and main. Three order-premises were corrected and the CTO accepted the
+correction: (1) there is **no shipped cross-repo auth** to reuse — supply's wire
+is an unauthenticated GET (`offer-service/src/supply-endpoint.ts:150-151`,
+correlation header only); (2) SW-2 does **not** "serve stale within 90s" — it
+**blocks** (`consumer.ts:77`, `canBackAgreement === fresh`) at a **15-min** bound
+(`read-model.ts:18`); (3) SW-1 is a server, not a "pull skeleton" — the real HTTP
+client is deferred behind a synchronous port + mock, no `fetch`/poll. seed.json
+is still present (`shop-plus/apps/reseller-app/src/demo/store.ts:3`).
+
+**Built to that reality — consumer + certified mock, wire deferred.**
+`src/refusal/feed.ts`: the pull PORT (`EligibilityProjectionPort.readEligibility`),
+the read-model envelope `{version, asOf, value}` validated with **canon schemas**
+(`IsoTimestampSchema` + strict `PayAtDoorEligibilitySchema` — no new dependency,
+no zod added), `consumeEligibility` → verdict, and `consumeEligibilityFeed` →
+`{confirmed, blocked}`. `src/refusal/mock.ts`: the **certified** misbehaving mock
+(§3) — fresh / stale / absent / unreachable / malformed (a planted `buyerPhone`
+key, refused closed by the strict value schema). `preview.json`/`sandbox.ts`
+upgraded from a static seed into the mock's config. The real HTTP client + the
+auth DECISION are **deferred** to `ELIGIBILITY-WIRE-AUTH` (below).
+
+**The transport is ASSUMED authenticated (defer the decision, not the
+assumption).** The port models an authenticated channel: `{ok:false}` is a
+transport failure, where a real client's auth/network failure lands →
+`unreachable` → block. The deferred client lands with auth as a precondition this
+contract already expects.
+
+**FRESH-OR-FAIL — 60s, FOUNDER RULING (2026-07-20), rationale verbatim in
+`feed.ts`:** "eligibility is a point-in-time authorization, not a staleness
+tolerance like supply's 15-min TTL — so it is fresh-or-fail, the bound absorbing
+pull latency only. Reads older than 60s OR a failed/absent pull → 'cannot confirm
+eligibility right now' and BLOCKS the gated action. Never serve a stale verdict;
+never assume eligible on cold start / empty cache. If testing shows real pull
+latency spiking past ~60s (false blocks), lengthen ON EVIDENCE — the safe error
+is too-fresh, never too-stale." Only `status==='fresh'` gates (`canGateAction`);
+stale/absent/unreachable/rejected all render « impossible de confirmer
+l'éligibilité maintenant », never a verdict. Cold start / empty channel →
+`absent` → block (proven in `test/eligibility-feed.test.ts`).
+
+**PROJECTION — NO GAP.** Consumes the canon `PayAtDoorEligibility` shape
+(settlement.ts:145) verbatim. `asOf` (freshness) and `version` live on the
+**read-model envelope**, not in the canon value — exactly as supply's `asOf`
+lives in `SupplyReadModel`, not `SupplyProjection`. So the block state needs no
+field the canon shape lacks; **nothing was invented.**
+
+**Divergence from SW-2 (built to the finding, not copied).** SW-2 already blocks
+on stale, but at 15 min for a shared dataset; eligibility is per-buyer, gates a
+point-in-time decision, so 60s fresh-or-fail. Supply's identity-leak REGEX
+(supplier phone/pickup) is **not** copied — eligibility's sensitive surface is
+buyer data; the guard is the strict envelope+value schema (a planted non-contract
+key is refused), and a dedicated buyer-PII policy is deferred with the wire (we
+don't yet know what a real shop endpoint might over-serve).
+
+**Still « vue sans levier ».** No command, union unchanged; `feed.ts`/`mock.ts`
+have no `fetch`/socket/`console.`/command — desk-isolation's render-only gate
+scans them and stays green (a planted lever still fails it). 59 tests + typecheck
+(incl. the read-only type-test); zero-hardcode · copy-lint · lockfile URL-form ·
+drift-check (0.9.8) · Playwright 6/6 (the Desk-6 e2e drives the stale-and-fail
+path and asserts the console BLOCKS, serving no stale verdict); every negative
+exit 1.
+
+**ELIGIBILITY-WIRE-AUTH (named E3-shaped follow-on, DEFERRED — journalled).** The
+real HTTP client for the shop→platform eligibility pull, and the cross-repo auth
+decision. E3-shaped (real transport, real accounts downstream stay gated). The
+port already assumes auth; this WO makes the assumption real. Not built here.
+
+**ONE UNIFIED CROSSING OR TWO? — the code implies TWO WIRES ON ONE PATTERN.**
+The producers and consumers differ per edge: supply is **boutik→shop** (boutik's
+offer-service serves; shop consumes), eligibility is **shop→platform** (shop's
+Risk domain would serve; platform consumes). One-repo-one-writer means these are
+two distinct edges — they cannot be one wire. BUT the transport MECHANISM (HTTP
+read-model pull · `{version,asOf,value}` envelope · fresh-or-fail/block consume ·
+certified mock · service auth) should be **one shared pattern**, not the current
+duplication (SW-1 defines the envelope as an interface, SW-2 as a schema, and
+this slice as a canon-schema parse — three copies). Recommendation: when either
+deferred client is built, land the shared transport+auth pattern FIRST (a small
+shared convention/package), then each wire instantiates it — so ELIGIBILITY-WIRE-
+AUTH and supply's deferred client are two WOs on one pattern, and no third copy
+is born. The auth SCHEME can be a single service-to-service decision applied to
+both edges even though the edges are two.

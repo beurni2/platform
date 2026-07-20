@@ -96,8 +96,8 @@ test('DESK 6 (echelle-de-refus) is live — the refusal ladder: rungs, eligibili
 
   // the four rungs render as a legend — the ladder, best → most restricted (trend)
   await expect(page.locator('.rf-legend .rf-legend-rung')).toHaveCount(4);
-  // one buyer per rung — the degradation across the population
-  await expect(page.locator('.rf-list .rf-row')).toHaveCount(4);
+  // FRESH feed reads render a verdict — one buyer per rung (the degradation)
+  await expect(page.locator('.rf-row[data-rung]')).toHaveCount(4);
   for (const rung of ['good_standing', 'deposit_required', 'prepay_only', 'suspended']) {
     await expect(page.locator(`.rf-row[data-rung="${rung}"]`)).toHaveCount(1);
   }
@@ -117,6 +117,28 @@ test('DESK 6 (echelle-de-refus) is live — the refusal ladder: rungs, eligibili
     '21 juillet 2026',
   );
   await expect(page.getByText('2026-07-21T00:00:00.000Z')).toHaveCount(0);
+
+  // THE STALE-AND-FAIL PATH — a stale read and an unreachable channel BLOCK,
+  // never serve a stale verdict (fresh-or-fail). Two blocked buyers.
+  await expect(page.locator('.rf-row--blocked')).toHaveCount(2);
+  await expect(page.locator('.rf-row--blocked[data-blocked="stale"]')).toHaveCount(1);
+  await expect(page.locator('.rf-row--blocked[data-blocked="unreachable"]')).toHaveCount(1);
+  // the honest block message renders (once per blocked buyer)
+  await expect(page.locator('.rf-block-message')).toHaveCount(2);
+  await expect(page.locator('.rf-block-message').first()).toHaveText(
+    "Impossible de confirmer l'éligibilité maintenant",
+  );
+  await expect(page.locator('.rf-row--blocked[data-blocked="stale"] .rf-block-reason')).toHaveText(
+    'Données trop anciennes',
+  );
+  await expect(page.locator('.rf-row--blocked[data-blocked="unreachable"] .rf-block-reason')).toHaveText(
+    'Service injoignable',
+  );
+  // A BLOCKED ROW SERVES NO VERDICT — no rung, no eligibility badge on it.
+  await expect(page.locator('.rf-row--blocked .rf-rung')).toHaveCount(0);
+  await expect(page.locator('.rf-row--blocked .rf-elig')).toHaveCount(0);
+  // the stale buyer never appears as a fresh ladder verdict
+  await expect(page.locator('.rf-row[data-rung] .rf-buyer .rf-value', { hasText: 'buyer:tacko' })).toHaveCount(0);
 
   // NO LEVER — the desk content carries no interactive control (render-only)
   await expect(

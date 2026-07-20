@@ -312,6 +312,36 @@
     "screenClass": "label"
   },
   {
+    "key": "refusal.block_message",
+    "fr": "Impossible de confirmer l'éligibilité maintenant",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.block_stale",
+    "fr": "Données trop anciennes",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.block_absent",
+    "fr": "Aucune donnée",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.block_unreachable",
+    "fr": "Service injoignable",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "refusal.block_rejected",
+    "fr": "Donnée non conforme",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
     "key": "date.month_01",
     "fr": "janvier",
     "register": "neutral",
