@@ -1,21 +1,31 @@
 import { money } from '@platform/ui-tokens';
 import { t } from '../i18n';
 import type { LadderRung, RefusalLadderBoard, RefusalLadderRow } from './ladder';
+import type { BlockedEntry, BlockReason } from './feed';
 
 /**
  * Desk 6 refusal-ladder view (WO-OPS-DESK-6). RENDER-ONLY: it reads a
- * `RefusalLadderBoard` and appends DOM — it never writes back, holds no lever,
- * issues no command. Every DATA field (buyerRef, state, riskState, reason,
- * refusalCount, deposit) is rendered VERBATIM; only the rung/eligibility badges
- * are the board's derived presentation. Class-only styling (token-driven classes
- * live in main.ts) → no literals here. French Voice, trust register: a ladder
- * state is a consequence, never blame.
+ * `RefusalLadderBoard` + the feed's blocked entries and appends DOM — it never
+ * writes back, holds no lever, issues no command. Every DATA field (buyerRef,
+ * state, riskState, reason, refusalCount, deposit) is rendered VERBATIM; only the
+ * rung/eligibility badges are the board's derived presentation. A blocked buyer
+ * renders « impossible de confirmer l'éligibilité maintenant » — never a stale
+ * verdict. Class-only styling (token-driven classes live in main.ts) → no
+ * literals here. French Voice, trust register: a state is a consequence, never
+ * blame; a block is honest, never a fake « éligible ».
  */
 const RUNG_KEY: Record<LadderRung, string> = {
   good_standing: 'refusal.rung_good_standing',
   deposit_required: 'refusal.rung_deposit_required',
   prepay_only: 'refusal.rung_prepay_only',
   suspended: 'refusal.rung_suspended',
+};
+
+const BLOCK_REASON_KEY: Record<BlockReason, string> = {
+  stale: 'refusal.block_stale',
+  absent: 'refusal.block_absent',
+  unreachable: 'refusal.block_unreachable',
+  rejected: 'refusal.block_rejected',
 };
 
 /**
@@ -113,7 +123,32 @@ function rowEl(row: RefusalLadderRow): HTMLElement {
   return li;
 }
 
-export function renderRefusalLadder(host: HTMLElement, board: RefusalLadderBoard): void {
+/** A buyer the feed could NOT confirm — the honest block state, never a stale verdict. */
+function blockedRowEl(entry: BlockedEntry): HTMLElement {
+  const li = document.createElement('li');
+  li.className = 'rf-row rf-row--blocked';
+  li.dataset['blocked'] = entry.reason;
+
+  const head = document.createElement('div');
+  head.className = 'rf-head';
+  head.append(
+    field('refusal.buyer', entry.buyerRef, 'rf-buyer'),
+    badge(t(BLOCK_REASON_KEY[entry.reason]), 'rf-block-reason'),
+  );
+
+  const message = document.createElement('p');
+  message.className = 'rf-block-message';
+  message.textContent = t('refusal.block_message');
+
+  li.append(head, message);
+  return li;
+}
+
+export function renderRefusalLadder(
+  host: HTMLElement,
+  board: RefusalLadderBoard,
+  blocked: readonly BlockedEntry[],
+): void {
   host.replaceChildren();
 
   const ribbon = document.createElement('p');
@@ -133,6 +168,8 @@ export function renderRefusalLadder(host: HTMLElement, board: RefusalLadderBoard
   const list = document.createElement('ul');
   list.className = 'rf-list';
   for (const row of board.rows) list.append(rowEl(row));
+  // Blocked buyers render last — an honest « impossible de confirmer », never a stale verdict.
+  for (const entry of blocked) list.append(blockedRowEl(entry));
 
   host.append(ribbon, legend, list);
 }

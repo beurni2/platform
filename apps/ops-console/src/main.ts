@@ -15,7 +15,8 @@ import { buildSandboxQueue } from './moderation/sandbox';
 import { renderModerationQueue } from './moderation/queue-view';
 import { buildSandboxBreakGlass } from './breakglass/sandbox';
 import { renderBreakGlassBoard } from './breakglass/board-view';
-import { buildSandboxRefusalLadder, SANDBOX_NOW } from './refusal/sandbox';
+import { buildSandboxEligibilityPort, SANDBOX_BUYER_REFS, SANDBOX_NOW } from './refusal/sandbox';
+import { consumeEligibilityFeed } from './refusal/feed';
 import { deriveRefusalLadder } from './refusal/ladder';
 import { renderRefusalLadder } from './refusal/ladder-view';
 
@@ -330,6 +331,24 @@ style.textContent = `
     flex-wrap: wrap;
     gap: var(--space-sm) var(--space-lg);
   }
+  .rf-row--blocked { border-color: var(--warning); }
+  .rf-block-reason {
+    align-self: center;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--warning-tint);
+    color: var(--warning);
+    border-radius: var(--radius-btn);
+    font-size: var(--type-label);
+    font-weight: ${typo.scale.label.wght};
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+  }
+  .rf-block-message {
+    margin: 0;
+    color: var(--body);
+    font-size: var(--type-row);
+    font-weight: ${typo.scale.row.wght};
+  }
 `;
 document.head.appendChild(style);
 
@@ -411,12 +430,12 @@ function render(): void {
     // Desk 5 — the payment operator's break-glass issuing surface (WO-OPS-1b).
     renderBreakGlassBoard(contentHost, buildSandboxBreakGlass(new Date().toISOString()));
   } else if (desk.id === 'echelle-de-refus') {
-    // Desk 6 — refusal-ladder oversight (read-only; no lever). Fixed clock so
-    // the preview is deterministic (WO-OPS-DESK-6).
-    renderRefusalLadder(
-      contentHost,
-      deriveRefusalLadder(buildSandboxRefusalLadder(), SANDBOX_NOW),
-    );
+    // Desk 6 — refusal-ladder oversight (read-only; no lever). The eligibility
+    // FEED is consumed fresh-or-fail: only fresh reads render a verdict; stale /
+    // absent / unreachable buyers render « impossible de confirmer », never a
+    // stale verdict (WO-OPS-DESK-6-FEED). Fixed clock → deterministic preview.
+    const feed = consumeEligibilityFeed(buildSandboxEligibilityPort(), SANDBOX_BUYER_REFS, SANDBOX_NOW);
+    renderRefusalLadder(contentHost, deriveRefusalLadder(feed.confirmed, SANDBOX_NOW), feed.blocked);
   } else {
     renderEmptyShell();
   }
