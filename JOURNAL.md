@@ -717,3 +717,64 @@ shared convention/package), then each wire instantiates it — so ELIGIBILITY-WI
 AUTH and supply's deferred client are two WOs on one pattern, and no third copy
 is born. The auth SCHEME can be a single service-to-service decision applied to
 both edges even though the edges are two.
+
+---
+
+## WO-OPS-DESK-6-KIT — migrate feed.ts onto the canon read-model kit + re-pin — TIER: 🟠 AMBER — **IN REVIEW (do NOT merge — founder review)**
+
+The eligibility feed's hand-rolled envelope + consume are replaced by the shared
+canon **read-model kit** (`makeReadModelSchema` / `consumeReadModel`, contracts
+v1.2.0), which canon extracted from the two consumers that shipped it verbatim
+(shop-plus SW-2 supply consumer + this feed).
+
+**Re-grounded the canon (not trusted from the order).** `d7b27bb` is on
+platform-contracts `origin/main` (`db6b8b3`), version **1.2.0**; the kit lives at
+`packages/contracts/src/read-model.ts` (exported via the package index) and its
+`consumeReadModel` reproduces feed.ts's raw-consume STEP FOR STEP (absent →
+optional leakSweep → strict parse classified by `hasEnvelope` → age `> maxAgeMs`
+stale, equality fresh → fresh). `PayAtDoorEligibilitySchema` is **byte-identical**
+0.9.8 → 1.2.0 (settlement.ts unchanged), so the verdicts are unchanged.
+
+**The migration (feed.ts).** `EligibilityReadModel` + the hand-rolled
+`parseEligibilityReadModel` are gone; the envelope is
+`makeReadModelSchema(PayAtDoorEligibilitySchema)` and `consumeEligibility` wraps
+`consumeReadModel({ schema, maxAgeMs: ELIGIBILITY_MAX_AGE_MS (60s), now })` — **NO
+leakSweep** (buyer-PII is refused by the strict PayAtDoor value parse alone), then
+maps `fresh|stale|absent|rejected` back to `EligibilityVerdict`. The transport
+`unreachable` stays OUTSIDE the kit (it is not in the kit's union), and
+`canGateAction` + the `consumeEligibilityFeed` wrapper are **unchanged**. The
+verdict tests are **byte-identical** before/after (no assertion touched — only the
+drift-guard added); `OpsActionType` byte-frozen; the e2e stale-and-fail block path
+still passes (Playwright 6/6).
+
+**DRIFT-GUARD (verifier N2).** `test/eligibility-feed.test.ts` now asserts feed.ts
+builds via `makeReadModelSchema(` + `consumeReadModel(` and that the hand-rolled
+parse (`parseEligibilityReadModel`/`ENVELOPE_KEYS`) stays gone — so it cannot drift
+back to a private copy. Runs in CI (vitest).
+
+**⚠ PIN SPLIT — FLAGGED, DELIBERATE (a surprise the WO did not scope).** The WO
+said "re-pin @platform/contracts to d7b27bb". Done: `@platform/contracts` +
+`@platform/kernel-types` (its transitive dep) → `d7b27bb`/v1.2.0. But
+**`@platform/ui-tokens` 1.2.0 restructures its token API** (new faso-premium
+palette; `money` / `spacing` / `interaction` / `band` / `touch` / `ribbon` and
+`sharedColour.sand`/`onInk` are gone), which breaks main.ts / board-view /
+ladder-view / e2e across ALL desks — a console-wide restyle far beyond this WO.
+So **`@platform/ui-tokens` + `@platform/i18n` stay at `67bda02`/v0.9.8**,
+deliberately. The split is transitively clean: `ui-tokens` depends on no
+`@platform` package (deps `{}`), and `contracts@1.2.0` needs only
+`kernel-types@1.2.0` (pinned with it). This violates the standing "same sha
+everywhere" comment on purpose — updated to document the split. **The ui-tokens
+1.2.0 design migration is a separate future WO.** Docs: the 6 mirrored specs that
+moved 0.9.8 → 1.2.0 (DESIGN-LANGUAGE, ECOSYSTEM-MASTER-REFERENCE,
+Execution-Contract, GRAND-TEINT, Shop-Plus Build-Spec + Building-Plan) were
+re-synced from canon `d7b27bb`; drift-check derives 1.2.0 and passes (11 docs).
+
+**Note on the design docs.** DESIGN-LANGUAGE.md + GRAND-TEINT.md now mirror canon
+1.2.0 while the console still renders on ui-tokens 0.9.8 — the design docs sit
+ahead of the consumed tokens until the ui-tokens migration WO lands. Flagged, not
+a gate failure (drift-check is copy-fidelity, not semantic).
+
+**Evidence:** 60 tests + typecheck; zero-hardcode · copy-lint (i18n 0.9.8) ·
+lockfile URL-form (https, 0 ssh) · drift-check (derived 1.2.0, 11 docs) ·
+Playwright 6/6; every negative exit 1. **ELIGIBILITY-WIRE-AUTH stays gated** — no
+real HTTP client, no auth, no E3-downstream shipped.

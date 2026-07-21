@@ -26,7 +26,8 @@
  * a precondition this contract already expects.
  */
 import {
-  IsoTimestampSchema,
+  consumeReadModel,
+  makeReadModelSchema,
   PayAtDoorEligibilitySchema,
   type PayAtDoorEligibility,
 } from '@platform/contracts';
@@ -45,49 +46,14 @@ export const ELIGIBILITY_MAX_AGE_MS = 60 * 1000;
 
 /**
  * The read-model envelope the console pulls: `{ version, asOf, value }`, where
- * `value` is the canon strict `PayAtDoorEligibilitySchema` (consumed VERBATIM —
- * never redefined). `asOf` (when the projection was WRITTEN) and `version` live
- * on the envelope, exactly as supply's `SupplyReadModel` carries them and NOT in
- * the canon value shape — so the canon eligibility shape needs no new field. The
- * envelope is the platform↔shop agreed contract (canon has no read-model wrapper),
- * mirroring the SW-1↔SW-2 envelope.
+ * `value` is the canon strict `PayAtDoorEligibilitySchema` (consumed VERBATIM).
+ * Built from the canon READ-MODEL KIT (`makeReadModelSchema`, contracts v1.2.0) —
+ * the single shared envelope the two consumers (supply SW-2, this feed) now share,
+ * so neither can drift. `asOf` (write time) and `version` live on the envelope,
+ * not the canon value shape — so the eligibility shape needs no new field. This
+ * replaced a hand-rolled parse; the kit does the identical strict parse.
  */
-export interface EligibilityReadModel {
-  readonly version: number;
-  readonly asOf: string;
-  readonly value: PayAtDoorEligibility;
-}
-
-const ENVELOPE_KEYS: ReadonlySet<string> = new Set(['version', 'asOf', 'value']);
-
-/**
- * Parse a pulled payload into the read-model envelope, STRICTLY. Rejects a
- * non-envelope, any undeclared envelope key, a non-int/<1 version, a bad `asOf`
- * (canon `IsoTimestampSchema`), and — the security line — a `value` that is not
- * the canon strict `PayAtDoorEligibility` (a planted buyer-PII key fails here).
- * `hasEnvelope` distinguishes "not a read-model" from "envelope present but not
- * contract-shaped", for an honest block reason.
- */
-function parseEligibilityReadModel(
-  raw: unknown,
-): { ok: true; model: EligibilityReadModel } | { ok: false; hasEnvelope: boolean } {
-  if (typeof raw !== 'object' || raw === null) return { ok: false, hasEnvelope: false };
-  const record = raw as Record<string, unknown>;
-  const hasEnvelope = 'version' in record && 'asOf' in record && 'value' in record;
-  if (!hasEnvelope) return { ok: false, hasEnvelope: false };
-  if (Object.keys(record).some((key) => !ENVELOPE_KEYS.has(key))) return { ok: false, hasEnvelope: true };
-
-  const version = record['version'];
-  if (typeof version !== 'number' || !Number.isInteger(version) || version < 1) {
-    return { ok: false, hasEnvelope: true };
-  }
-  const asOf = IsoTimestampSchema.safeParse(record['asOf']);
-  if (!asOf.success) return { ok: false, hasEnvelope: true };
-  const value = PayAtDoorEligibilitySchema.safeParse(record['value']);
-  if (!value.success) return { ok: false, hasEnvelope: true };
-
-  return { ok: true, model: { version, asOf: asOf.data, value: value.data } };
-}
+const ELIGIBILITY_READ_MODEL_SCHEMA = makeReadModelSchema(PayAtDoorEligibilitySchema);
 
 /** A single pull over the (assumed-authenticated) transport. `ok:false` = transport failed. */
 export type EligibilityPull = { readonly ok: true; readonly raw: unknown } | { readonly ok: false };
@@ -117,20 +83,35 @@ export type EligibilityVerdict =
  * its own (the caller passes `nowIso`), no write.
  */
 export function consumeEligibility(pull: EligibilityPull, nowIso: string): EligibilityVerdict {
+  // The transport-level `unreachable` stays OUTSIDE the kit (it is not in the
+  // kit's union) — a real client's auth/network failure lands here, deferred to
+  // ELIGIBILITY-WIRE-AUTH.
   if (!pull.ok) return { status: 'unreachable' };
-  if (pull.raw === undefined || pull.raw === null) return { status: 'absent' };
 
-  const parsed = parseEligibilityReadModel(pull.raw);
-  if (!parsed.ok) {
-    return { status: 'rejected', reason: parsed.hasEnvelope ? 'payload_not_contract_shaped' : 'not_a_read_model' };
+  // The raw-consume — strict schema + freshness — is the canon kit. Eligibility
+  // passes its 60s bound and NO leakSweep: buyer-PII is refused by the strict
+  // PayAtDoor value parse alone (eligibility's leak surface differs from supply's).
+  const verdict = consumeReadModel(pull.raw, {
+    schema: ELIGIBILITY_READ_MODEL_SCHEMA,
+    maxAgeMs: ELIGIBILITY_MAX_AGE_MS,
+    now: nowIso,
+  });
+  switch (verdict.status) {
+    case 'fresh':
+      return { status: 'fresh', eligibility: verdict.value, asOf: verdict.asOf, version: verdict.version };
+    case 'stale':
+      return { status: 'stale', asOf: verdict.asOf, ageMs: verdict.ageMs };
+    case 'absent':
+      return { status: 'absent' };
+    case 'rejected':
+      // With no leakSweep passed, the kit's `identity_material_refused` is
+      // unreachable here — map it so this union stays honest (only the two parse
+      // reasons occur for eligibility).
+      return {
+        status: 'rejected',
+        reason: verdict.reason === 'identity_material_refused' ? 'payload_not_contract_shaped' : verdict.reason,
+      };
   }
-  const model = parsed.model;
-
-  const ageMs = Date.parse(nowIso) - Date.parse(model.asOf);
-  if (ageMs > ELIGIBILITY_MAX_AGE_MS) {
-    return { status: 'stale', asOf: model.asOf, ageMs };
-  }
-  return { status: 'fresh', eligibility: model.value, asOf: model.asOf, version: model.version };
 }
 
 /**
