@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import type { PayAtDoorEligibility } from '@platform/contracts';
 import {
@@ -107,6 +109,20 @@ describe('the CERTIFIED mock misbehaves on demand (Execution Contract §3)', () 
     expect(consumeEligibility(mock.readEligibility('b:unreach'), NOW).status).toBe('unreachable');
     expect(consumeEligibility(mock.readEligibility('b:bad'), NOW).status).toBe('rejected');
     expect(consumeEligibility(mock.readEligibility('b:unknown'), NOW).status).toBe('absent');
+  });
+});
+
+describe('DRIFT-GUARD (verifier N2) — feed.ts is bound to the canon read-model kit', () => {
+  const feedSrc = readFileSync(join(import.meta.dirname, '../src/refusal/feed.ts'), 'utf8');
+  const code = feedSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+
+  it('consumes via the canon kit (makeReadModelSchema + consumeReadModel), not a hand-rolled envelope', () => {
+    // the raw-consume + envelope come from canon @platform/contracts, not local code
+    expect(feedSrc, 'imports from @platform/contracts').toMatch(/from '@platform\/contracts'/);
+    expect(code, 'must build the envelope from the kit').toMatch(/makeReadModelSchema\(/);
+    expect(code, 'must consume via the kit').toMatch(/consumeReadModel\(/);
+    // the hand-rolled envelope parse must NOT come back (drift back to a private copy)
+    expect(code, 'the hand-rolled parse must stay gone').not.toMatch(/parseEligibilityReadModel|ENVELOPE_KEYS\b/);
   });
 });
 

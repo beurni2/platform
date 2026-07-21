@@ -11,9 +11,13 @@ onlyBuiltDependencies:
   - "@platform/ui-tokens"
 
 # Inter-package version-deps exist on no registry: @platform/contracts →
-# @platform/kernel-types. Route every transitive resolution through the same
-# pinned release sha (67bda02 — canon v0.9.8) so nothing drifts off-pin.
+# @platform/kernel-types — both pinned to d7b27bb / canon v1.2.0 for the shared
+# read-model kit (WO-OPS-DESK-6-KIT). @platform/ui-tokens + @platform/i18n stay
+# at 67bda02 / v0.9.8 DELIBERATELY: ui-tokens 1.2.0 restructures its token API
+# (new faso-premium palette; `money`/`spacing`/`sharedColour.sand` gone), a
+# console-wide restyle that is its own WO — flagged, not silently dragged in.
+# ui-tokens depends on no @platform package, so this split is transitively clean.
 overrides:
-  "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/contracts"
-  "@platform/kernel-types": "git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/kernel-types"
+  "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#d7b27bb895667f751d522680282549f16335e631&path:packages/contracts"
+  "@platform/kernel-types": "git+https://github.com/beurni2/platform-contracts.git#d7b27bb895667f751d522680282549f16335e631&path:packages/kernel-types"
   "@platform/ui-tokens": "git+https://github.com/beurni2/platform-contracts.git#67bda02646019cb4ab28a16fadf388b522da2799&path:packages/ui-tokens"
