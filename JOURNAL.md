@@ -778,3 +778,28 @@ a gate failure (drift-check is copy-fidelity, not semantic).
 lockfile URL-form (https, 0 ssh) · drift-check (derived 1.2.0, 11 docs) ·
 Playwright 6/6; every negative exit 1. **ELIGIBILITY-WIRE-AUTH stays gated** — no
 real HTTP client, no auth, no E3-downstream shipped.
+
+---
+
+## UI-TOKENS-1.2.0-CONSOLE-RESTYLE — named follow-on (DEFERRED) — TIER: to be scoped
+
+Opened by WO-OPS-DESK-6-KIT's deliberate pin split. The console (`platform`)
+consumes `@platform/ui-tokens` **v0.9.8** (`67bda02`) while `@platform/contracts`
+is pinned to **v1.2.0** (`d7b27bb`) for the read-model kit. ui-tokens 1.2.0
+restructured its token API — the console references `money`, `spacing`,
+`interaction`, `band`, `touch`, `ribbon`, and `sharedColour.sand`/`onInk`, which
+1.2.0 removes/renames (new `faso-premium` palette + `type`/`radius`/`geometry`/
+`motion` groups) — so bumping ui-tokens would break `main.ts` (all CSS vars),
+`breakglass/board-view.ts` + `refusal/ladder-view.ts` (`money` format), and the
+e2e (`sharedColour.sand`, `money`). That is a console-wide restyle, not a re-pin.
+
+**Scope when it opens:** migrate the console's token consumption to ui-tokens
+1.2.0 (map the old exports to the new palette/groups; re-derive the CSS vars;
+update the two `formatFcfa` money helpers and the e2e token asserts), then move
+`@platform/ui-tokens` + `@platform/i18n` to `d7b27bb`/v1.2.0 so the whole repo is
+on one sha again (restoring the "same sha everywhere" invariant). **Also
+reconcile the docs-ahead-of-tokens gap:** `docs/DESIGN-LANGUAGE.md` +
+`docs/GRAND-TEINT.md` already mirror canon 1.2.0 (re-synced for the contracts
+drift-check) while the rendered console is still on 0.9.8 tokens — the restyle
+closes that gap. Gate as a UI slice (5-second/trust tests, screenshots,
+device-matrix). Not started; tracked here so it is not lost.
