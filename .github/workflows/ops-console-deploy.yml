@@ -57,6 +57,22 @@ jobs:
         env:
           VITE_PROTECTION_BASE: ${{ vars.PROTECTION_BASE }}
         run: pnpm build
+      # `pages deploy` does NOT create a missing project — it fails with
+      # "project not found" and a suggestion to run `pages project create`.
+      # First run creates it; every later run finds it in the list and skips.
+      # Idempotent by LOOKUP, not by swallowing an error: a create that fails
+      # for a real reason (permissions, quota) still fails the job loudly.
+      - name: Ensure the Pages project exists (creates it on the first run)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -uo pipefail
+          if npx --yes wrangler@4 pages project list | grep -q 'platform-ops-console'; then
+            echo "Pages project platform-ops-console already exists — nothing to create."
+          else
+            echo "Pages project platform-ops-console not found — creating it."
+            npx --yes wrangler@4 pages project create platform-ops-console --production-branch=main
+          fi
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
