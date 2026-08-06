@@ -8,7 +8,7 @@
   "main": "dist/fund-core.js",
   "types": "dist/fund-core.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && pnpm bundle:worker",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p worker/tsconfig.json",
     "bundle:worker": "esbuild worker/index.ts --bundle --format=esm --outfile=dist/worker/worker.mjs --platform=neutral --conditions=import --define:__PLATFORM_RELEASE__=\"'${PLATFORM_RELEASE:-dev}'\" --define:__PLATFORM_CANON__=\"'${PLATFORM_CANON:-dev}'\"",
     "pretest": "pnpm bundle:worker",
