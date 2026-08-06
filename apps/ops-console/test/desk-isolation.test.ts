@@ -15,7 +15,7 @@ const deskFiles = readdirSync(desksDir).filter(
   (f) => f.endsWith('.ts') && f !== 'index.ts' && f !== 'types.ts',
 );
 
-describe('desk isolation — Desk 3 is contained; the seven stay honest shells', () => {
+describe('desk isolation — live desks are contained; the four others stay honest shells', () => {
   it('there are exactly eight desk descriptor files', () => {
     expect(deskFiles).toHaveLength(8);
   });
@@ -36,6 +36,9 @@ describe('desk isolation — Desk 3 is contained; the seven stay honest shells',
 
   it('live desks are wired ONLY through the router; every other desk gets the empty shell', () => {
     const main = readFileSync(join(srcDir, 'main.ts'), 'utf8');
+    expect(main).toMatch(/desk\.id === 'fonds-de-protection'/);
+    expect(main).toMatch(/renderFondsView\(/);
+    expect(main).toMatch(/renderFondsLive\(/);
     expect(main).toMatch(/desk\.id === 'moderation'/);
     expect(main).toMatch(/renderModerationQueue\(/);
     expect(main).toMatch(/desk\.id === 'reconciliation-operateur'/);
@@ -43,9 +46,14 @@ describe('desk isolation — Desk 3 is contained; the seven stay honest shells',
     expect(main).toMatch(/desk\.id === 'echelle-de-refus'/);
     expect(main).toMatch(/renderRefusalLadder\(/);
     expect(main).toMatch(/renderEmptyShell\(\)/);
-    // EXACTLY three desks go live; the remaining five fall to the shell.
+    // EXACTLY four desks go live; the remaining four fall to the shell.
     const liveBranches = [...main.matchAll(/desk\.id === '([^']+)'/g)].map((m) => m[1]).sort();
-    expect(liveBranches).toEqual(['echelle-de-refus', 'moderation', 'reconciliation-operateur']);
+    expect(liveBranches).toEqual([
+      'echelle-de-refus',
+      'fonds-de-protection',
+      'moderation',
+      'reconciliation-operateur',
+    ]);
   });
 
   it('no desk descriptor reaches a command module (moderation/ or breakglass/) (imports)', () => {

@@ -412,5 +412,299 @@
     "fr": "décembre",
     "register": "neutral",
     "screenClass": "label"
+  },
+  {
+    "key": "fonds.law_buyer_first",
+    "fr": "La cliente est remboursée d'abord, toujours — jamais selon l'état du fonds.",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.balance",
+    "fr": "Solde déclaré",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.committed",
+    "fr": "Réclamations en cours",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.available",
+    "fr": "Reste après réclamations",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.not_declared",
+    "fr": "Pas encore déclaré",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.declared_label",
+    "fr": "Déclaré le",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.solvency_healthy",
+    "fr": "Fonds solide",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.solvency_critical",
+    "fr": "Fonds sous tension — les remboursements clients continuent",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.solvency_unknown",
+    "fr": "État inconnu — déclarer le solde d'abord",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.fault_seller",
+    "fr": "Faute vendeur",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.fault_buyer",
+    "fr": "Faute cliente",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.fault_provider",
+    "fr": "Faute opérateur de paiement",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.fault_platform",
+    "fr": "Faute de la plateforme",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.fault_unresolved",
+    "fr": "À classer",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.state_opened",
+    "fr": "Ouverte",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.state_under_review",
+    "fr": "En examen",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.state_resolved",
+    "fr": "Réglée",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.evidence_label",
+    "fr": "Preuve :",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.settlement_label",
+    "fr": "Payé hors ligne — référence :",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.refund_required",
+    "fr": "Cliente à rembourser en premier",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.no_claims",
+    "fr": "Aucune réclamation — le fonds n'a rien à couvrir aujourd'hui.",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.loading",
+    "fr": "Lecture du registre…",
+    "register": "neutral",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.door_label",
+    "fr": "Clé du fonds (jamais partagée)",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.door_open",
+    "fr": "Ouvrir le registre",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.action_review",
+    "fr": "Passer en examen",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.action_resolve",
+    "fr": "Marquer réglée",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.settlement_ref_label",
+    "fr": "Référence du paiement fait hors ligne",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.open_title",
+    "fr": "Ouvrir une réclamation",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.sera_routing_note",
+    "fr": "Une faute Séra ne passe pas par le fonds : c'est un dossier de garde, à part.",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.open_order",
+    "fr": "Commande concernée",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.open_reason",
+    "fr": "Ce qui s'est passé",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.open_amount",
+    "fr": "Montant en francs",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.open_fault",
+    "fr": "Qui est en faute",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.open_evidence",
+    "fr": "Référence de la preuve",
+    "register": "neutral",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.open_submit",
+    "fr": "Enregistrer la réclamation",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.declare_title",
+    "fr": "Déclarer le solde du fonds",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.declare_balance",
+    "fr": "Solde du compte en francs",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.declare_opening",
+    "fr": "Capital de départ (première fois seulement)",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.declare_submit",
+    "fr": "Enregistrer le solde daté",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.error_unauthorized",
+    "fr": "Clé refusée — entrer la bonne clé pour ouvrir le registre.",
+    "register": "neutral",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.error_duplicate",
+    "fr": "Cette commande a déjà sa réclamation — une seule par commande.",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.error_not_forward",
+    "fr": "Une réclamation avance pas à pas, jamais en arrière.",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.error_settlement_ref",
+    "fr": "Il faut la référence du paiement fait hors ligne pour marquer réglée.",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.error_sera_routing",
+    "fr": "Faute Séra : dossier de garde, pas le fonds.",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.error_unreachable",
+    "fr": "Le registre ne répond pas — réessayer dans un moment.",
+    "register": "neutral",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.error_form_incomplete",
+    "fr": "Il manque une information — vérifier chaque champ.",
+    "register": "neutral",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.sandbox_reason_refused_pickup",
+    "fr": "Refus à l'enlèvement — mauvaise taille.",
+    "register": "neutral",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.sandbox_reason_never_ready",
+    "fr": "Colis jamais prêt — commande annulée.",
+    "register": "neutral",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.sandbox_reason_changed_mind",
+    "fr": "Refus au seuil — changement d'avis.",
+    "register": "neutral",
+    "screenClass": "status"
   }
 ]

@@ -1,0 +1,136 @@
+name: protection-deploy
+
+# FONDS-1 — deploy the Protection Fund claims book Worker (services/
+# protection-service). Mirrors boutik-plus's media-deploy, including the
+# post-deploy provenance assertion (the AUDIT-B+1 F9 lesson: `wrangler deploy`
+# proves the upload was accepted, not that the running Worker is this bundle).
+#
+# MANUAL ONLY (workflow_dispatch): a deploy is a deliberate act — the standing
+# ruling that governs every deploy workflow in the ecosystem.
+#
+# UNPROVEN UNTIL THIS ACTUALLY RUNS: protection-service has NEVER been
+# deployed. The DO binding and the [[migrations]] block in wrangler.toml are
+# validated only by a real deploy (miniflare binds by its own test config).
+#
+# SECRETS AND VARIABLES this run needs (repo settings):
+#   · CLOUDFLARE_API_TOKEN (secret) — Workers deploy token.
+#   · PLATFORM_CONTRACTS_READ_TOKEN (secret) — same read token ci.yml uses.
+#   · PROTECTION_OPS_SECRET (secret) — the founder's ONE key to the fund book,
+#     set on the Worker with `wrangler secret put` (value PIPED, never an
+#     argument, never [vars] — this repo is public). THE FOUNDER'S ALONE:
+#     never bundled into any app, never shared with a supplier or reseller.
+#   · PROTECTION_BASE (variable, not secret — a public URL) — the deployed
+#     Worker's base URL (e.g. https://protection-service.<account>.workers.dev),
+#     used by the provenance assertion below and by ops-console-deploy.yml.
+#     On the FIRST dispatch this may not exist yet: the deploy still runs, the
+#     assertion fails red with instructions — set the variable and re-dispatch.
+#   · PROTECTION_CONSOLE_ORIGIN (variable — origins are public) — the deployed
+#     ops console origin, for exact-origin CORS. Empty ⇒ no CORS (curl only).
+#
+# FAIL-CLOSED BY CONSTRUCTION: a Worker deployed before PROTECTION_OPS_SECRET
+# is set refuses every request with the one identical 401. That is correct,
+# not broken — set the secret (or re-dispatch with it configured) to arm it.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: protection-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Authorize read access to platform-contracts (CI-only)
+        run: git config --global url."https://x-access-token:${{ secrets.PLATFORM_CONTRACTS_READ_TOKEN }}@github.com/beurni2/platform-contracts".insteadOf "https://github.com/beurni2/platform-contracts"
+      # Guard against pnpm re-mangling lockfile git-dep URLs to SSH forms (see ci.yml).
+      - name: Authorize read access to platform-contracts (CI-only, SSH forms)
+        run: |
+          git config --global --add url."https://x-access-token:${{ secrets.PLATFORM_CONTRACTS_READ_TOKEN }}@github.com/beurni2/platform-contracts".insteadOf "git@github.com:beurni2/platform-contracts"
+          git config --global --add url."https://x-access-token:${{ secrets.PLATFORM_CONTRACTS_READ_TOKEN }}@github.com/beurni2/platform-contracts".insteadOf "ssh://git@github.com/beurni2/platform-contracts"
+      - run: pnpm install --frozen-lockfile
+      # Compile workspace packages FIRST (the trap that killed shop-plus's
+      # first deploy: bundling before dist/ exists).
+      - run: pnpm build
+      # Provenance stamp — release is this sha; canon is read from the
+      # INSTALLED package, never hand-typed, so it cannot drift from what was
+      # actually bundled.
+      - name: Resolve the provenance stamp
+        run: |
+          echo "PLATFORM_RELEASE=${{ github.sha }}" >> "$GITHUB_ENV"
+          echo "PLATFORM_CANON=$(node -p "require('./node_modules/@platform/contracts/package.json').version")" >> "$GITHUB_ENV"
+      - name: Bundle the protection Worker
+        run: pnpm --filter @platform/protection-service bundle:worker
+      - name: Deploy to Cloudflare Workers
+        working-directory: services/protection-service
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CONSOLE_ORIGIN: ${{ vars.PROTECTION_CONSOLE_ORIGIN }}
+        run: |
+          if [ -n "$CONSOLE_ORIGIN" ]; then
+            npx --yes wrangler@4 deploy --var PROTECTION_CONSOLE_ORIGIN:"$CONSOLE_ORIGIN"
+          else
+            npx --yes wrangler@4 deploy
+          fi
+      # The secret is set AFTER the first deploy (wrangler cannot put a secret
+      # on a Worker that does not exist yet). Value PIPED, never an argument —
+      # arguments land in process lists and logs.
+      - name: Arm PROTECTION_OPS_SECRET (piped — skipped only if the repo secret is absent)
+        working-directory: services/protection-service
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          OPS_SECRET: ${{ secrets.PROTECTION_OPS_SECRET }}
+        run: |
+          if [ -z "$OPS_SECRET" ]; then
+            echo "::warning title=Fonds NON armé::PROTECTION_OPS_SECRET absent — the Worker refuses everything (fail-closed) until the repo secret is set and this workflow re-dispatched."
+            exit 0
+          fi
+          printf '%s' "$OPS_SECRET" | npx --yes wrangler@4 secret put PROTECTION_OPS_SECRET
+
+      # ═══ The F9 assertion: the live Worker must BE the bundle this job built ═══
+      # A Workers deploy PROPAGATES; it does not switch — poll up to 180s.
+      - name: Assert the live protection Worker is the bundle this job built
+        env:
+          PROTECTION_BASE: ${{ vars.PROTECTION_BASE }}
+        run: |
+          set -uo pipefail
+          if [ -z "${PROTECTION_BASE}" ]; then
+            echo "::error::PROTECTION_BASE repo variable is empty — the deploy above ran, but NOTHING verified it."
+            echo "Set the variable to the Worker's URL and re-dispatch so this step can prove the live Worker is this build."
+            exit 1
+          fi
+          BASE="${PROTECTION_BASE%/}"
+          OUT=$(mktemp)
+          DEADLINE=$(( $(date +%s) + 180 ))
+          LIVE_CANON='?'; LIVE_RELEASE='?'
+          while :; do
+            CODE=$(curl -sS -o "$OUT" -w '%{http_code}' "$BASE/health" || echo 000)
+            if [ "$CODE" = "200" ]; then
+              LIVE_CANON=$(node -p "JSON.parse(require('fs').readFileSync('$OUT','utf8')).canon" 2>/dev/null || echo '?')
+              LIVE_RELEASE=$(node -p "JSON.parse(require('fs').readFileSync('$OUT','utf8')).release" 2>/dev/null || echo '?')
+              echo "health 200 — live canon=$LIVE_CANON release=$LIVE_RELEASE (want $PLATFORM_CANON / $PLATFORM_RELEASE)"
+              if [ "$LIVE_CANON" = "$PLATFORM_CANON" ] && [ "$LIVE_RELEASE" = "$PLATFORM_RELEASE" ]; then
+                echo "PROVENANCE OK — live protection Worker is $PLATFORM_RELEASE speaking canon $PLATFORM_CANON."
+                exit 0
+              fi
+            else
+              echo "health $CODE — not answering yet"
+            fi
+            if [ "$(date +%s)" -ge "$DEADLINE" ]; then
+              echo "::error::DEPLOY DID NOT TAKE — after 180s the live protection Worker is still not this job's bundle."
+              echo "  live canon=$LIVE_CANON release=$LIVE_RELEASE"
+              echo "  want canon=$PLATFORM_CANON release=$PLATFORM_RELEASE"
+              exit 1
+            fi
+            sleep 10
+          done

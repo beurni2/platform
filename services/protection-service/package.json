@@ -1,0 +1,27 @@
+{
+  "name": "@platform/protection-service",
+  "version": "0.0.1",
+  "private": true,
+  "description": "FONDS-1 — the Protection Fund claims book (ECOSYSTEM-MASTER-REFERENCE §9.2 Desk 1/2). Records claims by faultClass and the founder's offline fund declarations; moves no money, holds no money, debits no seller — ever.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "dist/fund-core.js",
+  "types": "dist/fund-core.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p worker/tsconfig.json",
+    "bundle:worker": "esbuild worker/index.ts --bundle --format=esm --outfile=dist/worker/worker.mjs --platform=neutral --conditions=import --define:__PLATFORM_RELEASE__=\"'${PLATFORM_RELEASE:-dev}'\" --define:__PLATFORM_CANON__=\"'${PLATFORM_CANON:-dev}'\"",
+    "pretest": "pnpm bundle:worker",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@platform/contracts": "git+https://github.com/beurni2/platform-contracts.git#d7b27bb895667f751d522680282549f16335e631&path:packages/contracts"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250705.0",
+    "esbuild": "^0.25.5",
+    "miniflare": "^4.20250705.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

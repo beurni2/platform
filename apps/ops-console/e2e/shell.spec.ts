@@ -14,9 +14,10 @@ function fcfa(amount: number): string {
 
 /**
  * WO-OPS-0 / WO-OPS-1a DoD. Drives the REAL built console in a real Chromium.
- * Seven desks stay honest empty shells; DESK 3 (moderation) is live and renders
- * the queue (pending / decided, reasons verbatim). The console runs on the
- * shared/neutral palette — ink on warm paper.
+ * Four desks are live — 1 (the fund book, sandbox preview here), 3 (the
+ * moderation queue), 5 (break-glass) and 6 (refusal ladder); the other four
+ * stay honest empty shells. The console runs on the shared/neutral palette —
+ * ink on warm paper.
  */
 
 function hexToRgb(hex: string): string {
@@ -24,10 +25,10 @@ function hexToRgb(hex: string): string {
   return `rgb(${parseInt(n.slice(0, 2), 16)}, ${parseInt(n.slice(2, 4), 16)}, ${parseInt(n.slice(4, 6), 16)})`;
 }
 
-// The five desks that stay honest shells (everything except the three live
-// desks: moderation + reconciliation-operateur + echelle-de-refus).
+// The four desks that stay honest shells (everything except the four live
+// desks: fonds-de-protection + moderation + reconciliation-operateur +
+// echelle-de-refus).
 const SHELL_DESKS: ReadonlyArray<{ slug: string; title: string }> = [
-  { slug: 'fonds-de-protection', title: 'Fonds de protection' },
   { slug: 'reclamations', title: 'Réclamations' },
   { slug: 'confiance-securite', title: 'Confiance & sécurité' },
   { slug: 'flags-kill-switches', title: 'Flags & kill-switches' },
@@ -46,18 +47,62 @@ test('the shell boots on the shared/neutral palette with catalog strings', async
   await expect(page.locator('nav .desk-link .glyph svg')).toHaveCount(8);
 });
 
-test('the five remaining desks stay honest empty shells (no live surface leaks in)', async ({
+test('the four remaining desks stay honest empty shells (no live surface leaks in)', async ({
   page,
 }) => {
   for (const desk of SHELL_DESKS) {
     await page.goto(`/#/${desk.slug}`);
     await expect(page.locator('.desk-title')).toHaveText(desk.title);
     await expect(page.locator('.empty-state')).toHaveText(EMPTY);
-    // no live desk (moderation queue, break-glass board, refusal ladder) may leak in.
+    // no live desk (fund book, moderation queue, break-glass board, refusal
+    // ladder) may leak in.
+    await expect(page.locator('.fd-fund')).toHaveCount(0);
     await expect(page.locator('.mod-queue')).toHaveCount(0);
     await expect(page.locator('.bg-case')).toHaveCount(0);
     await expect(page.locator('.rf-list')).toHaveCount(0);
   }
+});
+
+test('DESK 1 (fonds-de-protection) is live — the law first, the figures honest, claims by faultClass, no lever in sandbox', async ({
+  page,
+}) => {
+  await page.goto('/#/fonds-de-protection');
+  await expect(page.locator('.desk-title')).toHaveText('Fonds de protection');
+  await expect(page.locator('.empty-state')).toHaveCount(0);
+
+  // clearly a PREVIEW — the sandbox ribbon is on
+  await expect(page.locator('.mod-ribbon')).toHaveText('APERÇU — BAC À SABLE');
+
+  // B+I-13 RENDERS FIRST — before any figure, the buyer's law
+  await expect(page.locator('.fd-law')).toHaveText(
+    "La cliente est remboursée d'abord, toujours — jamais selon l'état du fonds.",
+  );
+  const lawBox = await page.locator('.fd-law').boundingBox();
+  const fundBox = await page.locator('.fd-fund').boundingBox();
+  expect(lawBox !== null && fundBox !== null && lawBox.y < fundBox.y).toBe(true);
+
+  // the figures, canon money format, derived through the REAL fund core:
+  // committed = 8 000 (en examen) + 1 000 (ouverte); résolue excluded
+  await expect(page.locator('.fd-field--balance .fd-value')).toHaveText(fcfa(100000));
+  await expect(page.locator('.fd-fund .fd-field').nth(1).locator('.fd-value')).toHaveText(fcfa(9000));
+  await expect(page.locator('.fd-fund .fd-field').nth(2).locator('.fd-value')).toHaveText(fcfa(91000));
+  await expect(page.locator('.fd-solvency--healthy')).toHaveText('Fonds solide');
+
+  // claims BY faultClass — seller group carries 2, buyer group 1
+  await expect(page.locator('.fd-group[data-fault="seller"] .fd-claim')).toHaveCount(2);
+  await expect(page.locator('.fd-group[data-fault="buyer"] .fd-claim')).toHaveCount(1);
+  // the resolved claim shows its offline payment reference
+  await expect(page.locator('.fd-claim[data-state="resolved"] .fd-claim-settled')).toContainText(
+    'momo-2026-08-01-farida',
+  );
+  // seller-fault claims carry the buyer-first marker; the buyer-fault one does not
+  await expect(page.locator('.fd-group[data-fault="seller"] .fd-claim-refund')).toHaveCount(2);
+  await expect(page.locator('.fd-group[data-fault="buyer"] .fd-claim-refund')).toHaveCount(0);
+
+  // SANDBOX HAS NO LEVER — recording actions exist only against the live book
+  await expect(
+    page.locator('.desk-content button, .desk-content input, .desk-content form, .desk-content [contenteditable]'),
+  ).toHaveCount(0);
 });
 
 test('DESK 5 (reconciliation-operateur) is live — the break-glass case: both operators, amount, « en attente » downstream', async ({
@@ -168,11 +213,12 @@ test('DESK 3 (moderation) is live — renders the queue: pending / decided, reas
   await expect(reasons.nth(1)).toHaveText('Emballage non neutre');
 });
 
-test('an unknown route falls back to the first desk — a shell, never blank or fabricated', async ({
+test('an unknown route falls back to the first desk — the fund book preview, never blank or fabricated', async ({
   page,
 }) => {
   await page.goto('/#/does-not-exist');
   await expect(page.locator('.desk-title')).toHaveText('Fonds de protection');
-  await expect(page.locator('.empty-state')).toHaveText(EMPTY);
+  await expect(page.locator('.fd-law')).toBeVisible();
+  await expect(page.locator('.mod-ribbon')).toHaveText('APERÇU — BAC À SABLE');
   await expect(page.locator('.mod-queue')).toHaveCount(0);
 });

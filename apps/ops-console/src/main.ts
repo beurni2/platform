@@ -19,12 +19,17 @@ import { buildSandboxEligibilityPort, SANDBOX_BUYER_REFS, SANDBOX_NOW } from './
 import { consumeEligibilityFeed } from './refusal/feed';
 import { deriveRefusalLadder } from './refusal/ladder';
 import { renderRefusalLadder } from './refusal/ladder-view';
+import { buildSandboxFonds } from './fonds/sandbox';
+import { renderFondsView } from './fonds/view';
+import { renderFondsLive } from './fonds/live';
 
 /**
  * WO-OPS-0 / WO-OPS-1a — the platform ops console SHELL. The eight desks (canon
- * ECOSYSTEM-MASTER-REFERENCE §9.2) as hash ROUTES. Seven remain honest empty
- * shells; DESK 3 (moderation) is now LIVE — it renders the moderation queue
- * (pending / decided, reasons verbatim) from the real command path. Everything is
+ * ECOSYSTEM-MASTER-REFERENCE §9.2) as hash ROUTES. Four render live surfaces —
+ * DESK 1 (fonds-de-protection, FONDS-2: the Protection Fund book), DESK 3
+ * (moderation: the queue from the real command path), DESK 5 (break-glass
+ * issuing) and DESK 6 (refusal-ladder oversight); the other four stay honest
+ * empty shells. Everything is
  * Grand Teint: colours, spacing, type, radius, hairlines come from
  * @platform/ui-tokens — no local values (the zero-hardcode scan enforces it).
  * There is no `platform`/ops theme in ui-tokens (only boutik-plus/shop-plus/
@@ -349,6 +354,162 @@ style.textContent = `
     font-size: var(--type-row);
     font-weight: ${typo.scale.row.wght};
   }
+  .fd-law {
+    margin: 0;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--success-tint);
+    color: var(--success);
+    font-size: var(--type-row);
+    font-weight: ${typo.scale.row.wght};
+  }
+  .fd-fund {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background: var(--desk);
+    border: var(--hair) solid var(--hairline);
+  }
+  .fd-field { display: flex; flex-direction: column; gap: var(--space-xs); }
+  .fd-label {
+    color: var(--muted);
+    font-size: var(--type-label);
+    font-weight: ${typo.scale.label.wght};
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+  }
+  .fd-value {
+    color: var(--ink);
+    font-size: var(--type-row);
+    font-weight: ${typo.scale.row.wght};
+    font-variant-numeric: tabular-nums;
+  }
+  .fd-field--balance .fd-value { font-size: var(--type-title); font-weight: ${typo.scale.title.wght}; }
+  .fd-solvency {
+    grid-column: 1 / -1;
+    margin: 0;
+    align-self: start;
+    justify-self: start;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--type-label);
+    font-weight: ${typo.scale.label.wght};
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+  }
+  .fd-solvency--healthy { background: var(--success-tint); color: var(--success); }
+  .fd-solvency--critical { background: var(--warning-tint); color: var(--warning); }
+  .fd-solvency--unknown { background: var(--surface-muted); color: var(--muted); }
+  .fd-declared {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--type-caption);
+    font-weight: ${typo.scale.caption.wght};
+  }
+  .fd-group-title {
+    margin: var(--space-md) 0 0 0;
+    color: var(--ink);
+    font-size: var(--type-label);
+    font-weight: ${typo.scale.label.wght};
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+  }
+  .fd-claims { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-sm); }
+  .fd-claim {
+    display: grid;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    background: var(--desk);
+    border: var(--hair) solid var(--hairline);
+  }
+  .fd-claim-head { display: flex; align-items: baseline; gap: var(--space-md); }
+  .fd-claim-ref {
+    flex: 1 1 auto;
+    color: var(--ink);
+    font-size: var(--type-row);
+    font-weight: ${typo.scale.row.wght};
+  }
+  .fd-claim-amount {
+    color: var(--ink);
+    font-size: var(--type-row);
+    font-weight: ${typo.scale.title.wght};
+    font-variant-numeric: tabular-nums;
+  }
+  .fd-state {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--type-label);
+    font-weight: ${typo.scale.label.wght};
+    letter-spacing: var(--ls-label);
+    text-transform: uppercase;
+  }
+  .fd-state--opened { background: var(--surface-muted); color: var(--body); }
+  .fd-state--under_review { background: var(--warning-tint); color: var(--warning); }
+  .fd-state--resolved { background: var(--success-tint); color: var(--success); }
+  .fd-claim-reason { margin: 0; color: var(--body); font-size: var(--type-body); font-weight: ${typo.scale.body.wght}; }
+  .fd-claim-proof, .fd-claim-settled {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--type-caption);
+    font-weight: ${typo.scale.caption.wght};
+  }
+  .fd-claim-refund {
+    margin: 0;
+    color: var(--success);
+    font-size: var(--type-caption);
+    font-weight: ${typo.scale.label.wght};
+  }
+  .fd-empty {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--type-body);
+    font-weight: ${typo.scale.body.wght};
+  }
+  .fd-door, .fd-form { display: grid; gap: var(--space-md); max-width: ${px(spacing.xxl * 10)}; }
+  .fd-form-card {
+    display: grid;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: var(--desk);
+    border: var(--hair) solid var(--hairline);
+  }
+  .fd-form-field { display: flex; flex-direction: column; gap: var(--space-xs); }
+  .fd-input {
+    min-height: var(--touch);
+    padding: var(--space-xs) var(--space-sm);
+    border: var(--hair) solid var(--hairline-strong);
+    border-radius: var(--radius-btn);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: var(--type-body);
+  }
+  .fd-btn {
+    min-height: var(--touch);
+    padding: var(--space-xs) var(--space-lg);
+    border: none;
+    border-radius: var(--radius-btn);
+    background: var(--ink);
+    color: var(--on-ink);
+    font-family: inherit;
+    font-size: var(--type-row);
+    font-weight: ${typo.scale.row.wght};
+    cursor: pointer;
+    justify-self: start;
+  }
+  .fd-btn--quiet {
+    background: var(--surface-muted);
+    color: var(--ink);
+    border: var(--hair) solid var(--hairline-strong);
+  }
+  .fd-advance { display: grid; gap: var(--space-xs); justify-items: start; }
+  .fd-note {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--type-caption);
+    font-weight: ${typo.scale.caption.wght};
+  }
+  .fd-note--error { color: var(--warning); }
+  .fd-feedback { display: grid; gap: var(--space-xs); }
 `;
 document.head.appendChild(style);
 
@@ -402,8 +563,11 @@ main.append(panel);
 app.append(strip, header, nav, main);
 
 // ── router: eight desks as hash routes ────────────────────────────────────────
-// Desks 3 (moderation), 5 (reconciliation-operateur) and 6 (echelle-de-refus)
-// render live surfaces; the other five stay honest shells.
+// Desks 1 (fonds-de-protection), 3 (moderation), 5 (reconciliation-operateur)
+// and 6 (echelle-de-refus) render live surfaces; the other four stay honest
+// shells. Desk 1 renders the REAL protection-service book when
+// VITE_PROTECTION_BASE is configured (key entered at the desk), and a clearly
+// ribboned sandbox preview otherwise.
 function currentDesk(): Desk {
   const slug = window.location.hash.replace(/^#\/?/, '');
   return DESKS.find((d) => d.id === slug) ?? DESKS[0]!;
@@ -417,10 +581,26 @@ function renderEmptyShell(): void {
   contentHost.append(empty);
 }
 
+// Vite injects import.meta.env at build; accessed defensively so this module
+// stays loadable outside Vite (vitest never imports main.ts, but the shape
+// guard costs nothing and invents nothing).
+const PROTECTION_BASE =
+  (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.[
+    'VITE_PROTECTION_BASE'
+  ] ?? '';
+
 function render(): void {
   const desk = currentDesk();
   deskTitle.textContent = t(desk.titleKey);
-  if (desk.id === 'moderation') {
+  if (desk.id === 'fonds-de-protection') {
+    // Desk 1 — the Protection Fund (FONDS-2). Live against the deployed book
+    // when configured; otherwise the sandbox preview through the SAME view.
+    if (PROTECTION_BASE.length > 0) {
+      renderFondsLive(contentHost, PROTECTION_BASE);
+    } else {
+      renderFondsView(contentHost, buildSandboxFonds(), ribbon.sandbox.label);
+    }
+  } else if (desk.id === 'moderation') {
     renderModerationQueue(
       contentHost,
       buildSandboxQueue(new Date().toISOString()),

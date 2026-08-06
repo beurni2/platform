@@ -5,6 +5,28 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-08-06 · FONDS-1/2 — the Protection Fund claims book + Desk 1 goes live · IN REVIEW (do NOT merge)
+
+**FOUNDER OVERRIDE, LOGGED (2026-08-06):** Protection Fund claims tooling is E2/E3-adjacent work started before E1 closes — built on the founder's explicit « You can start working on them » after the CTO's written proposal (offline money, in-software claim). The founder also ruled the fund's MONEY moves OFFLINE: opening capital and claim payouts are manual; software records claims and dated balance declarations so pilot loss is measured (§12 ⏳ « seed conservative, calibrate to pilot loss »).
+
+- **What was built.**
+  1. `services/protection-service` — the FIRST deployable service in this repo: one Worker, one singleton `FondsDO` (`idFromName('fonds-de-protection')`), one Bearer door (`PROTECTION_OPS_SECRET`, fail-closed, uniform 401, constant-time compare mirrored from `@boutik/service-auth` — that package is boutik-workspace-only). Routes: open claim · advance claim · list claims · declare fund balance · fund view · journal · /health (provenance-stamped). `pnpm-workspace.yaml` grew `services/*`.
+  2. Desk 1 (`fonds-de-protection`) in the ops console is LIVE — the fourth live desk. Sandbox preview (ribboned, read-only, figures derived through the REAL fund core via the new `@platform/protection-service` workspace dep — the preview cannot drift from the book's arithmetic) and an HTTP mode when `VITE_PROTECTION_BASE` is configured: key door (key in page memory only, never bundled/stored), claims by faultClass, state advance, balance declaration.
+  3. Two dispatch-only deploy workflows: `protection-deploy.yml` (wrangler + piped `secret put` + the F9 provenance poll against repo var `PROTECTION_BASE`) and `ops-console-deploy.yml` (Vite → Cloudflare Pages `platform-ops-console`). First-run notes are in the workflow headers.
+- **The laws, enforced and TESTED (28 service tests + evolved console suites):**
+  - **B+I-13 under fire:** with the fund driven to CRITICAL, a seller-fault claim STILL records `refundRequired` with literal `buyerPriority: true` — no code path from solvency to the refund record.
+  - **Desk 2 routing:** `faultClass: 'sera'` is refused BY NAME (422, `instrument: custody_liability_claim`) — « Séra's own instrument, separate from the fund ».
+  - **B+I-12:** no seller balance/debit/reserve surface anywhere (asserted on the wire).
+  - One claim per order first-wins · forward-only states · `resolved` REQUIRES a `settlementRef` (the offline payment's reference — the founder-ruling link) · declarations append-only with idempotent replay · restart persistence on real workerd.
+- **SAFEST DEFAULTS, FLAGGED (⏳ §12 sizing open — no invented numbers):** solvency derives from arithmetic only — `null` until a balance is declared (never a fake HEALTHY), `CRITICAL` iff balance < committed claims, else `HEALTHY`. **WATCH/RESTRICTED are UNREACHABLE** until the founder closes the sizing decision; the wire says so (`solvencyNote`).
+- **NAMED DEBTS:**
+  - **Maker-checker deferred** (§9.1) — the founder is the sole operator; a second-identity approval today is theater or a dead end. Mitigations: nothing moves a franc (declarations record external facts), every write journalled, declarations keep full history. Revisit when a second ops identity exists.
+  - **Actor identity** is the constant `ops:protection:fondateur` (the secret IS the founder's identity today).
+  - **Claim-state vocabulary** stays the LOCAL `protection-claim-states.v1` (carried verbatim from `@boutik/fulfillment-service`) — canon's `ProtectionClaimSchema.state` is a bare string; a canon enumeration remains a founder decision.
+  - **No producer wires yet:** Séra services have no deploy workflow, so no pickup-refusal signal exists in production — claims enter through the operator door; producer intake is a later slice (deploy-order law respected by construction).
+- **Evidence:** full gate board green (typecheck · vitest 60/60 console + 28/28 service · zero-hardcode + negative · copy-lint 118 entries clean + 3 negatives firing · lockfile · drift-check + negatives · Playwright 7/7 incl. the new Desk 1 spec: law line renders FIRST, figures to the franc, groups by faultClass, no lever in sandbox).
+- **NOT armed by this merge:** nothing deploys until the founder dispatches the two workflows and sets `CLOUDFLARE_API_TOKEN` / `PROTECTION_OPS_SECRET` (secrets) + `PROTECTION_BASE` / `PROTECTION_CONSOLE_ORIGIN` (variables). Until then the console's Desk 1 renders the ribboned sandbox and the Worker (if deployed keyless) refuses everything — fail-closed, not broken.
+
 ## 2026-08-06 · AUDIT-B+1 F12 — the copy-lint learns administrative register, and the pin is GATED · DONE (branch)
 - **What changed here:** `@platform/i18n` re-pinned to `199bc2ab` (canon), plus a new negative fixture `catalog.administrative-register.json` wired into the gate board.
 - **Why the pin alone was not enough (verifier round 2 blocker).** Canon carried the new word list while every app still resolved the OLD package, so the lint was unchanged for users and the journal said DONE. The pin lives in **two places per repo** — the root `package.json` AND each workspace package's own; moving only the root reports success and changes nothing.

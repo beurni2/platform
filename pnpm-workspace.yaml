@@ -1,5 +1,9 @@
 packages:
   - "apps/*"
+  # FONDS-1 (founder-approved 2026-08-06): the Protection Fund claims book —
+  # the first deployable service in this repo. Claims adjudication is
+  # cross-domain (§9.2 Desk 1/2), so it lives here, not in any app repo.
+  - "services/*"
 
 # pnpm 10 blocks dependency build scripts by default; the @platform/* packages
 # each carry a `prepare` (tsc) build, so this allowlist is required or they
