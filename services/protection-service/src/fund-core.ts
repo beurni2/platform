@@ -86,28 +86,55 @@ export function isFundAdmissibleFaultClass(v: unknown): v is FaultClass {
 }
 
 /**
+ * FOUNDER RULING (2026-08-06): « On the money question the answer is the
+ * coverage list. » — the Boutik-Plus-Build-Spec §6 coverage list, not the
+ * Desk 2 routing table, decides which claims count toward the fund's
+ * committed figure. Coverage: « payment/refund fees · failed pickup attempts ·
+ * seller-fault return logistics · approved buyer goodwill · unrecovered
+ * operational loss. » Translated to the faultClass granularity this book has:
+ *   · seller          → COUNTS (failed pickups, return logistics, and the
+ *                        refund fees riding on seller-fault claims)
+ *   · platform_system → COUNTS (« unrecovered operational loss » — the one
+ *                        class where the two documents diverged; the ruling
+ *                        resolves it in the coverage list's favor)
+ *   · unresolved      → COUNTS (unclassified — conservative until a review
+ *                        reclassifies or closes it)
+ *   · buyer           → does NOT count (a buyer-FAULT claim is the forfeit
+ *                        case — Desk 2: « Buyer forfeits the delivery fee »;
+ *                        « approved buyer goodwill » is an APPROVED payout,
+ *                        not a fault — record one under platform_system)
+ *   · payment_provider→ does NOT count (Desk 2: « Provider arrangement ·
+ *                        reconciliation case » — not a fund payout)
+ *   · sera            → refused at the door (CustodyLiabilityClaim)
+ * A class this policy does not know defaults to COUNTING — conservative.
+ * Versioned policy DATA: tuning is a data change, never a logic change.
+ */
+export const FUND_COMMITMENT_POLICY_V1 = {
+  version: 'fund-commitment-policy.v1',
+  countsTowardCommitted: {
+    seller: true,
+    buyer: false,
+    payment_provider: false,
+    platform_system: true,
+    unresolved: true,
+  } as Record<string, boolean>,
+} as const;
+
+/**
  * committedClaimsAmount (canon ProtectionFundSchema field name): the sum of
- * every NON-TERMINAL claim's amount. This is the fund's OWN bookkeeping
- * (Ledger&Settlement owns the fund — §5.2), summing INPUT-COPIED amounts; it
- * computes no other domain's figure and no waterfall term.
- *
- * ⚠ FLAGGED FOR THE FOUNDER (⏳, verifier round 1): this counts EVERY open
- * claim regardless of faultClass — deliberately CONSERVATIVE (overstates
- * liability, so solvency errs toward CRITICAL, never away from it). The specs
- * pull in two directions on which classes the fund actually pays: §9.2 Desk 2
- * routes buyer fault to « Buyer forfeits » and provider/platform faults to
- * their own instruments, while §6 coverage includes « payment/refund fees ·
- * approved buyer goodwill · unrecovered operational loss ». Which classes
- * count toward committment is the founder's call; until then, a never-payable
- * claim exits through `closed_no_payout` and stops counting.
+ * every NON-TERMINAL, FUND-PAYABLE claim's amount — fund-payable per the
+ * founder-ruled coverage-list policy above. This is the fund's OWN
+ * bookkeeping (Ledger&Settlement owns the fund — §5.2), summing INPUT-COPIED
+ * amounts; it computes no other domain's figure and no waterfall term.
  */
 export function computeCommittedClaimsAmount(
-  claims: ReadonlyArray<{ readonly amount: number; readonly state: string }>,
+  claims: ReadonlyArray<{ readonly amount: number; readonly state: string; readonly faultClass: string }>,
 ): number {
-  return claims.reduce(
-    (sum, c) => ((TERMINAL_CLAIM_STATES as readonly string[]).includes(c.state) ? sum : sum + c.amount),
-    0,
-  );
+  return claims.reduce((sum, c) => {
+    if ((TERMINAL_CLAIM_STATES as readonly string[]).includes(c.state)) return sum;
+    if (FUND_COMMITMENT_POLICY_V1.countsTowardCommitted[c.faultClass] === false) return sum;
+    return sum + c.amount;
+  }, 0);
 }
 
 export interface SolvencyReading {

@@ -82,10 +82,12 @@ test('DESK 1 (fonds-de-protection) is live — the law first, the figures honest
   expect(lawBox !== null && fundBox !== null && lawBox.y < fundBox.y).toBe(true);
 
   // the figures, canon money format, derived through the REAL fund core:
-  // committed = 8 000 (en examen) + 1 000 (ouverte); résolue excluded
+  // committed = 8 000 (seller, en examen) ONLY — the resolved claim is
+  // terminal and the open BUYER claim never counts (founder ruling
+  // 2026-08-06: the §6 coverage list decides; the buyer forfeits)
   await expect(page.locator('.fd-field--balance .fd-value')).toHaveText(fcfa(100000));
-  await expect(page.locator('.fd-fund .fd-field').nth(1).locator('.fd-value')).toHaveText(fcfa(9000));
-  await expect(page.locator('.fd-fund .fd-field').nth(2).locator('.fd-value')).toHaveText(fcfa(91000));
+  await expect(page.locator('.fd-fund .fd-field').nth(1).locator('.fd-value')).toHaveText(fcfa(8000));
+  await expect(page.locator('.fd-fund .fd-field').nth(2).locator('.fd-value')).toHaveText(fcfa(92000));
   await expect(page.locator('.fd-solvency--healthy')).toHaveText('Fonds solide');
 
   // claims BY faultClass — seller group carries 2, buyer group 1

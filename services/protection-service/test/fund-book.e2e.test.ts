@@ -217,7 +217,7 @@ describe('advancing claims — forward only, resolved only against an offline pa
 });
 
 describe('the fund figure — declared offline, derived honestly', () => {
-  it('before any declaration: unknown solvency (null), committed = sum of unresolved claims', async () => {
+  it('before any declaration: unknown solvency (null); the open BUYER claim commits NOTHING (coverage-list ruling)', async () => {
     const res = await mf.dispatchFetch(`${BASE}/fund`, { headers: opsHeaders() });
     const body = (await res.json()) as {
       declaration: unknown;
@@ -225,9 +225,26 @@ describe('the fund figure — declared offline, derived honestly', () => {
       solvency: { state: string | null };
     };
     expect(body.declaration).toBeNull();
-    // order-fonds-001 resolved (11 000 out) · order-fonds-002 open (1 000 in)
-    expect(body.committedClaimsAmountFcfa).toBe(1_000);
+    // order-fonds-001 resolved (terminal, out) · order-fonds-002 open but
+    // BUYER-fault — the buyer forfeits, the fund owes nothing (founder ruling
+    // 2026-08-06: the §6 coverage list decides). Committed is ZERO.
+    expect(body.committedClaimsAmountFcfa).toBe(0);
     expect(body.solvency.state).toBeNull();
+  });
+
+  it('an open SELLER-fault claim counts toward committed, to the franc', async () => {
+    const opened = await openClaim({
+      orderId: 'order-fonds-003',
+      reason: 'jamais prete — commande annulee',
+      faultClass: 'seller',
+      amountFcfa: 8_000,
+      evidenceBundleId: 'evb-003',
+    });
+    expect(opened.status).toBe(201);
+    const res = await mf.dispatchFetch(`${BASE}/fund`, { headers: opsHeaders() });
+    expect(((await res.json()) as { committedClaimsAmountFcfa: number }).committedClaimsAmountFcfa).toBe(
+      8_000,
+    );
   });
 
   it('a declaration below committed claims derives CRITICAL — pure arithmetic', async () => {
@@ -239,16 +256,16 @@ describe('the fund figure — declared offline, derived honestly', () => {
     expect(res.status).toBe(201);
     const body = (await res.json()) as { solvency: { state: string; availableAfterCommitmentsFcfa: number } };
     expect(body.solvency.state).toBe('CRITICAL');
-    expect(body.solvency.availableAfterCommitmentsFcfa).toBe(-500);
+    expect(body.solvency.availableAfterCommitmentsFcfa).toBe(500 - 8_000);
   });
 
   it('B+I-13 UNDER FIRE — at CRITICAL, a seller-fault claim STILL records refund-required', async () => {
     const res = await openClaim({
-      orderId: 'order-fonds-003',
-      reason: 'jamais prete — commande annulee',
+      orderId: 'order-fonds-004',
+      reason: 'refus a l enlevement — piece manquante',
       faultClass: 'seller',
-      amountFcfa: 8_000,
-      evidenceBundleId: 'evb-003',
+      amountFcfa: 5_000,
+      evidenceBundleId: 'evb-004',
     });
     expect(res.status).toBe(201);
     const body = (await res.json()) as { refundRequired: { buyerPriority: boolean } | null };
@@ -308,10 +325,11 @@ describe('the no-payout exit (verifier round 1) — never-payable claims leave t
     expect(((await res.json()) as { error: string }).error).toBe('close_reason_required');
   });
 
-  it('a buyer-fault claim closes with a reason — no fabricated payment reference — and STOPS counting as committed', async () => {
+  it('a buyer-fault claim closes with a reason — committed UNCHANGED, it never counted (coverage-list ruling)', async () => {
     const before = await mf.dispatchFetch(`${BASE}/fund`, { headers: opsHeaders() });
     const committedBefore = ((await before.json()) as { committedClaimsAmountFcfa: number })
       .committedClaimsAmountFcfa;
+    expect(committedBefore).toBe(13_000); // 003 (8 000) + 004 (5 000), both seller
 
     const res = await mf.dispatchFetch(`${BASE}/claims/order-fonds-002/advance`, {
       method: 'POST',
@@ -324,8 +342,7 @@ describe('the no-payout exit (verifier round 1) — never-payable claims leave t
     const after = await mf.dispatchFetch(`${BASE}/fund`, { headers: opsHeaders() });
     const committedAfter = ((await after.json()) as { committedClaimsAmountFcfa: number })
       .committedClaimsAmountFcfa;
-    // order-fonds-002 carried 1 000 — gone from the committed figure, to the franc.
-    expect(committedAfter).toBe(committedBefore - 1_000);
+    expect(committedAfter).toBe(committedBefore); // never in the figure, still not
 
     const list = await mf.dispatchFetch(`${BASE}/claims`, { headers: opsHeaders() });
     const { claims } = (await list.json()) as {
@@ -334,6 +351,20 @@ describe('the no-payout exit (verifier round 1) — never-payable claims leave t
     const closed = claims.find((c) => c.claim.orderId === 'order-fonds-002');
     expect(closed?.claim.state).toBe('closed_no_payout');
     expect(closed?.advanced.at(-1)?.closedReason).toContain('renonce');
+  });
+
+  it('closing a SELLER-fault claim removes its amount from committed, to the franc', async () => {
+    const res = await mf.dispatchFetch(`${BASE}/claims/order-fonds-004/advance`, {
+      method: 'POST',
+      headers: opsHeaders(),
+      body: JSON.stringify({ to: 'closed_no_payout', closedReason: 'dossier de garde Sera — pas le fonds' }),
+    });
+    expect(res.status).toBe(200);
+    const after = await mf.dispatchFetch(`${BASE}/fund`, { headers: opsHeaders() });
+    // 13 000 − 004's 5 000 = 8 000 (order-fonds-003 alone)
+    expect(((await after.json()) as { committedClaimsAmountFcfa: number }).committedClaimsAmountFcfa).toBe(
+      8_000,
+    );
   });
 
   it('a closed claim is TERMINAL — no advance out of it, ever', async () => {
@@ -356,12 +387,14 @@ describe('the no-payout exit (verifier round 1) — never-payable claims leave t
     expect(((await res.json()) as { error: string }).error).toBe('not_forward');
   });
 
-  it('an in-canon-invalid input (trailing-space id) answers 400, never a 500 with Zod internals', async () => {
+  it('a trailing-space id is TRIMMED and opens cleanly — never a 500 with Zod internals', async () => {
     const res = await openClaim({ ...SELLER_CLAIM, orderId: 'order-ws-1 ', evidenceBundleId: 'evb-ws' });
-    // the trimmed id 'order-ws-1' is NEW — it opens cleanly, proving the trim
-    // and the guard sit on the same path
-    expect([201, 400]).toContain(res.status);
+    // the trimmed id 'order-ws-1' is NEW — the trim is pinned exactly here
+    // (verifier round 2 note 1: the earlier [201, 400] acceptance let a trim
+    // regression surface two describes later with a confusing message)
+    expect(res.status).toBe(201);
     const body = JSON.stringify(await res.json());
+    expect(body).toContain('"order-ws-1"');
     expect(body).not.toContain('ZodError');
     expect(body).not.toContain('invalid_string');
   });
@@ -390,6 +423,7 @@ describe('the book survives a restart — durable, not resident', () => {
         'order-fonds-001',
         'order-fonds-002',
         'order-fonds-003',
+        'order-fonds-004',
         'order-ws-1',
       ]);
       const fund = await revived.dispatchFetch(`${BASE}/fund`, { headers: opsHeaders() });

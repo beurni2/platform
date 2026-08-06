@@ -379,7 +379,11 @@ export class FondsDO {
   private async committedClaimsAmount(): Promise<number> {
     const rows = await this.state.storage.list<StoredClaim>({ prefix: CLAIM_PREFIX });
     return computeCommittedClaimsAmount(
-      [...rows.values()].map((s) => ({ amount: s.claim.amount, state: s.claim.state })),
+      [...rows.values()].map((s) => ({
+        amount: s.claim.amount,
+        state: s.claim.state,
+        faultClass: s.claim.faultClass,
+      })),
     );
   }
 

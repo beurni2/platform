@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   FUND_ADMISSIBLE_FAULT_CLASSES,
+  FUND_COMMITMENT_POLICY_V1,
   PROTECTION_CLAIM_STATES_V2,
   TERMINAL_CLAIM_STATES,
   computeCommittedClaimsAmount,
@@ -50,16 +51,49 @@ describe('Desk 2 routing — sera is refused, every other canon class admitted',
   });
 });
 
-describe('committedClaimsAmount — non-terminal claims only, exact francs', () => {
-  it('sums opened + under_review; excludes BOTH terminals (resolved and closed-no-payout)', () => {
+describe('committedClaimsAmount — the coverage-list ruling (founder, 2026-08-06), exact francs', () => {
+  it('counts open seller + platform_system + unresolved; excludes BOTH terminals', () => {
     expect(
       computeCommittedClaimsAmount([
-        { amount: 11_000, state: 'opened' },
-        { amount: 4_500, state: 'under_review' },
-        { amount: 99_999, state: 'resolved' },
-        { amount: 77_777, state: 'closed_no_payout' },
+        { amount: 11_000, state: 'opened', faultClass: 'seller' },
+        { amount: 4_500, state: 'under_review', faultClass: 'platform_system' },
+        { amount: 2_000, state: 'opened', faultClass: 'unresolved' },
+        { amount: 99_999, state: 'resolved', faultClass: 'seller' },
+        { amount: 77_777, state: 'closed_no_payout', faultClass: 'seller' },
       ]),
-    ).toBe(15_500);
+    ).toBe(17_500);
+  });
+
+  it('a buyer-fault claim NEVER counts — the buyer forfeits, the fund owes nothing', () => {
+    expect(
+      computeCommittedClaimsAmount([
+        { amount: 50_000, state: 'opened', faultClass: 'buyer' },
+        { amount: 50_000, state: 'under_review', faultClass: 'buyer' },
+      ]),
+    ).toBe(0);
+  });
+
+  it('a provider-fault claim never counts — provider arrangement, not a fund payout', () => {
+    expect(
+      computeCommittedClaimsAmount([{ amount: 30_000, state: 'opened', faultClass: 'payment_provider' }]),
+    ).toBe(0);
+  });
+
+  it('an UNKNOWN class defaults to counting — conservative, never silently exempt', () => {
+    expect(
+      computeCommittedClaimsAmount([{ amount: 7_000, state: 'opened', faultClass: 'future_class' }]),
+    ).toBe(7_000);
+  });
+
+  it('the policy is the founder-ruled data, versioned', () => {
+    expect(FUND_COMMITMENT_POLICY_V1.version).toBe('fund-commitment-policy.v1');
+    expect(FUND_COMMITMENT_POLICY_V1.countsTowardCommitted).toEqual({
+      seller: true,
+      buyer: false,
+      payment_provider: false,
+      platform_system: true,
+      unresolved: true,
+    });
   });
 
   it('empty book commits zero', () => {

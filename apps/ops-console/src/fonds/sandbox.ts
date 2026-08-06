@@ -62,7 +62,7 @@ const SANDBOX_BALANCE = 100_000;
 export function buildSandboxFonds(): FondsData {
   const claims = sandboxClaims();
   const committed = computeCommittedClaimsAmount(
-    claims.map((c) => ({ amount: c.amountFcfa, state: c.state })),
+    claims.map((c) => ({ amount: c.amountFcfa, state: c.state, faultClass: c.faultClass })),
   );
   const solvency = deriveSolvency(SANDBOX_BALANCE, committed);
   return {
