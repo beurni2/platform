@@ -17,9 +17,12 @@
  * unconditional compare (timing never reveals whether a secret exists), the
  * same single identical 401 for every rejection.
  *
- * CORS: the ops console is a browser app on its own origin. Exact-origin only
- * (`PROTECTION_CONSOLE_ORIGIN`, a var — origins are public), mirroring the
- * shop-plus storefront-service ruling: no wildcard, ever. Unset → no CORS
+ * CORS: the consoles are browser apps on their own origins. EXACT-ORIGIN
+ * ALLOWLIST (`PROTECTION_CONSOLE_ORIGIN`, a var — origins are public;
+ * comma-separated since FONDS-CONSOLE-B+, when the founder ordered the fund
+ * desk into his Boutik+ console alongside the platform console), mirroring
+ * the shop-plus storefront-service ruling: no wildcard, ever — the response
+ * echoes the ONE requesting origin iff it is on the list. Unset → no CORS
  * headers (curl still works; browsers are refused).
  */
 
@@ -73,19 +76,26 @@ async function authorized(request: Request, secret: string | undefined): Promise
   return configured.length > 0 && match;
 }
 
-function corsHeaders(env: Env): Record<string, string> {
-  const origin = env.PROTECTION_CONSOLE_ORIGIN ?? '';
-  if (origin.length === 0) return {};
+function corsHeaders(request: Request, env: Env): Record<string, string> {
+  const allowed = (env.PROTECTION_CONSOLE_ORIGIN ?? '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter((o) => o.length > 0);
+  if (allowed.length === 0) return {};
+  const requesting = request.headers.get('Origin') ?? '';
+  // Echo the ONE requesting origin iff allowlisted — never a wildcard, never
+  // a different origin than the one asking, never a list on the wire.
+  if (!allowed.includes(requesting)) return { Vary: 'Origin' };
   return {
-    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Origin': requesting,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
     Vary: 'Origin',
   };
 }
 
-function withCors(response: Response, env: Env): Response {
-  const headers = corsHeaders(env);
+function withCors(response: Response, request: Request, env: Env): Response {
+  const headers = corsHeaders(request, env);
   if (Object.keys(headers).length === 0) return response;
   const out = new Response(response.body, response);
   for (const [k, v] of Object.entries(headers)) out.headers.set(k, v);
@@ -97,7 +107,7 @@ export default {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders(env) });
+      return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
     if (request.method === 'GET' && url.pathname === '/health') {
       // Unauthenticated liveness for the post-deploy provenance probe — no
@@ -109,13 +119,14 @@ export default {
           release: __PLATFORM_RELEASE__,
           canon: __PLATFORM_CANON__,
         }),
+        request,
         env,
       );
     }
     if (!(await authorized(request, env.PROTECTION_OPS_SECRET))) {
-      return withCors(unauthorized(), env);
+      return withCors(unauthorized(), request, env);
     }
     const stub = env.FONDS.get(env.FONDS.idFromName(FONDS_BOOK_NAME));
-    return withCors(await stub.fetch(request), env);
+    return withCors(await stub.fetch(request), request, env);
   },
 };

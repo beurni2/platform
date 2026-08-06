@@ -433,3 +433,39 @@ describe('the book survives a restart — durable, not resident', () => {
     }
   });
 });
+
+describe('CORS — exact-origin allowlist (FONDS-CONSOLE-B+): echo the asker iff listed, never a wildcard', () => {
+  const CONSOLES = 'https://platform-ops-console.pages.dev, https://boutik-plus-web.pages.dev';
+  // ONE instance for the whole suite — per-probe workerd churn was an
+  // intermittency source (same class as verifier round 1 blocker 1).
+  const corsMf = new Miniflare({
+    modules: true,
+    scriptPath: SCRIPT,
+    durableObjects: { FONDS: 'FondsDO' },
+    durableObjectsPersist: join(persist, 'do-cors'),
+    bindings: { PROTECTION_OPS_SECRET: OPS_SECRET, PROTECTION_CONSOLE_ORIGIN: CONSOLES },
+  });
+  afterAll(async () => {
+    await corsMf.dispose().catch(() => undefined);
+  });
+
+  async function corsProbe(origin: string | null): Promise<Response> {
+    return corsMf.dispatchFetch(`${BASE}/health`, {
+      headers: origin === null ? {} : { Origin: origin },
+    });
+  }
+
+  it('each allowlisted console origin is echoed back — exactly the asker, never the other, never *', async () => {
+    for (const origin of ['https://platform-ops-console.pages.dev', 'https://boutik-plus-web.pages.dev']) {
+      const res = await corsProbe(origin);
+      expect(res.headers.get('Access-Control-Allow-Origin')).toBe(origin);
+    }
+  });
+
+  it('a stranger origin gets NO allow header (and no wildcard leaks anywhere)', async () => {
+    const res = await corsProbe('https://evil.example.com');
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBeNull();
+    const res2 = await corsProbe(null);
+    expect(res2.headers.get('Access-Control-Allow-Origin')).toBeNull();
+  });
+});
