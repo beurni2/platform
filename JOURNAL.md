@@ -5,7 +5,16 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
-## 2026-08-06 · FONDS-1/2 — the Protection Fund claims book + Desk 1 goes live · IN REVIEW (do NOT merge)
+## 2026-08-06 · FONDS — MERGED + DEPLOYED (founder order « merge and deploy »)
+- **main** = `596064a` (fast-forward from `397d667`; the FONDS slice `89b2716` + the Pages-bootstrap fix).
+- **Worker LIVE and PROVEN:** `https://protection-service.ilboudobernard2.workers.dev` — the F9 assertion passed from CI: « health 200 — live canon=1.2.0 release=89b2716… PROVENANCE OK ». Bindings confirmed in the deploy log: `env.FONDS (FondsDO) Durable Object` + `env.PROTECTION_CONSOLE_ORIGIN Environment Variable`. `PROTECTION_OPS_SECRET` uploaded via piped `wrangler secret put` (« ✨ Success! »), founder-held, never in any bundle.
+- **Console LIVE:** Cloudflare Pages project `platform-ops-console` (created by the workflow on first run — `pages deploy` does NOT create a missing project; that was the first dispatch's failure). Production URL `https://platform-ops-console.pages.dev`; this deployment `65fff836.platform-ops-console.pages.dev`.
+- **⚠ EXACT-ORIGIN CORS:** the Worker allows exactly `https://platform-ops-console.pages.dev`. Opening the console at a **deployment-specific** `<hash>.platform-ops-console.pages.dev` URL leaves Desk 1's browser calls refused by CORS while everything else looks fine. Use the production URL.
+- **Deploy order respected:** Worker (with the console origin var) BEFORE the console build that calls it.
+- **Two config failures on the way, both configuration not code, both fixed by the founder:** `CLOUDFLARE_API_TOKEN` absent in THIS repo (each repo carries its own copy; the founder minted a new token rather than rolling the one the other repos use), then `PROTECTION_BASE`/`PROTECTION_CONSOLE_ORIGIN` variables absent — the provenance assertion refused to report success without a URL to check, which is exactly its job.
+- **NOT verified from the build container:** its egress proxy 403s both `workers.dev` and `pages.dev`, so no live probe ran from here — the CI-side assertion is the evidence for the Worker. Whether the console bundle inlined `VITE_PROTECTION_BASE` is INFERRED (the same repo variable was non-empty in a run 3 minutes earlier), not observed. **The founder can tell in one glance:** Desk 1 showing the « APERÇU — BAC À SABLE » ribbon = not inlined (sandbox); Desk 1 showing the key door = live against the Worker.
+
+## 2026-08-06 · FONDS-1/2 — the Protection Fund claims book + Desk 1 goes live · MERGED (see the entry above)
 
 **FOUNDER OVERRIDE, LOGGED (2026-08-06):** Protection Fund claims tooling is E2/E3-adjacent work started before E1 closes — built on the founder's explicit « You can start working on them » after the CTO's written proposal (offline money, in-software claim). The founder also ruled the fund's MONEY moves OFFLINE: opening capital and claim payouts are manual; software records claims and dated balance declarations so pilot loss is measured (§12 ⏳ « seed conservative, calibrate to pilot loss »).
 
