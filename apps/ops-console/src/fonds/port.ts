@@ -23,6 +23,8 @@ export interface FondsClaimRow {
   readonly evidenceBundleId: string;
   /** Present iff resolved — the offline payment's reference. */
   readonly settlementRef?: string;
+  /** Present iff closed_no_payout — why the fund owes nothing. */
+  readonly closedReason?: string;
   readonly openedAt: string;
   /** B+I-13 trigger present on seller-fault claims. */
   readonly refundRequired: boolean;
@@ -41,6 +43,11 @@ export interface FondsFundView {
 export interface FondsData {
   readonly fund: FondsFundView;
   readonly claims: readonly FondsClaimRow[];
+  /**
+   * Money records the adapter did not recognize (vocabulary drift). Rendered
+   * as a visible warning — a dropped money record must never be silent.
+   */
+  readonly unrecognizedCount: number;
 }
 
 export interface OpenClaimInput {
@@ -53,10 +60,18 @@ export interface OpenClaimInput {
 
 export type FondsActionResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
 
+export interface DeclareInput {
+  readonly balanceFcfa: number;
+  readonly openingFundCapitalFcfa?: number;
+  /** Minted when the form RENDERS (not on submit) so a double-tap replays idempotently. */
+  readonly commandId: string;
+}
+
 /** The desk's seam: sandbox preview in CI, HTTP against the live book when configured. */
 export interface FondsPort {
   load(): Promise<FondsData>;
   openClaim(input: OpenClaimInput): Promise<FondsActionResult>;
-  advance(orderId: string, to: ClaimState, settlementRef?: string): Promise<FondsActionResult>;
-  declare(balanceFcfa: number, openingFundCapitalFcfa?: number): Promise<FondsActionResult>;
+  /** `detail` is the settlementRef when to='resolved', the closedReason when to='closed_no_payout'. */
+  advance(orderId: string, to: ClaimState, detail?: string): Promise<FondsActionResult>;
+  declare(input: DeclareInput): Promise<FondsActionResult>;
 }

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   FUND_ADMISSIBLE_FAULT_CLASSES,
-  PROTECTION_CLAIM_STATES_V1,
+  PROTECTION_CLAIM_STATES_V2,
+  TERMINAL_CLAIM_STATES,
   computeCommittedClaimsAmount,
   deriveSolvency,
   isForwardStep,
@@ -9,10 +10,16 @@ import {
 } from '../src/fund-core.js';
 import { FAULT_CLASSES } from '@platform/contracts';
 
-describe('claim states — the reference vocabulary, forward-only', () => {
-  it('carries the reference version and exactly three states in order', () => {
-    expect(PROTECTION_CLAIM_STATES_V1.version).toBe('protection-claim-states.v1');
-    expect(PROTECTION_CLAIM_STATES_V1.states).toEqual(['opened', 'under_review', 'resolved']);
+describe('claim states — v2: the reference chain + the no-payout terminal, forward-only', () => {
+  it('carries the v2 version: the reference three plus closed_no_payout', () => {
+    expect(PROTECTION_CLAIM_STATES_V2.version).toBe('protection-claim-states.v2');
+    expect(PROTECTION_CLAIM_STATES_V2.states).toEqual([
+      'opened',
+      'under_review',
+      'resolved',
+      'closed_no_payout',
+    ]);
+    expect(TERMINAL_CLAIM_STATES).toEqual(['resolved', 'closed_no_payout']);
   });
 
   it('advances one step forward only — never skips, never reverses, never stays', () => {
@@ -21,6 +28,15 @@ describe('claim states — the reference vocabulary, forward-only', () => {
     expect(isForwardStep('opened', 'resolved')).toBe(false); // skip
     expect(isForwardStep('resolved', 'under_review')).toBe(false); // reverse
     expect(isForwardStep('under_review', 'under_review')).toBe(false); // stay
+  });
+
+  it('closes from either non-terminal state; a terminal claim advances nowhere', () => {
+    expect(isForwardStep('opened', 'closed_no_payout')).toBe(true);
+    expect(isForwardStep('under_review', 'closed_no_payout')).toBe(true);
+    expect(isForwardStep('resolved', 'closed_no_payout')).toBe(false); // terminal is terminal
+    expect(isForwardStep('closed_no_payout', 'under_review')).toBe(false);
+    expect(isForwardStep('closed_no_payout', 'resolved')).toBe(false);
+    expect(isForwardStep('closed_no_payout', 'closed_no_payout')).toBe(false);
   });
 });
 
@@ -34,13 +50,14 @@ describe('Desk 2 routing — sera is refused, every other canon class admitted',
   });
 });
 
-describe('committedClaimsAmount — unresolved claims only, exact francs', () => {
-  it('sums opened + under_review, excludes resolved', () => {
+describe('committedClaimsAmount — non-terminal claims only, exact francs', () => {
+  it('sums opened + under_review; excludes BOTH terminals (resolved and closed-no-payout)', () => {
     expect(
       computeCommittedClaimsAmount([
         { amount: 11_000, state: 'opened' },
         { amount: 4_500, state: 'under_review' },
         { amount: 99_999, state: 'resolved' },
+        { amount: 77_777, state: 'closed_no_payout' },
       ]),
     ).toBe(15_500);
   });

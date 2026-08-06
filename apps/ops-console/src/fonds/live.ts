@@ -68,6 +68,7 @@ const ERROR_KEY: Record<string, string> = {
   duplicate: 'fonds.error_duplicate',
   not_forward: 'fonds.error_not_forward',
   settlement_ref_required: 'fonds.error_settlement_ref',
+  close_reason_required: 'fonds.error_close_reason',
   not_a_fund_claim: 'fonds.error_sera_routing',
   unreachable: 'fonds.error_unreachable',
 };
@@ -137,9 +138,13 @@ async function renderBook(host: HTMLElement, port: FondsPort, base: string): Pro
     note(feedback, ERROR_KEY[outcome.error ?? ''] ?? 'fonds.error_unreachable', true);
   };
 
-  // ── advance actions, per unresolved claim ────────────────────────────────
+  // ── advance/close actions, per non-terminal claim ────────────────────────
+  // The close exists so a claim the fund never pays (Desk 2: the buyer
+  // forfeits; a Séra fault belongs to the custody instrument) leaves the
+  // committed figure honestly — never via a fabricated payment reference.
   for (const claim of data.claims) {
-    const row = host.querySelector<HTMLElement>(`[data-order="${claim.orderId}"]`);
+    // CSS.escape: an orderId carrying a quote/bracket must not break the selector.
+    const row = host.querySelector<HTMLElement>(`[data-order="${CSS.escape(claim.orderId)}"]`);
     if (row === null) continue;
     if (claim.state === 'opened') {
       const form = document.createElement('form');
@@ -168,6 +173,24 @@ async function renderBook(host: HTMLElement, port: FondsPort, base: string): Pro
         void act(port.advance(claim.orderId, 'resolved', ref));
       });
       row.append(form);
+    }
+    if (claim.state === 'opened' || claim.state === 'under_review') {
+      const close = document.createElement('form');
+      close.className = 'fd-advance';
+      const { field, input } = textInput('motif-classement', 'fonds.close_reason_label');
+      const go = button('fonds.action_close', 'quiet');
+      close.append(field, go);
+      close.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const reason = input.value.trim();
+        if (reason.length === 0) {
+          feedback.replaceChildren();
+          note(feedback, 'fonds.error_close_reason', true);
+          return;
+        }
+        void act(port.advance(claim.orderId, 'closed_no_payout', reason));
+      });
+      row.append(close);
     }
   }
 
@@ -238,6 +261,9 @@ async function renderBook(host: HTMLElement, port: FondsPort, base: string): Pro
   declForm.className = 'fd-form';
   const balance = textInput('solde', 'fonds.declare_balance', 'number');
   const opening = textInput('capital', 'fonds.declare_opening', 'number');
+  // Minted at RENDER, not on submit: a double-tap or a retry after a timeout
+  // replays the SAME command and the book appends once (verifier r1, note 6).
+  const declCommandId = crypto.randomUUID();
   declForm.append(balance.field, opening.field, button('fonds.declare_submit', 'primary'));
   declForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -254,7 +280,13 @@ async function renderBook(host: HTMLElement, port: FondsPort, base: string): Pro
       note(feedback, 'fonds.error_form_incomplete', true);
       return;
     }
-    void act(port.declare(balanceFcfa, openingFcfa));
+    void act(
+      port.declare({
+        balanceFcfa,
+        ...(openingFcfa !== undefined ? { openingFundCapitalFcfa: openingFcfa } : {}),
+        commandId: declCommandId,
+      }),
+    );
   });
   declSection.append(declTitle, declForm);
   host.append(declSection);

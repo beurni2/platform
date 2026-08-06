@@ -445,6 +445,7 @@ style.textContent = `
   .fd-state--opened { background: var(--surface-muted); color: var(--body); }
   .fd-state--under_review { background: var(--warning-tint); color: var(--warning); }
   .fd-state--resolved { background: var(--success-tint); color: var(--success); }
+  .fd-state--closed_no_payout { background: var(--surface-muted); color: var(--muted); }
   .fd-claim-reason { margin: 0; color: var(--body); font-size: var(--type-body); font-weight: ${typo.scale.body.wght}; }
   .fd-claim-proof, .fd-claim-settled {
     margin: 0;

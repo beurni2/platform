@@ -76,5 +76,6 @@ export function buildSandboxFonds(): FondsData {
       availableAfterCommitmentsFcfa: solvency.availableAfterCommitmentsFcfa,
     },
     claims,
+    unrecognizedCount: 0,
   };
 }

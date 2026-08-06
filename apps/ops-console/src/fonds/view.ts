@@ -44,6 +44,7 @@ const STATE_KEY: Record<FondsClaimRow['state'], string> = {
   opened: 'fonds.state_opened',
   under_review: 'fonds.state_under_review',
   resolved: 'fonds.state_resolved',
+  closed_no_payout: 'fonds.state_closed',
 };
 
 const SOLVENCY_KEY: Record<string, string> = {
@@ -99,6 +100,12 @@ function claimRow(row: FondsClaimRow): HTMLElement {
     settled.textContent = `${t('fonds.settlement_label')} ${row.settlementRef}`;
     li.append(settled);
   }
+  if (row.closedReason !== undefined) {
+    const closed = document.createElement('p');
+    closed.className = 'fd-claim-settled';
+    closed.textContent = `${t('fonds.closed_label')} ${row.closedReason}`;
+    li.append(closed);
+  }
   if (row.refundRequired) {
     const refund = document.createElement('p');
     refund.className = 'fd-claim-refund';
@@ -123,6 +130,14 @@ export function renderFondsView(host: HTMLElement, data: FondsData, sandboxLabel
   law.className = 'fd-law';
   law.textContent = t('fonds.law_buyer_first');
   host.append(law);
+
+  // Vocabulary drift is a VISIBLE warning, never a silent drop.
+  if (data.unrecognizedCount > 0) {
+    const warn = document.createElement('p');
+    warn.className = 'fd-note fd-note--error';
+    warn.textContent = `${t('fonds.unrecognized_warning')} (${data.unrecognizedCount})`;
+    host.append(warn);
+  }
 
   const fund = document.createElement('section');
   fund.className = 'fd-fund';

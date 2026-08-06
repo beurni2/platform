@@ -706,5 +706,41 @@
     "fr": "Refus au seuil — changement d'avis.",
     "register": "neutral",
     "screenClass": "status"
+  },
+  {
+    "key": "fonds.state_closed",
+    "fr": "Classée — rien à payer",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.closed_label",
+    "fr": "Classée sans paiement :",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.action_close",
+    "fr": "Classer sans paiement",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.close_reason_label",
+    "fr": "Pourquoi rien n'est payé",
+    "register": "money",
+    "screenClass": "label"
+  },
+  {
+    "key": "fonds.error_close_reason",
+    "fr": "Il faut dire pourquoi rien n'est payé avant de classer.",
+    "register": "money",
+    "screenClass": "status"
+  },
+  {
+    "key": "fonds.unrecognized_warning",
+    "fr": "Des lignes du registre ne s'affichent pas ici — mettre la console à jour",
+    "register": "neutral",
+    "screenClass": "status"
   }
 ]

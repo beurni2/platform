@@ -25,17 +25,25 @@ const persist = mkdtempSync(join(tmpdir(), 'fonds-book-'));
 const OPS_SECRET = 'test-protection-ops-secret-0001';
 const BASE = 'http://fonds.local';
 
-function mfWith(secret: string | undefined): Miniflare {
+/**
+ * VERIFIER ROUND 1 BLOCKER 1: two live Miniflare instances over ONE persist
+ * directory race on workerd's DO SQLite (`SQLITE_BUSY` — observed killing 19
+ * tests). Each instance now names its own directory; only the restart test
+ * deliberately REUSES one (after disposing its predecessor) — that reuse IS
+ * the durability assertion.
+ */
+function mfWith(secret: string | undefined, persistDir: string): Miniflare {
   return new Miniflare({
     modules: true,
     scriptPath: SCRIPT,
     durableObjects: { FONDS: 'FondsDO' },
-    durableObjectsPersist: join(persist, 'do'),
+    durableObjectsPersist: persistDir,
     bindings: secret === undefined ? {} : { PROTECTION_OPS_SECRET: secret },
   });
 }
 
-const mf = mfWith(OPS_SECRET);
+const MAIN_PERSIST = join(persist, 'do-main');
+const mf = mfWith(OPS_SECRET, MAIN_PERSIST);
 afterAll(async () => {
   // The restart suite disposes `mf` itself; a second dispose is a no-op here.
   await mf.dispose().catch(() => undefined);
@@ -63,7 +71,7 @@ const SELLER_CLAIM = {
 
 describe('the one door — fail closed, uniform 401', () => {
   it('a Worker with NO secret configured refuses everything (even with a presented key)', async () => {
-    const bare = mfWith(undefined);
+    const bare = mfWith(undefined, join(persist, 'do-bare'));
     try {
       const res = await bare.dispatchFetch(`${BASE}/claims`, {
         method: 'GET',
@@ -271,23 +279,110 @@ describe('the fund figure — declared offline, derived honestly', () => {
     expect(body.solvency.state).toBe('HEALTHY');
   });
 
-  it('the journal carries the canon-named events and the solvency transition', async () => {
+  it('the journal: local fund:declare per declaration; capitalized.v1 ONLY where opening capital was declared', async () => {
     const res = await mf.dispatchFetch(`${BASE}/journal`, { headers: opsHeaders() });
     const { journal } = (await res.json()) as { journal: Array<{ action: string; detail: Record<string, unknown> }> };
     const actions = journal.map((j) => j.action);
     expect(actions).toContain('protection.claim_opened.v1');
-    expect(actions).toContain('protection.capitalized.v1');
     expect(actions).toContain('protection.solvency_changed.v1');
+    // decl-001 (no opening capital) journals fund:declare only; decl-002
+    // (openingFundCapitalFcfa present) adds the canon capitalization event.
+    expect(actions.filter((a) => a === 'fund:declare')).toHaveLength(2);
+    const capitalized = journal.filter((j) => j.action === 'protection.capitalized.v1');
+    expect(capitalized).toHaveLength(1);
+    expect(capitalized[0]?.detail['openingFundCapitalFcfa']).toBe(100_000);
     const transitions = journal.filter((j) => j.action === 'protection.solvency_changed.v1');
     expect(transitions.at(0)?.detail['to']).toBe('CRITICAL');
     expect(transitions.at(-1)?.detail['to']).toBe('HEALTHY');
   });
 });
 
+describe('the no-payout exit (verifier round 1) — never-payable claims leave the figure honestly', () => {
+  it('closing WITHOUT a stated reason is refused — no silent close in the audit book', async () => {
+    const res = await mf.dispatchFetch(`${BASE}/claims/order-fonds-002/advance`, {
+      method: 'POST',
+      headers: opsHeaders(),
+      body: JSON.stringify({ to: 'closed_no_payout' }),
+    });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe('close_reason_required');
+  });
+
+  it('a buyer-fault claim closes with a reason — no fabricated payment reference — and STOPS counting as committed', async () => {
+    const before = await mf.dispatchFetch(`${BASE}/fund`, { headers: opsHeaders() });
+    const committedBefore = ((await before.json()) as { committedClaimsAmountFcfa: number })
+      .committedClaimsAmountFcfa;
+
+    const res = await mf.dispatchFetch(`${BASE}/claims/order-fonds-002/advance`, {
+      method: 'POST',
+      headers: opsHeaders(),
+      body: JSON.stringify({ to: 'closed_no_payout', closedReason: 'la cliente a renonce — rien a payer par le fonds' }),
+    });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { state: string }).state).toBe('closed_no_payout');
+
+    const after = await mf.dispatchFetch(`${BASE}/fund`, { headers: opsHeaders() });
+    const committedAfter = ((await after.json()) as { committedClaimsAmountFcfa: number })
+      .committedClaimsAmountFcfa;
+    // order-fonds-002 carried 1 000 — gone from the committed figure, to the franc.
+    expect(committedAfter).toBe(committedBefore - 1_000);
+
+    const list = await mf.dispatchFetch(`${BASE}/claims`, { headers: opsHeaders() });
+    const { claims } = (await list.json()) as {
+      claims: Array<{ claim: { orderId: string; state: string }; advanced: Array<{ closedReason?: string }> }>;
+    };
+    const closed = claims.find((c) => c.claim.orderId === 'order-fonds-002');
+    expect(closed?.claim.state).toBe('closed_no_payout');
+    expect(closed?.advanced.at(-1)?.closedReason).toContain('renonce');
+  });
+
+  it('a closed claim is TERMINAL — no advance out of it, ever', async () => {
+    const res = await mf.dispatchFetch(`${BASE}/claims/order-fonds-002/advance`, {
+      method: 'POST',
+      headers: opsHeaders(),
+      body: JSON.stringify({ to: 'under_review' }),
+    });
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as { error: string }).error).toBe('not_forward');
+  });
+
+  it('a resolved claim cannot be closed either — terminal is terminal', async () => {
+    const res = await mf.dispatchFetch(`${BASE}/claims/order-fonds-001/advance`, {
+      method: 'POST',
+      headers: opsHeaders(),
+      body: JSON.stringify({ to: 'closed_no_payout', closedReason: 'tentative apres reglement' }),
+    });
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as { error: string }).error).toBe('not_forward');
+  });
+
+  it('an in-canon-invalid input (trailing-space id) answers 400, never a 500 with Zod internals', async () => {
+    const res = await openClaim({ ...SELLER_CLAIM, orderId: 'order-ws-1 ', evidenceBundleId: 'evb-ws' });
+    // the trimmed id 'order-ws-1' is NEW — it opens cleanly, proving the trim
+    // and the guard sit on the same path
+    expect([201, 400]).toContain(res.status);
+    const body = JSON.stringify(await res.json());
+    expect(body).not.toContain('ZodError');
+    expect(body).not.toContain('invalid_string');
+  });
+
+  it('a declaration with no commandId is refused — replay protection cannot be opted out of', async () => {
+    const res = await mf.dispatchFetch(`${BASE}/fund`, {
+      method: 'PUT',
+      headers: opsHeaders(),
+      body: JSON.stringify({ balanceFcfa: 50_000 }),
+    });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe('command_id_required');
+  });
+});
+
 describe('the book survives a restart — durable, not resident', () => {
   it('a fresh Miniflare over the same persistence sees every claim and declaration', async () => {
     await mf.dispose();
-    const revived = mfWith(OPS_SECRET);
+    // Deliberate REUSE of the main persist dir — after disposing the previous
+    // instance. This reuse IS the durability assertion.
+    const revived = mfWith(OPS_SECRET, MAIN_PERSIST);
     try {
       const list = await revived.dispatchFetch(`${BASE}/claims`, { headers: opsHeaders() });
       const { claims } = (await list.json()) as { claims: Array<{ claim: { orderId: string } }> };
@@ -295,6 +390,7 @@ describe('the book survives a restart — durable, not resident', () => {
         'order-fonds-001',
         'order-fonds-002',
         'order-fonds-003',
+        'order-ws-1',
       ]);
       const fund = await revived.dispatchFetch(`${BASE}/fund`, { headers: opsHeaders() });
       expect(((await fund.json()) as { declarationCount: number }).declarationCount).toBe(2);

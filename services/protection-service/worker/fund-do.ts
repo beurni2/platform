@@ -45,7 +45,7 @@
 
 import { ProtectionClaimSchema, type ProtectionClaim } from '@platform/contracts';
 import {
-  PROTECTION_CLAIM_STATES_V1,
+  PROTECTION_CLAIM_STATES_V2,
   computeCommittedClaimsAmount,
   deriveSolvency,
   isClaimState,
@@ -83,6 +83,8 @@ interface AdvanceRecord {
   readonly by: string;
   /** Present iff to === 'resolved': the offline payment's reference. */
   readonly settlementRef?: string;
+  /** Present iff to === 'closed_no_payout': why nothing is owed by the fund. */
+  readonly closedReason?: string;
 }
 
 interface StoredClaim {
@@ -168,29 +170,47 @@ export class FondsDO {
     }
     if (!isFundAdmissibleFaultClass(faultClass)) return json({ error: 'invalid_fault_class' }, 400);
 
-    const key = `${CLAIM_PREFIX}${orderId}`;
+    // One trimmed id everywhere — the storage key, the dedupe, and the canon
+    // parse must agree on identity or a padded id becomes a second claim.
+    const id = orderId.trim();
+    const key = `${CLAIM_PREFIX}${id}`;
     const existing = await this.state.storage.get<StoredClaim>(key);
     if (existing !== undefined) {
       // One claim per order — first-wins, the reference's Map-keyed law.
       return json({ error: 'duplicate', claim: existing.claim }, 409);
     }
 
-    // Canon-parsed — a malformed claim never lands in storage.
-    const claim = ProtectionClaimSchema.parse({
-      orderId,
-      reason,
-      amount: amountFcfa,
-      faultClass,
-      evidenceBundleId,
-      state: PROTECTION_CLAIM_STATES_V1.states[0],
-    });
+    // Canon-parsed — a malformed claim never lands in storage. Guarded: an
+    // input passing the manual checks but failing canon's stricter shapes
+    // (e.g. a trailing space in an id) answers a 400, never a 500 with Zod
+    // internals on the wire (verifier round 1, note 3).
+    let claim: ProtectionClaim;
+    try {
+      claim = ProtectionClaimSchema.parse({
+        orderId: id,
+        reason: reason.trim(),
+        amount: amountFcfa,
+        faultClass,
+        evidenceBundleId: evidenceBundleId.trim(),
+        state: PROTECTION_CLAIM_STATES_V2.states[0],
+      });
+    } catch {
+      return json({ error: 'invalid_body' }, 400);
+    }
 
     const now = new Date().toISOString();
     // B+I-13: written UNCONDITIONALLY for seller fault — no read of fund
     // state, no solvency branch, on ANY path to this record.
     const refundRequired: RefundRequiredRecord | undefined =
       faultClass === 'seller'
-        ? { orderId, reason, faultClass: 'seller', buyerPriority: true, amountFcfa, recordedAt: now }
+        ? {
+            orderId: id,
+            reason: claim.reason,
+            faultClass: 'seller',
+            buyerPriority: true,
+            amountFcfa,
+            recordedAt: now,
+          }
         : undefined;
 
     const stored: StoredClaim = {
@@ -201,7 +221,7 @@ export class FondsDO {
       advanced: [],
     };
     await this.state.storage.put(key, stored);
-    await this.appendJournal('protection.claim_opened.v1', orderId, {
+    await this.appendJournal('protection.claim_opened.v1', id, {
       faultClass,
       amountFcfa,
       evidenceBundleId,
@@ -213,7 +233,7 @@ export class FondsDO {
   private async advanceClaim(orderId: string, request: Request): Promise<Response> {
     const body: unknown = await request.json().catch(() => null);
     if (!isPlainObject(body)) return json({ error: 'invalid_body' }, 400);
-    const { to, settlementRef } = body;
+    const { to, settlementRef, closedReason } = body;
     if (!isClaimState(to)) return json({ error: 'invalid_state' }, 400);
 
     const key = `${CLAIM_PREFIX}${orderId}`;
@@ -227,6 +247,13 @@ export class FondsDO {
       // reference of a payment the founder already made outside.
       return json({ error: 'settlement_ref_required' }, 400);
     }
+    if (to === 'closed_no_payout' && !isNonEmptyString(closedReason)) {
+      // The no-payout exit (verifier round 1): closing demands the stated
+      // WHY — « la cliente a renoncé », « dossier de garde Séra », … — so the
+      // audit book never carries a fabricated payment reference and never
+      // carries a silent close either.
+      return json({ error: 'close_reason_required' }, 400);
+    }
 
     const now = new Date().toISOString();
     const advance: AdvanceRecord = {
@@ -234,10 +261,17 @@ export class FondsDO {
       at: now,
       by: FONDS_ACTOR,
       ...(to === 'resolved' ? { settlementRef: (settlementRef as string).trim() } : {}),
+      ...(to === 'closed_no_payout' ? { closedReason: (closedReason as string).trim() } : {}),
     };
+    let nextClaim: ProtectionClaim;
+    try {
+      nextClaim = ProtectionClaimSchema.parse({ ...stored.claim, state: to });
+    } catch {
+      return json({ error: 'invalid_body' }, 400);
+    }
     const next: StoredClaim = {
       ...stored,
-      claim: ProtectionClaimSchema.parse({ ...stored.claim, state: to }),
+      claim: nextClaim,
       advanced: [...stored.advanced, advance],
     };
     await this.state.storage.put(key, next);
@@ -245,6 +279,7 @@ export class FondsDO {
       from,
       to,
       ...(advance.settlementRef !== undefined ? { settlementRef: advance.settlementRef } : {}),
+      ...(advance.closedReason !== undefined ? { closedReason: advance.closedReason } : {}),
     });
     return json({ ok: true, state: to });
   }
@@ -288,10 +323,20 @@ export class FondsDO {
     await this.state.storage.put(`${DECL_PREFIX}${String(seq).padStart(8, '0')}`, declaration);
     await this.state.storage.put(SEQ_DECL, seq);
     await this.state.storage.put(consumedKey, true);
-    await this.appendJournal('protection.capitalized.v1', FONDS_BOOK_NAME, {
+    // Every declaration journals as the LOCAL action; the canon name
+    // `protection.capitalized.v1` is reserved for the act it names — opening
+    // capital being declared — never a routine (possibly declining) balance
+    // reading (verifier round 1, note 7).
+    await this.appendJournal('fund:declare', FONDS_BOOK_NAME, {
       balanceFcfa,
       ...(openingFundCapitalFcfa !== undefined ? { openingFundCapitalFcfa } : {}),
     });
+    if (openingFundCapitalFcfa !== undefined) {
+      await this.appendJournal('protection.capitalized.v1', FONDS_BOOK_NAME, {
+        openingFundCapitalFcfa,
+        balanceFcfa,
+      });
+    }
 
     const solvency = await this.currentSolvency();
     const last = await this.state.storage.get<string>(LAST_SOLVENCY);

@@ -31,27 +31,43 @@
 import { FAULT_CLASSES, type FaultClass, type FundSolvencyState } from '@platform/contracts';
 
 /**
- * The versioned LOCAL claim-state vocabulary — carried over VERBATIM from
- * `@boutik/fulfillment-service`'s PROTECTION_CLAIM_STATES_V1 (the tested
- * reference): canon's ProtectionClaimSchema keeps `state` a bare string
- * (deliberately unenumerated), so this stays a journal-flagged candidate for a
- * future founder-owned canon enumeration — never written into the pinned
- * package from here.
+ * The versioned LOCAL claim-state vocabulary. v2 EXTENDS the reference
+ * (`@boutik/fulfillment-service`'s PROTECTION_CLAIM_STATES_V1: opened →
+ * under_review → resolved) with ONE additional terminal, `closed_no_payout` —
+ * the verifier-found dead end (round 1 blocker 2): `resolved` requires the
+ * reference of an offline payment, but a claim the fund never pays (a
+ * buyer-fault record per Desk 2 « Buyer fault → Buyer forfeits the delivery
+ * fee », or a review that lands on Séra's instrument) had NO honest exit —
+ * the founder would either fabricate a payment reference into the audit book
+ * or let the claim inflate « Réclamations en cours » forever. Closing
+ * requires a stated reason; no franc moves either way. Canon's
+ * ProtectionClaimSchema keeps `state` a bare string (deliberately
+ * unenumerated), so this stays a journal-flagged candidate for a future
+ * founder-owned canon enumeration — never written into the pinned package.
  */
-export const PROTECTION_CLAIM_STATES_V1 = {
-  version: 'protection-claim-states.v1',
-  states: ['opened', 'under_review', 'resolved'],
+export const PROTECTION_CLAIM_STATES_V2 = {
+  version: 'protection-claim-states.v2',
+  states: ['opened', 'under_review', 'resolved', 'closed_no_payout'],
 } as const;
-export type ClaimState = (typeof PROTECTION_CLAIM_STATES_V1.states)[number];
+export type ClaimState = (typeof PROTECTION_CLAIM_STATES_V2.states)[number];
+
+/** Terminal states — the claim is settled (paid offline) or closed (no payout). */
+export const TERMINAL_CLAIM_STATES: readonly ClaimState[] = ['resolved', 'closed_no_payout'];
 
 export function isClaimState(v: unknown): v is ClaimState {
-  return typeof v === 'string' && (PROTECTION_CLAIM_STATES_V1.states as readonly string[]).includes(v);
+  return typeof v === 'string' && (PROTECTION_CLAIM_STATES_V2.states as readonly string[]).includes(v);
 }
 
-/** Forward-only, one step at a time — the reference's `advanceClaim` law. */
+/**
+ * Forward-only — the reference's `advanceClaim` law, extended: the linear
+ * chain opened → under_review → resolved, PLUS a close from either
+ * non-terminal state. A terminal claim advances nowhere, ever.
+ */
 export function isForwardStep(from: ClaimState, to: ClaimState): boolean {
-  const order = PROTECTION_CLAIM_STATES_V1.states;
-  return order.indexOf(to) === order.indexOf(from) + 1;
+  if ((TERMINAL_CLAIM_STATES as readonly string[]).includes(from)) return false;
+  if (to === 'closed_no_payout') return true; // from opened or under_review
+  const chain = ['opened', 'under_review', 'resolved'] as const;
+  return chain.indexOf(to as (typeof chain)[number]) === chain.indexOf(from as (typeof chain)[number]) + 1;
 }
 
 /**
@@ -71,14 +87,27 @@ export function isFundAdmissibleFaultClass(v: unknown): v is FaultClass {
 
 /**
  * committedClaimsAmount (canon ProtectionFundSchema field name): the sum of
- * every UNRESOLVED claim's amount. This is the fund's OWN bookkeeping
+ * every NON-TERMINAL claim's amount. This is the fund's OWN bookkeeping
  * (Ledger&Settlement owns the fund — §5.2), summing INPUT-COPIED amounts; it
  * computes no other domain's figure and no waterfall term.
+ *
+ * ⚠ FLAGGED FOR THE FOUNDER (⏳, verifier round 1): this counts EVERY open
+ * claim regardless of faultClass — deliberately CONSERVATIVE (overstates
+ * liability, so solvency errs toward CRITICAL, never away from it). The specs
+ * pull in two directions on which classes the fund actually pays: §9.2 Desk 2
+ * routes buyer fault to « Buyer forfeits » and provider/platform faults to
+ * their own instruments, while §6 coverage includes « payment/refund fees ·
+ * approved buyer goodwill · unrecovered operational loss ». Which classes
+ * count toward committment is the founder's call; until then, a never-payable
+ * claim exits through `closed_no_payout` and stops counting.
  */
 export function computeCommittedClaimsAmount(
   claims: ReadonlyArray<{ readonly amount: number; readonly state: string }>,
 ): number {
-  return claims.reduce((sum, c) => (c.state === 'resolved' ? sum : sum + c.amount), 0);
+  return claims.reduce(
+    (sum, c) => ((TERMINAL_CLAIM_STATES as readonly string[]).includes(c.state) ? sum : sum + c.amount),
+    0,
+  );
 }
 
 export interface SolvencyReading {

@@ -14,7 +14,14 @@
 
 import type { FaultClass, FundSolvencyState } from '@platform/contracts';
 import { isClaimState, type ClaimState } from '@platform/protection-service';
-import type { FondsActionResult, FondsClaimRow, FondsData, FondsPort, OpenClaimInput } from './port';
+import type {
+  DeclareInput,
+  FondsActionResult,
+  FondsClaimRow,
+  FondsData,
+  FondsPort,
+  OpenClaimInput,
+} from './port';
 
 interface WireStoredClaim {
   readonly claim: {
@@ -27,13 +34,18 @@ interface WireStoredClaim {
   };
   readonly openedAt: string;
   readonly refundRequired?: { readonly buyerPriority: boolean };
-  readonly advanced: ReadonlyArray<{ readonly to: string; readonly settlementRef?: string }>;
+  readonly advanced: ReadonlyArray<{
+    readonly to: string;
+    readonly settlementRef?: string;
+    readonly closedReason?: string;
+  }>;
 }
 
 function toRow(stored: WireStoredClaim): FondsClaimRow | null {
   const c = stored.claim;
   if (!isClaimState(c.state)) return null;
   const settlementRef = stored.advanced.find((a) => a.settlementRef !== undefined)?.settlementRef;
+  const closedReason = stored.advanced.find((a) => a.closedReason !== undefined)?.closedReason;
   return {
     orderId: c.orderId,
     faultClass: c.faultClass,
@@ -42,6 +54,7 @@ function toRow(stored: WireStoredClaim): FondsClaimRow | null {
     reason: c.reason,
     evidenceBundleId: c.evidenceBundleId,
     ...(settlementRef !== undefined ? { settlementRef } : {}),
+    ...(closedReason !== undefined ? { closedReason } : {}),
     openedAt: stored.openedAt,
     refundRequired: stored.refundRequired !== undefined,
   };
@@ -76,6 +89,8 @@ export class HttpFondsPort implements FondsPort {
       committedClaimsAmountFcfa: number;
       solvency: { state: FundSolvencyState | null; availableAfterCommitmentsFcfa: number | null };
     };
+    const rows = claimsBody.claims.map(toRow);
+    const claims = rows.filter((r): r is FondsClaimRow => r !== null);
     return {
       fund: {
         balanceFcfa: fundBody.declaration?.balanceFcfa ?? null,
@@ -86,9 +101,10 @@ export class HttpFondsPort implements FondsPort {
         solvencyState: fundBody.solvency.state,
         availableAfterCommitmentsFcfa: fundBody.solvency.availableAfterCommitmentsFcfa,
       },
-      claims: claimsBody.claims
-        .map(toRow)
-        .filter((r): r is FondsClaimRow => r !== null),
+      claims,
+      // A money record this adapter cannot read is COUNTED and shown, never
+      // silently dropped (verifier round 1, note 4).
+      unrecognizedCount: rows.length - claims.length,
     };
   }
 
@@ -108,18 +124,21 @@ export class HttpFondsPort implements FondsPort {
     return this.action('/claims', 'POST', { ...input });
   }
 
-  async advance(orderId: string, to: ClaimState, settlementRef?: string): Promise<FondsActionResult> {
+  async advance(orderId: string, to: ClaimState, detail?: string): Promise<FondsActionResult> {
     return this.action(`/claims/${encodeURIComponent(orderId)}/advance`, 'POST', {
       to,
-      ...(settlementRef !== undefined ? { settlementRef } : {}),
+      ...(to === 'resolved' && detail !== undefined ? { settlementRef: detail } : {}),
+      ...(to === 'closed_no_payout' && detail !== undefined ? { closedReason: detail } : {}),
     });
   }
 
-  async declare(balanceFcfa: number, openingFundCapitalFcfa?: number): Promise<FondsActionResult> {
+  async declare(input: DeclareInput): Promise<FondsActionResult> {
     return this.action('/fund', 'PUT', {
-      commandId: crypto.randomUUID(),
-      balanceFcfa,
-      ...(openingFundCapitalFcfa !== undefined ? { openingFundCapitalFcfa } : {}),
+      commandId: input.commandId,
+      balanceFcfa: input.balanceFcfa,
+      ...(input.openingFundCapitalFcfa !== undefined
+        ? { openingFundCapitalFcfa: input.openingFundCapitalFcfa }
+        : {}),
     });
   }
 }
