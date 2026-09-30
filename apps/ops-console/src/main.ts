@@ -567,8 +567,9 @@ app.append(strip, header, nav, main);
 // Desks 1 (fonds-de-protection), 3 (moderation), 5 (reconciliation-operateur)
 // and 6 (echelle-de-refus) render live surfaces; the other four stay honest
 // shells. Desk 1 renders the REAL protection-service book when
-// VITE_PROTECTION_BASE is configured (key entered at the desk), and a clearly
-// ribboned sandbox preview otherwise.
+// VITE_PROTECTION_BASE is configured (key entered at the desk). Without a live
+// source a desk shows its ribboned sample preview ONLY on the preview profile;
+// the published console shows the honest empty shell instead (PROFIL-PUBLIÉ).
 function currentDesk(): Desk {
   const slug = window.location.hash.replace(/^#\/?/, '');
   return DESKS.find((d) => d.id === slug) ?? DESKS[0]!;
@@ -590,17 +591,34 @@ const PROTECTION_BASE =
     'VITE_PROTECTION_BASE'
   ] ?? '';
 
+/**
+ * PROFIL-PUBLIÉ (founder ruling 2026-09-30: « No live pages should show any
+ * test mode banner. Retire them. ») — UNSET means the preview (`vite dev`, the
+ * e2e build): sample desks under their ribbon. The deploy sets 'production'
+ * (ops-console-deploy.yml), and there a desk with no live source is the empty
+ * shell — dropping only the ribbon would pass sample records off as real.
+ */
+const APERCU =
+  (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.['VITE_PROFILE'] !==
+  'production';
+
 function render(): void {
   const desk = currentDesk();
   deskTitle.textContent = t(desk.titleKey);
   if (desk.id === 'fonds-de-protection') {
     // Desk 1 — the Protection Fund (FONDS-2). Live against the deployed book
-    // when configured; otherwise the sandbox preview through the SAME view.
+    // when configured; otherwise the ribboned sample through the SAME view on
+    // the preview profile, and the empty shell on the published one.
     if (PROTECTION_BASE.length > 0) {
       renderFondsLive(contentHost, PROTECTION_BASE);
-    } else {
+    } else if (APERCU) {
       renderFondsView(contentHost, buildSandboxFonds(), ribbon.sandbox.label);
+    } else {
+      renderEmptyShell();
     }
+  } else if (!APERCU && ['moderation', 'reconciliation-operateur', 'echelle-de-refus'].includes(desk.id)) {
+    // their only source today is the sample below
+    renderEmptyShell();
   } else if (desk.id === 'moderation') {
     renderModerationQueue(
       contentHost,

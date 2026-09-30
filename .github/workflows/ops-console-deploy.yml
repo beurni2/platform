@@ -9,7 +9,8 @@ name: ops-console-deploy
 #
 # DESK 1 GOES LIVE ONLY WITH THE BASE URL: the build inlines
 # VITE_PROTECTION_BASE (repo variable PROTECTION_BASE — a public URL, no
-# secret). Absent ⇒ Desk 1 renders its clearly-ribboned sandbox preview.
+# secret). Absent ⇒ Desk 1 shows its empty shell (this build sets the
+# published profile, which never renders a sample desk — PROFIL-PUBLIÉ).
 # THE KEY IS NEVER IN THIS BUILD: the founder types PROTECTION_OPS_SECRET at
 # the desk's key door; it lives in page memory for the session only.
 #
@@ -56,6 +57,12 @@ jobs:
       - name: Build (VITE_PROTECTION_BASE inlined when configured)
         env:
           VITE_PROTECTION_BASE: ${{ vars.PROTECTION_BASE }}
+          # PROFIL-PUBLIÉ (founder ruling 2026-09-30: « No live pages should
+          # show any test mode banner ») — the published console never shows a
+          # preview ribbon or the sample desks under it: a desk with no live
+          # source is its honest empty shell. Unset = the preview (vite dev,
+          # the e2e build). A literal: a build posture is read in review.
+          VITE_PROFILE: 'production'
         run: pnpm build
       # `pages deploy` does NOT create a missing project — it fails with
       # "project not found" and a suggestion to run `pages project create`.

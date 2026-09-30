@@ -5,6 +5,20 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-09-30 · PROFIL-PUBLIÉ (founder ruling « No live pages should show any test mode banner. Retire them. ») — the published ops console shows no preview ribbon and no sample records · on the branch, NOT merged, NOT deployed
+
+**Before.** The console deployed on Pages (`ops-console-deploy` run 2, 2026-08-06) showed « APERÇU — BAC À SABLE » (or « Aperçu — autorisation exceptionnelle » / « Aperçu — échelle de refus ») over SAMPLE records on four desks: the fund book (without its base URL), the moderation queue, a break-glass case naming two operators, and a refusal ladder of buyers. Taking only the ribbon off would have passed those samples off as real records.
+
+**Now.** `src/main.ts` reads `VITE_PROFILE`; unset = the preview (vite dev, and the build `shell.spec.ts` walks), which keeps its ribboned samples. The deploy's build step sets `VITE_PROFILE: 'production'`, and there a desk with no live source shows the honest empty shell the other four desks already showed (« Aucune donnée — cet établi n'est pas encore branché. »); the fund book stays live when `PROTECTION_BASE` is configured.
+
+**Evidence.** New Playwright spec `e2e/profil-publie.spec.ts` against a second build made the deploy's way (VITE_PROFILE production, no base) served on :4274 (a second `webServer`; `dist-publie/` ignored): (1) the deploy's build step carries the literal; (2) each of the eight desks, reached by its nav button, has no ribbon, no « bac à sable »/« aperçu » words, no sample surface, and shows the empty shell. Red first (fonds desk wore the ribbon), green after; the seven `shell.spec.ts` walks unchanged and green (**9/9**). Platform board on the final tree: **ALL GATES GREEN** (ops-console 67 unit, Playwright 9/9, protection-service 43). Mutations KILLED: P1 the deploy sets no profile · P2 the console is always the preview · P3 the three sample desks show on the published profile · P4 the sample fund book shows on it (anchors matched once, restored byte-identical).
+
+**Verifier.** The one pass for this build is recorded in Boutik+'s journal. No blocker. Here: two stale comments corrected (the deploy workflow header and `main.ts` said an unconfigured Desk 1 shows its ribboned sample).
+
+**Not changed.** The desks' views, their sample builders and their tests; the fund book's live road. The ribbon's label still ships as data inside `@platform/ui-tokens`; nothing on the published profile renders it. Deploying waits for his word.
+
+---
+
 ## 2026-08-06 · FONDS — MERGED + DEPLOYED (founder order « merge and deploy »)
 - **main** = `596064a` (fast-forward from `397d667`; the FONDS slice `89b2716` + the Pages-bootstrap fix).
 - **Worker LIVE and PROVEN:** `https://protection-service.ilboudobernard2.workers.dev` — the F9 assertion passed from CI: « health 200 — live canon=1.2.0 release=89b2716… PROVENANCE OK ». Bindings confirmed in the deploy log: `env.FONDS (FondsDO) Durable Object` + `env.PROTECTION_CONSOLE_ORIGIN Environment Variable`. `PROTECTION_OPS_SECRET` uploaded via piped `wrangler secret put` (« ✨ Success! »), founder-held, never in any bundle.
