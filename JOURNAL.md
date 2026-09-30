@@ -5,6 +5,15 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-09-30 · PROFIL-PUBLIÉ MERGED AND DEPLOYED on the founder's « go »
+
+**Founder order (2026-09-30).** « go » — on the report of the entry below; this console went last, as the report named.
+- **Merged** `main` `142f4f7 → 5cfbd69` (fast-forward), **ci 26 green** (Playwright 9/9 inside it).
+- **Deployed: ops-console-deploy 3 green** — the build step's env read back from its log: `VITE_PROFILE: production` and the protection base set; turbo « cache miss, executing » for both packages (a real build, not a replayed one); Pages deployment complete.
+- **Not verified from here:** the live page itself — this session's network refuses the Pages host (proxy 403). The evidence is the deploy log above plus `profil-publie.spec.ts` on a build made the same way. His eyes on the live console are the last check.
+
+---
+
 ## 2026-09-30 · PROFIL-PUBLIÉ (founder ruling « No live pages should show any test mode banner. Retire them. ») — the published ops console shows no preview ribbon and no sample records · on the branch, NOT merged, NOT deployed
 
 **Before.** The console deployed on Pages (`ops-console-deploy` run 2, 2026-08-06) showed « APERÇU — BAC À SABLE » (or « Aperçu — autorisation exceptionnelle » / « Aperçu — échelle de refus ») over SAMPLE records on four desks: the fund book (without its base URL), the moderation queue, a break-glass case naming two operators, and a refusal ladder of buyers. Taking only the ribbon off would have passed those samples off as real records.
