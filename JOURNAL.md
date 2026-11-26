@@ -5,6 +5,16 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-26 · Wave 0 MERGED on the founder's « go » (RÈGLES-UNIFIÉES-1)
+
+**Founder order (2026-11-26, 03:00 UTC).** « you can go » — on the Wave 0 report (RÈGLES-UNIFIÉES-1 in all five repositories; LOCK-LABELS-1 in Shop+, which also carried the 2026-10-02 journal commit `90e3653`).
+- **Order kept:** platform-contracts first — `main` `7459af0 → 17c2357` (fast-forward), **ci 164 green** — then the four apps, each `main` fast-forwarded to the commit the report named.
+- **This repository:** `main` `430dd17 → 58d2695` (fast-forward). **ci 28 green.** Its two deploys (ops console, protection service) run only by dispatch; none was dispatched.
+- **No deploy workflow was dispatched.** The change is docs and lock-file labels only; the publish runs that a push to `main` starts re-published unchanged code.
+- **This entry** is on the designated branch only; it reaches `main` with the next merge the founder approves.
+
+---
+
 ## 2026-11-26 · RÈGLES-UNIFIÉES-1 — CLAUDE.md and AGENTS.md identical in all five repositories, with the 2026-11-25 order · on the branch, NOT merged
 
 **Founder order (2026-11-25).** « I want it to act as a coordinator that will create 2-3 tasks agents that will be working safely and securely coordinating with each other for it to move faster. Make sure they are working safely and securely and always coordinating with other. »
