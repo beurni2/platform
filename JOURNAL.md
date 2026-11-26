@@ -5,6 +5,51 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-26 · O1 — fund desk: every fund write lands whole; money fields read as written · on the branch, NOT merged
+
+**Order.** Wave 1, back-office lane (O), one slice in this repository. Lane commit `e2a112a` (from `main` `58d2695`), merged with `--no-ff` onto the designated branch so the lane commit keeps its sha.
+
+**What changed.**
+- **Protection service (fund book).** Opening a claim, advancing it and declaring the fund each commit their change, sequence counter, replay receipt and journal rows in ONE atomic storage write. A declaration writes at most 8 keys, far under the 128-key batch limit. The solvency a declaration journals is derived in memory from the new declaration with the same arithmetic `GET /fund` uses, and a test pins that the two agree. The buyer-refund record for a seller fault stays inside the claim's own write, unconditional, and no solvency read sits on its path (B+I-13 unchanged).
+- **A claim cannot open at 0 francs:** `POST /claims` with `amountFcfa` 0 answers 400 `zero_claim_amount`. A declaration still accepts 0, because an empty fund is a true fact and no spec text says otherwise.
+- **Ops console.** The claim amount, the balance and the opening capital are text fields with the numeric keypad, read digits only (trim, `/^\d+$/`, safe integer), the same rule Boutik+ uses. A claim opening refuses 0. An empty opening capital means "not declared", never 0. No new string: refusals use `fonds.error_form_incomplete` (register `neutral`).
+- **Not changed:** money rules, the claim ladder, one claim per order, contract shapes, events, `http.ts`, package files, the lock file, workflows, the i18n catalog.
+
+**Proof (lane, re-run by the coordinator).**
+- A whole-write suite fails every storage write boundary over a stand-in no kinder than real storage (bounds written at the top of the file), then reloads and retries. Every act lands whole or not at all.
+- fund-book e2e covers the zero opening, and requests with a missing or empty key on read and write routes when the secret is absent or empty: exact 401 body.
+- A seam test drives the console's own fund port against the real service bundle under Miniflare (declare, open, review, resolve with a payment reference, load) and asks the service's own `/claims` and `/journal` for the outcome.
+- A fund-desk walk in Chromium against the real bundle (ports 4275–4276, added to the Playwright config; 4273/4274 untouched).
+- Lane mutations: 11, each anchor matched once, each red, each restored byte-identical.
+- **Coordinator re-run:** protection-service 51/51, ops-console 84/84, typecheck green. `main`'s product code turns the new boundary and zero tests red. The key-guard mutation went red and was restored byte-identical. Boutik+'s fund-desk screen proof passed 2/2 against this bundle.
+- **Board of record** on `e2a112a`: `pnpm build`, then `TURBO_CONCURRENCY=1 bash scripts/run-gates.sh` → ALL GATES GREEN (Playwright 10/10).
+
+**The one independent verification pass** (given the order's spec quotes, the diff and the definition of done): **0 blocker, 0 major, 0 minor, 5 notes.** Its own mutations all went red: the whole old fund code, the key length guard, solvency computed before the write, the money input as a number field, and the parser back to plain coercion. The notes were handled once, with no change needed:
+1. Rows written before this change are not re-checked against their counters. This is out of the order's scope; see Open.
+2. With one write per act, the "landed, then retried" branch of the boundary suite cannot occur. Duplicate and replay stay covered by fund-book e2e.
+3. The console refuses a 0-franc claim itself, so its mapping of `zero_claim_amount` is a backstop. Both are kept.
+4. A 0-franc claim with a Séra fault now answers `zero_claim_amount` before the routing refusal, in the same position as `invalid_amount`.
+5. The walk clears the feedback area between tries, which makes it stricter. Rows from one declaration share one timestamp.
+
+**Open.**
+- Before the protection service is deployed: a one-time read that the fund book's stored counters match its rows.
+- Release order: Boutik+'s own fund desk must refuse a 0-franc claim and name the refusal before this service is deployed. Today it would show its "could not reach" sentence. That small Boutik+ follow-up comes first, then the service and console deploys, each only on the founder's « go » through the `production` gate.
+- Other follow-ups are on the coordinator's board.
+
+**Where it stands.** On the designated branch, in a pull request to `main`. Not merged, not deployed. Merging deploys nothing: this repository's two deploys run only by dispatch.
+
+---
+
+## 2026-11-26 · Wave 0 MERGED on the founder's « go » (RÈGLES-UNIFIÉES-1)
+
+**Founder order (2026-11-26, 03:00 UTC).** « you can go » — on the Wave 0 report (RÈGLES-UNIFIÉES-1 in all five repositories; LOCK-LABELS-1 in Shop+, which also carried the 2026-10-02 journal commit `90e3653`).
+- **Order kept:** platform-contracts first — `main` `7459af0 → 17c2357` (fast-forward), **ci 164 green** — then the four apps, each `main` fast-forwarded to the commit the report named.
+- **This repository:** `main` `430dd17 → 58d2695` (fast-forward). **ci 28 green.** Its two deploys (ops console, protection service) run only by dispatch; none was dispatched.
+- **No deploy workflow was dispatched.** The change is docs and lock-file labels only; the publish runs that a push to `main` starts re-published unchanged code.
+- **This entry** is on the designated branch only; it reaches `main` with the next merge the founder approves.
+
+---
+
 ## 2026-11-26 · RÈGLES-UNIFIÉES-1 — CLAUDE.md and AGENTS.md identical in all five repositories, with the 2026-11-25 order · on the branch, NOT merged
 
 **Founder order (2026-11-25).** « I want it to act as a coordinator that will create 2-3 tasks agents that will be working safely and securely coordinating with each other for it to move faster. Make sure they are working safely and securely and always coordinating with other. »

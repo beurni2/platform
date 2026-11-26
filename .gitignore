@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dist-publie/
+dist-fonds-live/
 .turbo/
 *.tsbuildinfo
 coverage/
