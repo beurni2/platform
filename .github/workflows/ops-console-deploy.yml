@@ -86,4 +86,7 @@ jobs:
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: "$GITHUB_WORKSPACE/services/protection-service/node_modules/.bin/wrangler" pages deploy apps/ops-console/dist --project-name platform-ops-console --branch=main --commit-hash="${{ github.sha }}"
+        # A block, not a one-line value: a line that starts with a quote is read
+        # as a quoted string, and the rest of the command would break the file.
+        run: |
+          "$GITHUB_WORKSPACE/services/protection-service/node_modules/.bin/wrangler" pages deploy apps/ops-console/dist --project-name platform-ops-console --branch=main --commit-hash="${{ github.sha }}"
