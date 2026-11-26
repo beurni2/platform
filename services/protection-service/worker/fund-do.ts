@@ -162,6 +162,9 @@ export class FondsDO {
       return json({ error: 'invalid_body' }, 400);
     }
     if (!isFcfaAmount(amountFcfa)) return json({ error: 'invalid_amount' }, 400);
+    // A claim that owes nothing is closed without payout, never opened: a
+    // 0-franc claim in an append-only book is a money record nobody can undo.
+    if (amountFcfa === 0) return json({ error: 'zero_claim_amount' }, 400);
     if (faultClass === 'sera') {
       // Desk 2 routing: « Séra fault → CustodyLiabilityClaim — Séra's own
       // instrument, separate from the fund. » Refused by name, with the
@@ -220,12 +223,18 @@ export class FondsDO {
       ...(refundRequired !== undefined ? { refundRequired } : {}),
       advanced: [],
     };
-    await this.state.storage.put(key, stored);
-    await this.appendJournal('protection.claim_opened.v1', id, {
-      faultClass,
-      amountFcfa,
-      evidenceBundleId,
-      refundRequired: refundRequired !== undefined,
+    // ONE atomic write: the claim, its refund record and its journal row land
+    // together or not at all — a claim without its history would be refused
+    // as a duplicate on retry and never get it (§9.1, Desk 8).
+    await this.state.storage.put({
+      [key]: stored,
+      ...(await this.journalEntries([
+        {
+          action: 'protection.claim_opened.v1',
+          entity: id,
+          detail: { faultClass, amountFcfa, evidenceBundleId, refundRequired: refundRequired !== undefined },
+        },
+      ])),
     });
     return json({ ok: true, claim, refundRequired: refundRequired ?? null }, 201);
   }
@@ -274,12 +283,21 @@ export class FondsDO {
       claim: nextClaim,
       advanced: [...stored.advanced, advance],
     };
-    await this.state.storage.put(key, next);
-    await this.appendJournal('claim:advance', orderId, {
-      from,
-      to,
-      ...(advance.settlementRef !== undefined ? { settlementRef: advance.settlementRef } : {}),
-      ...(advance.closedReason !== undefined ? { closedReason: advance.closedReason } : {}),
+    // ONE atomic write: the step and its journal row, together or not at all.
+    await this.state.storage.put({
+      [key]: next,
+      ...(await this.journalEntries([
+        {
+          action: 'claim:advance',
+          entity: orderId,
+          detail: {
+            from,
+            to,
+            ...(advance.settlementRef !== undefined ? { settlementRef: advance.settlementRef } : {}),
+            ...(advance.closedReason !== undefined ? { closedReason: advance.closedReason } : {}),
+          },
+        },
+      ])),
     });
     return json({ ok: true, state: to });
   }
@@ -318,35 +336,41 @@ export class FondsDO {
       declaredBy: FONDS_ACTOR,
       ...(isNonEmptyString(note) ? { note: note.trim() } : {}),
     };
-    // Append-only: a new declaration NEVER overwrites history — the figure's
-    // full trail is the maker-checker debt's standing mitigation.
-    await this.state.storage.put(`${DECL_PREFIX}${String(seq).padStart(8, '0')}`, declaration);
-    await this.state.storage.put(SEQ_DECL, seq);
-    await this.state.storage.put(consumedKey, true);
+    // This declaration is the latest once written, so the solvency it moves
+    // the fund to is derived from it here — the same arithmetic GET /fund runs.
+    const solvency = deriveSolvency(balanceFcfa, await this.committedClaimsAmount());
+    const last = await this.state.storage.get<string>(LAST_SOLVENCY);
+    const solvencyChanged = solvency.state !== null && solvency.state !== last;
+
     // Every declaration journals as the LOCAL action; the canon name
     // `protection.capitalized.v1` is reserved for the act it names — opening
     // capital being declared — never a routine (possibly declining) balance
     // reading (verifier round 1, note 7).
-    await this.appendJournal('fund:declare', FONDS_BOOK_NAME, {
-      balanceFcfa,
-      ...(openingFundCapitalFcfa !== undefined ? { openingFundCapitalFcfa } : {}),
+    const journal = await this.journalEntries([
+      {
+        action: 'fund:declare',
+        entity: FONDS_BOOK_NAME,
+        detail: { balanceFcfa, ...(openingFundCapitalFcfa !== undefined ? { openingFundCapitalFcfa } : {}) },
+      },
+      ...(openingFundCapitalFcfa !== undefined
+        ? [{ action: 'protection.capitalized.v1', entity: FONDS_BOOK_NAME, detail: { openingFundCapitalFcfa, balanceFcfa } }]
+        : []),
+      ...(solvencyChanged
+        ? [{ action: 'protection.solvency_changed.v1', entity: FONDS_BOOK_NAME, detail: { from: last ?? null, to: solvency.state } }]
+        : []),
+    ]);
+    // Append-only: a new declaration NEVER overwrites history — the figure's
+    // full trail is the maker-checker debt's standing mitigation. ONE atomic
+    // write: the declaration, its sequence, its replay receipt and its journal
+    // rows land together or not at all, so a retry can neither double nor
+    // overwrite it.
+    await this.state.storage.put({
+      [`${DECL_PREFIX}${String(seq).padStart(8, '0')}`]: declaration,
+      [SEQ_DECL]: seq,
+      [consumedKey]: true,
+      ...(solvencyChanged ? { [LAST_SOLVENCY]: solvency.state } : {}),
+      ...journal,
     });
-    if (openingFundCapitalFcfa !== undefined) {
-      await this.appendJournal('protection.capitalized.v1', FONDS_BOOK_NAME, {
-        openingFundCapitalFcfa,
-        balanceFcfa,
-      });
-    }
-
-    const solvency = await this.currentSolvency();
-    const last = await this.state.storage.get<string>(LAST_SOLVENCY);
-    if (solvency.state !== null && solvency.state !== last) {
-      await this.state.storage.put(LAST_SOLVENCY, solvency.state);
-      await this.appendJournal('protection.solvency_changed.v1', FONDS_BOOK_NAME, {
-        from: last ?? null,
-        to: solvency.state,
-      });
-    }
     return json({ ok: true, declaration, solvency }, 201);
   }
 
@@ -394,10 +418,20 @@ export class FondsDO {
     return deriveSolvency(latest === null ? null : latest.balanceFcfa, await this.committedClaimsAmount());
   }
 
-  private async appendJournal(action: string, entity: string, detail: Record<string, unknown>): Promise<void> {
-    const seq = ((await this.state.storage.get<number>(SEQ_JOURNAL)) ?? 0) + 1;
-    const row: JournalRow = { seq, action, actor: FONDS_ACTOR, at: new Date().toISOString(), entity, detail };
-    await this.state.storage.put(`${JOURNAL_PREFIX}${String(seq).padStart(8, '0')}`, row);
-    await this.state.storage.put(SEQ_JOURNAL, seq);
+  /** Journal rows numbered after the stored sequence, with the new sequence —
+   * never written alone: the caller puts them in the SAME atomic write as the
+   * change they record. */
+  private async journalEntries(
+    rows: ReadonlyArray<{ action: string; entity: string; detail: Record<string, unknown> }>,
+  ): Promise<Record<string, unknown>> {
+    const last = (await this.state.storage.get<number>(SEQ_JOURNAL)) ?? 0;
+    const at = new Date().toISOString();
+    const entries: Record<string, unknown> = { [SEQ_JOURNAL]: last + rows.length };
+    rows.forEach(({ action, entity, detail }, i) => {
+      const seq = last + i + 1;
+      const row: JournalRow = { seq, action, actor: FONDS_ACTOR, at, entity, detail };
+      entries[`${JOURNAL_PREFIX}${String(seq).padStart(8, '0')}`] = row;
+    });
+    return entries;
   }
 }

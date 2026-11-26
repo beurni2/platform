@@ -84,6 +84,40 @@ describe('the one door — fail closed, uniform 401', () => {
     }
   });
 
+  it('a Worker with NO secret, or an EMPTY one, refuses a missing or empty key on a read AND a write route', async () => {
+    // The key compare runs unconditionally, so an empty key compared with an
+    // unset secret MATCHES — only the configured-length guard keeps the door
+    // shut. These are the requests that reach it.
+    const refusals: Array<Record<string, string>> = [
+      {},
+      { Authorization: 'Bearer ' },
+      { Authorization: 'Bearer' },
+      { Authorization: '' },
+    ];
+    for (const [name, secret] of [
+      ['no-secret', undefined],
+      ['empty-secret', ''],
+    ] as const) {
+      const bare = mfWith(secret, join(persist, `do-${name}`));
+      try {
+        for (const headers of refusals) {
+          const read = await bare.dispatchFetch(`${BASE}/claims`, { method: 'GET', headers });
+          expect(read.status, `${name} GET /claims ${JSON.stringify(headers)}`).toBe(401);
+          expect(await read.json()).toEqual({ error: 'unauthorized' });
+          const write = await bare.dispatchFetch(`${BASE}/fund`, {
+            method: 'PUT',
+            headers: { ...headers, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ commandId: `empty-key-${name}`, balanceFcfa: 1_000 }),
+          });
+          expect(write.status, `${name} PUT /fund ${JSON.stringify(headers)}`).toBe(401);
+          expect(await write.json()).toEqual({ error: 'unauthorized' });
+        }
+      } finally {
+        await bare.dispose();
+      }
+    }
+  });
+
   it('wrong secret and missing secret answer the SAME 401 body — never an oracle', async () => {
     const wrong = await mf.dispatchFetch(`${BASE}/claims`, {
       headers: { Authorization: 'Bearer not-the-secret' },
@@ -129,6 +163,15 @@ describe('opening claims — canon-parsed, one per order, Desk 2 routing enforce
     for (const forbidden of ['sellerbalance', 'debit', 'reserve', 'deposit', 'caution']) {
       expect(flat).not.toContain(forbidden);
     }
+  });
+
+  it('a claim cannot OPEN at 0 francs — a claim that owes nothing is closed, never opened', async () => {
+    const res = await openClaim({ ...SELLER_CLAIM, orderId: 'order-fonds-zero', amountFcfa: 0 });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'zero_claim_amount' });
+    const list = await mf.dispatchFetch(`${BASE}/claims`, { headers: opsHeaders() });
+    const { claims } = (await list.json()) as { claims: Array<{ claim: { orderId: string } }> };
+    expect(claims.map((c) => c.claim.orderId)).not.toContain('order-fonds-zero');
   });
 
   it('a second claim on the same order is refused 409 — first-wins', async () => {

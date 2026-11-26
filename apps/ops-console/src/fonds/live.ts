@@ -47,6 +47,26 @@ function textInput(name: string, labelKey: string, type = 'text'): { field: HTML
   return { field, input };
 }
 
+/**
+ * A money field REFUSES what it cannot read — it never coerces (the Boutik+
+ * rule). `Number('')` is 0, and a number input blanks '12 500' to '' — so a
+ * 0-franc fact could land in an append-only book nobody can correct. Digits
+ * only; anything else is null and the form says so.
+ */
+export function montantEntier(saisie: string): number | null {
+  const s = saisie.trim();
+  if (!/^\d+$/.test(s)) return null;
+  const n = Number(s);
+  return Number.isSafeInteger(n) ? n : null;
+}
+
+/** Read as TEXT (the browser never rewrites it), with the digit keypad. */
+function moneyInput(name: string, labelKey: string): { field: HTMLElement; input: HTMLInputElement } {
+  const money = textInput(name, labelKey);
+  money.input.inputMode = 'numeric';
+  return money;
+}
+
 function button(labelKey: string, kind: 'primary' | 'quiet'): HTMLButtonElement {
   const b = document.createElement('button');
   b.type = 'submit';
@@ -70,6 +90,7 @@ const ERROR_KEY: Record<string, string> = {
   settlement_ref_required: 'fonds.error_settlement_ref',
   close_reason_required: 'fonds.error_close_reason',
   not_a_fund_claim: 'fonds.error_sera_routing',
+  zero_claim_amount: 'fonds.error_form_incomplete',
   unreachable: 'fonds.error_unreachable',
 };
 
@@ -207,7 +228,7 @@ async function renderBook(host: HTMLElement, port: FondsPort, base: string): Pro
   openForm.className = 'fd-form';
   const order = textInput('commande', 'fonds.open_order');
   const reason = textInput('motif', 'fonds.open_reason');
-  const amount = textInput('montant', 'fonds.open_amount', 'number');
+  const amount = moneyInput('montant', 'fonds.open_amount');
   const evidence = textInput('preuve', 'fonds.open_evidence');
   const faultField = document.createElement('label');
   faultField.className = 'fd-form-field';
@@ -226,13 +247,13 @@ async function renderBook(host: HTMLElement, port: FondsPort, base: string): Pro
   openForm.append(order.field, reason.field, amount.field, faultField, evidence.field, button('fonds.open_submit', 'primary'));
   openForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const amountFcfa = Number(amount.input.value);
+    const amountFcfa = montantEntier(amount.input.value);
     if (
       order.input.value.trim().length === 0 ||
       reason.input.value.trim().length === 0 ||
       evidence.input.value.trim().length === 0 ||
-      !Number.isSafeInteger(amountFcfa) ||
-      amountFcfa < 0
+      amountFcfa === null ||
+      amountFcfa === 0 // a claim that owes nothing is closed, never opened
     ) {
       feedback.replaceChildren();
       note(feedback, 'fonds.error_form_incomplete', true);
@@ -259,23 +280,24 @@ async function renderBook(host: HTMLElement, port: FondsPort, base: string): Pro
   declTitle.textContent = t('fonds.declare_title');
   const declForm = document.createElement('form');
   declForm.className = 'fd-form';
-  const balance = textInput('solde', 'fonds.declare_balance', 'number');
-  const opening = textInput('capital', 'fonds.declare_opening', 'number');
+  const balance = moneyInput('solde', 'fonds.declare_balance');
+  const opening = moneyInput('capital', 'fonds.declare_opening');
   // Minted at RENDER, not on submit: a double-tap or a retry after a timeout
   // replays the SAME command and the book appends once (verifier r1, note 6).
   const declCommandId = crypto.randomUUID();
   declForm.append(balance.field, opening.field, button('fonds.declare_submit', 'primary'));
   declForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const balanceFcfa = Number(balance.input.value);
-    if (!Number.isSafeInteger(balanceFcfa) || balanceFcfa < 0) {
+    const balanceFcfa = montantEntier(balance.input.value);
+    if (balanceFcfa === null) {
       feedback.replaceChildren();
       note(feedback, 'fonds.error_form_incomplete', true);
       return;
     }
     const openingRaw = opening.input.value.trim();
-    const openingFcfa = openingRaw.length === 0 ? undefined : Number(openingRaw);
-    if (openingFcfa !== undefined && (!Number.isSafeInteger(openingFcfa) || openingFcfa < 0)) {
+    // Optional (first time only): empty means « not declared », never 0.
+    const openingFcfa = openingRaw.length === 0 ? undefined : montantEntier(openingRaw);
+    if (openingFcfa === null) {
       feedback.replaceChildren();
       note(feedback, 'fonds.error_form_incomplete', true);
       return;
