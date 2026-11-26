@@ -38,5 +38,24 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 120_000,
     },
+    {
+      // The fund desk walk (e2e/fonds-live.spec.ts): the REAL protection
+      // service bundle on workerd, in memory, 127.0.0.1 only, with a test key.
+      // Needs `pnpm build` first, as CI runs it.
+      command: 'node ../../services/protection-service/test/serve-for-console-walk.mjs',
+      url: 'http://127.0.0.1:4276/health',
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
+    {
+      // The console built LIVE against that service: the base URL only, never
+      // a key — the walk types the key into the door, as the founder does.
+      command:
+        'pnpm exec vite build --outDir dist-fonds-live --emptyOutDir && pnpm exec vite preview --outDir dist-fonds-live --port 4275 --strictPort --host 127.0.0.1',
+      url: 'http://127.0.0.1:4275',
+      env: { VITE_PROTECTION_BASE: 'http://127.0.0.1:4276' },
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
   ],
 });
