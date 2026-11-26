@@ -5,6 +5,33 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-26 · FONDS-3 — the fund desk reads only what it shows; the seller-fault line says what is true · on the branch, NOT merged, NOT deployed
+
+**Founder.** « Start batch 1 » (2026-11-26 22:03 UTC, decision card on the batch plan). Lane O, integrated on `claude/project-thread-jqj97g` (lane commits `2e19c82`, `c8c502d`; merges `0a66fc8`, `53e23f6`).
+
+**Spec.** ECOSYSTEM-MASTER-REFERENCE §9.1 (« Ops never edits the ledger ») and §9.2 Desk 1 (B+I-13: « A buyer owed money is paid whether the fund is healthy or empty »); Execution Contract §7.3 (measured budgets); CLAUDE.md Law 6.
+
+**What changed (protection service).**
+- The committed amount is a running total `total:committed`, moved by the same policy function (`computeCommittedClaimsAmount`) applied to the one claim a write changes, in the same atomic write. It carries its policy basis and the journal sequence its write left; a total under another basis, or behind the journal (a write it never saw, such as the previous release's after a rollback), is rebuilt, never trusted.
+- `open:<orderId>` indexes every non-terminal claim; `closed:<n>` numbers terminal claims in closing order. A step to a terminal state is one storage transaction (the delete from the open set rides in it).
+- `GET /fund` reads one `get` of four values (`seq:decl`, `total:committed`, `seq:journal`, the latest declaration by its sequence), whatever the history, and answers byte-identical to the previous release (books of 10× and 100× a typical day).
+- A book written before these keys is built once, in one transaction with a `build:<n>` record (reason, counts, amount, counters before and after). No claim, declaration, journal or receipt row is written or deleted.
+- New paged reads: `GET /claims?part=open` (every open claim, never paged), `GET /claims?part=closed[&limit=1-100, default 20][&before=N]` → `{ claims, nextBefore }`, `GET /journal?limit=L[&before=N]`; bad parameters → 400 `invalid_page`. Requests with no page parameters keep their full answers unchanged.
+
+**What changed (ops console).**
+- The fund desk reads the summary, the open claims and the 20 most recently closed on every view, with « Voir les réclamations plus anciennes » while a next page exists. A service that ignores the page (the previous release) is read once, with no button; an order in both lists keeps its closed copy.
+- `fonds.refund_required` is replaced by `fonds.refund_not_by_claim` (money/status): « Cette réclamation ne rembourse pas la cliente — vérifier son remboursement dans Commandes, sur la console Boutik+. » New `fonds.closed_older` (neutral/label).
+
+**Evidence.** Protection service 83/83 on the real Worker with SQLite-backed storage as in production (reads counted by wrapping the real storage, no app code stubbed; running total equal to full recomputation after every step of seeded 300-step runs, including a book written by the previous release's own bundle; paging: every claim once, in closing order, on new and upgraded books; a rollback-and-forward book exact again after one rebuild). Ops console unit 87/87, Playwright 13/13 (the desk on the real Worker, and on the previous release's bundle). Typecheck clean. Full board after `pnpm build`: ALL GATES GREEN. Mutations, each anchor matched once, bundle rebuilt, restored byte-identical, all red: total not moved on an open, on a step, at a terminal step, on a declaration; open index kept at a terminal step; one-time build skipped; policy-basis check removed; journal-sequence check removed; closing sort removed; old sentence key restored (in the view, and with its catalog entry); the desk's de-duplication removed; its cursor check removed; its previous-service branch removed (red in the unit test only, since the de-duplication also hides doubled rows in the walk).
+
+**Verifier (one pass, handled once).** One blocker (a rollback to the previous release, then forward, left the total and indexes stale) and two should-fix (the desk against the previous service's answer; closing order unproven on an upgraded book): all fixed with their tests and mutations. Notes taken: tests moved to SQLite-backed storage; the previous-release fixture fully frozen. Not re-inspected (NO-LOOP).
+
+**Deploy note.** protection-deploy BEFORE ops-console-deploy. The first read that needs the total or an index runs the one-time build inside that request (one full listing of claims, then bounded for ever); its answer is the same as before the deploy. Check: the first desk view after the deploy shows the same balance, committed amount and solvency as just before it. After a rollback and forward again, the first read rebuilds once (reason `unseen_writes`); closing numbers may be renumbered.
+
+**Still open, named.** « Voir les réclamations plus anciennes » redraws the desk, so text typed but not sent is lost; the unreadable-record count covers the pages loaded. A claim closed between the open read and the closed read is missing from that view until the next refresh. Closing ties in a build are ordered by order id, and a rebuild can move a held cursor by one claim once. This desk cannot show whether the buyer was refunded, only where to check (Commandes on the Boutik+ console, whose desk moves in its own slice).
+
+---
+
 ## 2026-11-26 · DEPLOY-TOOL-PIN-1 MERGED on the founder's approval (PR #2)
 
 **Founder.** « Merge all three, deploy shop » (2026-11-26 07:15 UTC, decision card after the report of Shop+ PR #2, Séra PR #2 and platform PR #2).
