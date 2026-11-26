@@ -5,6 +5,16 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-26 · DEPLOY-TOOL-PIN-1 MERGED on the founder's approval (PR #2)
+
+**Founder.** « Merge all three, deploy shop » (2026-11-26 07:15 UTC, decision card after the report of Shop+ PR #2, Séra PR #2 and platform PR #2).
+- **Merged:** `main` re-checked unchanged at `09c366c` just before; merged as `ae0b76e` (merge commit, the branch shas kept). PR gates green on `1afc89d`.
+- **On `main`:** ci 32 green.
+- **Nothing deployed:** this repository deploys only by dispatch. The next protection or console deploy must print wrangler 4.130.0 from the lock file.
+- **Still open, named:** the remaining items written in the entry below.
+
+---
+
 ## 2026-11-26 · DEPLOY-TOOL-PIN-1 — deploys run the lock file's wrangler 4.130.0 · on the branch, NOT merged, NOT deployed
 
 **Founder ruling (2026-11-26 03:05 UTC, « agree with all of them »).** Pin Cloudflare's deploy tool in Séra and platform at the version Shop+ and Boutik+ already deploy with (4.130.0).
