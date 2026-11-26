@@ -5,6 +5,51 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-26 · DEPLOY-TOOL-PIN-1 — deploys run the lock file's wrangler 4.130.0 · on the branch, NOT merged, NOT deployed
+
+**Founder ruling (2026-11-26 03:05 UTC, « agree with all of them »).** Pin Cloudflare's deploy tool in Séra and platform at the version Shop+ and Boutik+ already deploy with (4.130.0).
+
+**What changed.** Built by the coordinator in its own worktree (`37c9e40`, then the review fixes `3aa3d90`), merged here `--no-ff`.
+- `services/protection-service/package.json`: `"wrangler": "4.130.0"` (devDependency). `pnpm-lock.yaml`: +416 lines, additive only (0 removed, no existing resolution moved); the 41 added packages carry the same integrity as Shop+'s lock.
+- `protection-deploy.yml`: `pnpm exec wrangler` (3 commands). `ops-console-deploy.yml`: the protection service's lock-file binary `"$GITHUB_WORKSPACE/services/protection-service/node_modules/.bin/wrangler"` (3 commands; the repo root has no wrangler of its own). No argument, stdin pipe, condition or step order changed. Every deploy job runs `pnpm install --frozen-lockfile` first.
+- New gate `scripts/gates/deploy-tool-pinned.mjs` (byte-identical in Séra). Over the workflow files it refuses: any line that runs wrangler through a download runner (npx, pnpx, bunx, pnpm dlx, yarn dlx, npm exec/x) wherever it sits on the line; installing wrangler outside the lock file; any wrangler command (a known subcommand, a flag, or a line continuation after it) not run as `pnpm exec wrangler` or a lock-file binary; a wrangler action. Only whole-line comments are skipped. Over the manifests: a range instead of one exact version, two packages pinned differently, workflows that call wrangler while no package declares it. It exits 2 when it sees no wrangler command at all.
+- `run-gates.sh`: `capture` accepts an exact expected exit code (as Séra's already did), so « saw nothing » (2) is told apart from « found a violation » (1). 14 negative fixtures (one per refusal and per call form) plus the positive and the nothing-seen case.
+
+**Evidence.** Gate on main's workflows: 6 violations, exit 1. On the branch: 6 commands, all from the lock file, exit 0. It also reads Shop+'s and Boutik+'s workflows clean (7 and 9 commands), so it has no false refusal on the forms in use. Each new rule was mutation-tested on a scratch copy (anchor matched once): narrowing the comment rule, removing the install rule, the flag-first form, the continuation form or a subcommand each turned its fixture to exit 0 or 2. Narrowing the download rule alone stays at exit 1 because the lock-file rule also refuses those lines (two rules cover them). Board of record (`TURBO_CONCURRENCY=1 bash scripts/run-gates.sh` on `3aa3d90`): ALL GATES GREEN — protection-service 51 tests, ops-console 84, Playwright 10, 20 negative fixtures failed with exit 1 and the nothing-seen case with exit 2. All three workflow files parse as YAML.
+
+**Verifier.** One fresh-context pass over both repos, handled once: 1 blocker, 0 major, 3 minor, 4 notes.
+- Blocker, fixed: the console's Pages deploy line began with a quote, so the YAML read it as a quoted string and the whole file stopped parsing (GitHub would have refused to run the console deploy). It is a block again.
+- Minor, fixed: npx hidden inside quotes or backticks counted as a lock-file call; download runners were caught only before a listed subcommand; the comment strip cut at the first « # » even inside a string.
+- Notes: the two refusals with no fixture now have one. Installing wrangler outside the lock file is now refused. Still open: a `…/node_modules/.bin/` path is not checked to belong to a package that declares wrangler, and the gate does not check that the step's working directory resolves the binary. Both today resolve to 4.130.0 (checked by hand), and a wrong one fails loudly at deploy time.
+- Not re-inspected.
+
+**Release.** A merge changes no live Worker or page. The next protection or console deploy must print wrangler 4.130.0.
+
+**Still open (not in this slice).** Pinning GitHub actions to commit SHAs; `permissions:` blocks on the deploy jobs; the workflow change that attaches deploy jobs to the `production` environment (HELD for the founder); deploying only from `main` (it changes the release order).
+
+## 2026-11-26 · O1 fund desk DEPLOYED on the founder's « go » — console first, then the fund service
+
+**Founder order (2026-11-26 04:24 UTC).** « go », answering « Putting the fund service live and updating the libraries both still wait for your go », then 04:26 « i want to approve the deploy here and you will deploy it ».
+- **Order kept.** The receiving side first: Boutik+'s fund desk (B1, refuses a 0-franc claim and names the refusal) merged and published (Boutik+ expo-preview 260 green) BEFORE this service could answer `zero_claim_amount`. Then the console, whose own form refuses 0, then the service.
+- **ops-console-deploy 4 green** on `main` `09c366c` (Pages project found, deploy uploaded).
+- **protection-deploy 5 green** on `main` `09c366c`: « PROVENANCE OK — live protection Worker is 09c366c7864ac758b7cb2989ed8448e994680397 speaking canon 1.2.0. » The ops key was re-armed from the repository secret, piped.
+- **Undeployed changes shipped:** only this slice. Since the last deploys (`142f4f7` for the service, `5cfbd69` for the console), the only commit under `services/protection-service` or `apps/ops-console` is `e2a112a`.
+- **Not done before deploy, said plainly:** the one-time read that the fund book's stored counters match its rows (Open, above). It needs the founder's ops key, which never leaves him. Not a new risk: a row left ahead of its counter by an old torn write is overwritten by the next act under the old code and the new code alike, and the new code makes no new tears. It stays open.
+- **Approval gate:** neither deploy job carries `environment: production` yet (that workflow-only slice is held), so GitHub asked for no click. The founder's word in the project chat is the approval.
+- **Deploy tool:** these two workflows still run `wrangler@4` unpinned (this run: 4.168.0). Pinning it at 4.130.0 is founder ruling D-6, approved and not yet built here.
+
+---
+
+## 2026-11-26 · O1 fund desk MERGED on the founder's approval (PR #1)
+
+**Founder order (2026-11-26, 03:50 UTC).** « you merge PR 1 » — on pull request #1, the fund desk slice, after its checks were green and it was up to date with `main`.
+- **This repository:** `main` `58d2695 → 09c366c`, a merge commit of PR #1 (head `4e7723d`, which held the lane commit `e2a112a`, the Wave 0 journal entry and the O1 journal entry). `main` had not moved between the approval and the merge; `main`'s tree equals the PR head's tree.
+- **CI:** gates on the PR head `4e7723d`: green (protection-service 51/51, ops-console 84/84, Playwright 10/10, ALL GATES GREEN). ci 30 on `main` `09c366c`: green.
+- **No deploy workflow was dispatched.** The protection service and the ops console run their deploys only by dispatch. Their release waits on the Boutik+ fund desk refusing a 0-franc claim (lane B, slice B1) and on the founder's « go » for each deploy.
+- **This entry** is on the designated branch only; it reaches `main` with the next merge the founder approves.
+
+---
+
 ## 2026-11-26 · O1 — fund desk: every fund write lands whole; money fields read as written · on the branch, NOT merged
 
 **Order.** Wave 1, back-office lane (O), one slice in this repository. Lane commit `e2a112a` (from `main` `58d2695`), merged with `--no-ff` onto the designated branch so the lane commit keeps its sha.

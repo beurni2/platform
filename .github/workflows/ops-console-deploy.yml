@@ -69,18 +69,24 @@ jobs:
       # First run creates it; every later run finds it in the list and skips.
       # Idempotent by LOOKUP, not by swallowing an error: a create that fails
       # for a real reason (permissions, quota) still fails the job loudly.
+      # The deploy tool comes from the lock file (wrangler 4.130.0, the
+      # protection service's devDependency, integrity-checked), never fetched
+      # from the registry at deploy time beside the Cloudflare key.
       - name: Ensure the Pages project exists (creates it on the first run)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           set -uo pipefail
-          if npx --yes wrangler@4 pages project list | grep -q 'platform-ops-console'; then
+          if "$GITHUB_WORKSPACE/services/protection-service/node_modules/.bin/wrangler" pages project list | grep -q 'platform-ops-console'; then
             echo "Pages project platform-ops-console already exists — nothing to create."
           else
             echo "Pages project platform-ops-console not found — creating it."
-            npx --yes wrangler@4 pages project create platform-ops-console --production-branch=main
+            "$GITHUB_WORKSPACE/services/protection-service/node_modules/.bin/wrangler" pages project create platform-ops-console --production-branch=main
           fi
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npx --yes wrangler@4 pages deploy apps/ops-console/dist --project-name platform-ops-console --branch=main --commit-hash="${{ github.sha }}"
+        # A block, not a one-line value: a line that starts with a quote is read
+        # as a quoted string, and the rest of the command would break the file.
+        run: |
+          "$GITHUB_WORKSPACE/services/protection-service/node_modules/.bin/wrangler" pages deploy apps/ops-console/dist --project-name platform-ops-console --branch=main --commit-hash="${{ github.sha }}"

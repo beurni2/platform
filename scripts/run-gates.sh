@@ -24,6 +24,12 @@ capture() {
   printf '%s\n(exit code: %d)\n' "$out" "$rc"
   if [ "$expected" = pass ] && [ $rc -ne 0 ]; then echo "GATE FAILED (expected pass): $name"; FAILED=1; fi
   if [ "$expected" = fail ] && [ $rc -ne 1 ]; then echo "GATE FAILED (expected the negative fixture to fail with exit 1, got $rc): $name"; FAILED=1; fi
+  # An explicit NUMBER pins one exit code — the « gate could not see anything »
+  # outcome (exit 2) is not the same as « found a violation » (exit 1).
+  case "$expected" in
+    ''|*[!0-9]*) ;;
+    *) if [ $rc -ne "$expected" ]; then echo "GATE FAILED (expected exit $expected, got $rc): $name"; FAILED=1; fi ;;
+  esac
 }
 
 cd "$ROOT"
@@ -69,6 +75,21 @@ capture lockfile-url-form-positive pass node scripts/gates/no-ssh-git-url.mjs
 
 log "gate: lockfile URL-form — NEGATIVE FIXTURE (planted git@github.com: url, must fail)"
 capture lockfile-url-form-negative fail node scripts/gates/no-ssh-git-url.mjs scripts/gates/fixtures/negative/ssh-url/pnpm-lock.yaml
+
+log "gate: deploy-tool-pinned — every workflow runs the lock file's wrangler, one exact version (must pass)"
+capture deploy-tool-pinned-positive pass node scripts/gates/deploy-tool-pinned.mjs
+for fx in npx-wrangler npx-quoted hash-in-string dlx-flag-first dlx-continued install-wrangler bare-wrangler bare-flag-first bare-continued bare-unlisted wrangler-action; do
+  log "gate: deploy-tool-pinned — NEGATIVE FIXTURE ($fx, must fail)"
+  capture "deploy-tool-pinned-negative-$fx" fail node scripts/gates/deploy-tool-pinned.mjs "scripts/gates/fixtures/negative/deploy-tool/$fx.yml"
+done
+log "gate: deploy-tool-pinned — NEGATIVE FIXTURE (a range instead of one exact version, must fail)"
+capture deploy-tool-pinned-negative-range-pin fail node scripts/gates/deploy-tool-pinned.mjs scripts/gates/fixtures/negative/deploy-tool/range-pin/workflows scripts/gates/fixtures/negative/deploy-tool/range-pin
+for fx in pinned-differently no-manifest; do
+  log "gate: deploy-tool-pinned — NEGATIVE FIXTURE ($fx: two packages pin it differently / no package declares it, must fail)"
+  capture "deploy-tool-pinned-negative-$fx" fail node scripts/gates/deploy-tool-pinned.mjs "scripts/gates/fixtures/negative/deploy-tool/$fx/workflows" "scripts/gates/fixtures/negative/deploy-tool/$fx"
+done
+log "gate: deploy-tool-pinned — NOTHING SEEN (no wrangler command: the gate must say so with exit 2, never pass)"
+capture deploy-tool-pinned-nothing-seen 2 node scripts/gates/deploy-tool-pinned.mjs scripts/gates/fixtures/negative/deploy-tool/no-wrangler.yml
 
 # DEBT ③ CLOSED: the drift-check's version anchor is DERIVED from the installed
 # @platform/contracts (which the sha pin determines) — no hand-kept string. The
