@@ -5,6 +5,16 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-26 · O1 fund desk MERGED on the founder's approval (PR #1)
+
+**Founder order (2026-11-26, 03:50 UTC).** « you merge PR 1 » — on pull request #1, the fund desk slice, after its checks were green and it was up to date with `main`.
+- **This repository:** `main` `58d2695 → 09c366c`, a merge commit of PR #1 (head `4e7723d`, which held the lane commit `e2a112a`, the Wave 0 journal entry and the O1 journal entry). `main` had not moved between the approval and the merge; `main`'s tree equals the PR head's tree.
+- **CI:** gates on the PR head `4e7723d`: green (protection-service 51/51, ops-console 84/84, Playwright 10/10, ALL GATES GREEN). ci 30 on `main` `09c366c`: green.
+- **No deploy workflow was dispatched.** The protection service and the ops console run their deploys only by dispatch. Their release waits on the Boutik+ fund desk refusing a 0-franc claim (lane B, slice B1) and on the founder's « go » for each deploy.
+- **This entry** is on the designated branch only; it reaches `main` with the next merge the founder approves.
+
+---
+
 ## 2026-11-26 · O1 — fund desk: every fund write lands whole; money fields read as written · on the branch, NOT merged
 
 **Order.** Wave 1, back-office lane (O), one slice in this repository. Lane commit `e2a112a` (from `main` `58d2695`), merged with `--no-ff` onto the designated branch so the lane commit keeps its sha.
