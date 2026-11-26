@@ -77,5 +77,6 @@ export function buildSandboxFonds(): FondsData {
     },
     claims,
     unrecognizedCount: 0,
+    closedBefore: null, // the preview has no older pages
   };
 }

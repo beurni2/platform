@@ -20,7 +20,7 @@
 import type { FaultClass } from '@platform/contracts';
 import { t } from '../i18n';
 import { HttpFondsPort } from './http';
-import type { FondsPort } from './port';
+import type { FondsData, FondsPort } from './port';
 import { renderFondsView } from './view';
 
 let sessionKey: string | null = null;
@@ -141,11 +141,47 @@ async function renderBook(host: HTMLElement, port: FondsPort, base: string): Pro
     return;
   }
 
+  drawBook(host, port, base, data);
+}
+
+/** The book as loaded, with its actions. Drawn again, without a reload, when
+ * an older page of closed claims joins it. */
+function drawBook(host: HTMLElement, port: FondsPort, base: string, data: FondsData): void {
   renderFondsView(host, data, null);
 
   const refresh = () => void renderBook(host, port, base);
   const feedback = document.createElement('div');
   feedback.className = 'fd-feedback';
+
+  // « see older »: only closed claims ever wait behind it — every open claim
+  // is already on this view.
+  if (data.closedBefore !== null) {
+    const before = data.closedBefore;
+    const older = document.createElement('button');
+    older.type = 'button';
+    older.className = 'fd-btn fd-btn--quiet';
+    older.textContent = t('fonds.closed_older');
+    older.addEventListener('click', () => {
+      feedback.replaceChildren();
+      older.disabled = true;
+      port.loadOlderClosed(before).then(
+        (page) =>
+          drawBook(host, port, base, {
+            ...data,
+            claims: [...data.claims, ...page.claims],
+            unrecognizedCount: data.unrecognizedCount + page.unrecognizedCount,
+            closedBefore: page.closedBefore,
+          }),
+        (err: unknown) => {
+          older.disabled = false; // a failed page leaves the button to try again
+          const unauthorized = err instanceof Error && err.message === 'unauthorized';
+          if (unauthorized) sessionKey = null;
+          note(feedback, unauthorized ? 'fonds.error_unauthorized' : 'fonds.error_unreachable', true);
+        },
+      );
+    });
+    host.append(older);
+  }
   host.append(feedback);
 
   const act = async (result: Promise<{ ok: boolean; error?: string }>): Promise<void> => {
