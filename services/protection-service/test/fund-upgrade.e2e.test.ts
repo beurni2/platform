@@ -159,4 +159,107 @@ describe('a book from the previous release is indexed once, then never again', (
     },
     120_000,
   );
+  it(
+    'a rollback to the previous release and forward again: writes it made without the total are seen, rebuilt once, and every reading is exact again',
+    async () => {
+      const dir = freshPersistDir('rollback');
+      // This release writes the book (and builds its total and indexes).
+      const first = openBook(thisScript, dir);
+      await writeDays(first, 0, 2);
+      await first.dispose();
+
+      // Rolled back: the previous release opens a seller claim and closes an
+      // open one that counts toward the committed amount — neither touches the total.
+      const old = openBook(mainScript, dir);
+      expect(
+        (
+          await old.call('POST', '/claims', {
+            orderId: 'order-rollback-x',
+            reason: 'jamais prete — commande annulee',
+            faultClass: 'seller',
+            amountFcfa: 9_000,
+            evidenceBundleId: 'evb-order-rollback-x',
+          })
+        ).status,
+      ).toBe(201);
+      // order-d0001-7 is platform_system and still opened after writeDays.
+      expect((await old.call('POST', '/claims/order-d0001-7/advance', { to: 'closed_no_payout', closedReason: 'la cliente a renonce' })).status).toBe(200);
+      const mainFund = await old.text('/fund');
+      const mainClaims = await old.text('/claims');
+      await old.dispose();
+
+      // Forward again.
+      const book = openBook(thisScript, dir);
+      try {
+        expect(await book.text('/fund')).toBe(mainFund);
+        const full = (JSON.parse(mainClaims) as Claims).claims;
+        const open = (await book.json<Claims>('GET', '/claims?part=open')).claims.map((c) => c.claim.orderId);
+        expect(open).toEqual(full.filter((c) => !(TERMINAL_CLAIM_STATES as readonly string[]).includes(c.claim.state)).map((c) => c.claim.orderId));
+        expect(open).toContain('order-rollback-x');
+        const closed = await book.json<Claims & { nextBefore: number | null }>('GET', '/claims?part=closed&limit=100');
+        expect(closed.nextBefore).toBeNull();
+        // The claim the previous release closed is the most recently closed.
+        expect(closed.claims[0]?.claim.orderId).toBe('order-d0001-7');
+        expect(closed.claims.map((c) => c.claim.orderId).sort()).toEqual(
+          full.filter((c) => (TERMINAL_CLAIM_STATES as readonly string[]).includes(c.claim.state)).map((c) => c.claim.orderId).sort(),
+        );
+        const reasons = Object.values((await book.raw<{ rows: Record<string, { reason: string }> }>('list', { prefix: 'build:' })).rows).map((r) => r.reason);
+        expect(reasons).toEqual(['no_total', 'unseen_writes']);
+
+        // A later step moves the total from the rebuilt figure, to the franc.
+        expect((await book.call('POST', '/claims/order-rollback-x/advance', { to: 'closed_no_payout', closedReason: 'dossier de garde Sera' })).status).toBe(200);
+        const after = (await book.json<Claims>('GET', '/claims')).claims.map((c) => c.claim);
+        expect((await book.json<{ committedClaimsAmountFcfa: number }>('GET', '/fund')).committedClaimsAmountFcfa).toBe(
+          computeCommittedClaimsAmount(after),
+        );
+        expect((await book.json<Claims>('GET', '/claims?part=closed&limit=1')).claims[0]?.claim.orderId).toBe('order-rollback-x');
+        await book.resetTally();
+        await book.json('GET', '/fund');
+        expect((await book.tally()).lists).toEqual([]); // rebuilt once, not on every reading
+      } finally {
+        await book.dispose();
+      }
+    },
+    120_000,
+  );
+
+  it(
+    'an older book closed in an order unlike its order ids: the closed pages follow the closing steps, most recent first',
+    async () => {
+      const dir = freshPersistDir('upgrade-closing-order');
+      const old = openBook(mainScript, dir);
+      const ids = ['order-c-1', 'order-c-2', 'order-c-3', 'order-c-4', 'order-c-5'];
+      for (const orderId of ids) {
+        const res = await old.call('POST', '/claims', {
+          orderId,
+          reason: 'colis jamais pret',
+          faultClass: 'buyer',
+          amountFcfa: 2_000,
+          evidenceBundleId: `evb-${orderId}`,
+        });
+        expect(res.status).toBe(201);
+      }
+      // Closed on distinct instants, in an order that is neither the ids' order nor its reverse.
+      for (const orderId of ['order-c-3', 'order-c-5', 'order-c-1', 'order-c-4', 'order-c-2']) {
+        await new Promise((r) => setTimeout(r, 15));
+        expect((await old.call('POST', `/claims/${orderId}/advance`, { to: 'closed_no_payout', closedReason: 'la cliente a renonce' })).status).toBe(200);
+      }
+      await old.dispose();
+
+      const book = openBook(thisScript, dir);
+      try {
+        const joined: string[] = [];
+        let before: number | null = null;
+        do {
+          const page: Claims & { nextBefore: number | null } = await book.json('GET', `/claims?part=closed&limit=2${before === null ? '' : `&before=${before}`}`);
+          joined.push(...page.claims.map((c) => c.claim.orderId));
+          before = page.nextBefore;
+        } while (before !== null);
+        expect(joined).toEqual(['order-c-2', 'order-c-4', 'order-c-1', 'order-c-5', 'order-c-3']);
+      } finally {
+        await book.dispose();
+      }
+    },
+    120_000,
+  );
 });

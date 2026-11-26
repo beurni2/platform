@@ -184,6 +184,10 @@ function expectWhole(s: Snapshot, storage: StrictStorage): void {
       computeCommittedClaimsAmount(claims),
     );
   }
+  // Every write of this release stamps the journal sequence it leaves into the
+  // total, so a write the total never saw (an older release's) is detectable.
+  const total = storage.data.get('total:committed') as { journalSeq?: number } | undefined;
+  if (total !== undefined) expect(total.journalSeq).toBe(storage.data.get('seq:journal') ?? 0);
   const terminal = (c: { state: string }) => (TERMINAL_CLAIM_STATES as readonly string[]).includes(c.state);
   const openIndex = [...storage.data.keys()].filter((k) => k.startsWith('open:')).map((k) => k.slice('open:'.length));
   expect(openIndex.sort()).toEqual(claims.filter((c) => !terminal(c)).map((c) => c.orderId).sort());

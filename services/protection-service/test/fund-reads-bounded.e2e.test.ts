@@ -68,7 +68,8 @@ describe('GET /fund reads bounded state — same bytes, flat cost, at 10× and 1
       expect(hundred.everydayView.calls).toEqual(ten.everydayView.calls);
       expect(hundred.everydayView.valuesRead).toBe(ten.everydayView.valuesRead);
       expect(Object.keys(hundred.everydayView.calls).filter((c) => c.includes('list'))).toEqual([]);
-      expect(hundred.everydayView.valuesRead).toBeLessThanOrEqual(3);
+      // The latest declaration, the total, and the two counters it is checked against.
+      expect(hundred.everydayView.valuesRead).toBeLessThanOrEqual(4);
     },
     180_000,
   );

@@ -1,9 +1,10 @@
 // FROZEN TEST FIXTURE — the Protection Fund book exactly as platform main
 // ae0b76e wrote it: services/protection-service/worker/fund-do.ts, verbatim
 // except ONE line, the fund-core import path ('../src/fund-core.js' →
-// '../../../src/fund-core.js'). It lets the tests write a book with the
-// previous release's own code and reopen it with the current one. No app code
-// imports it; never edit it to follow the live book.
+// './fund-core.js', this folder's frozen copy of that release's core). It lets
+// the tests write a book with the previous release's own code and reopen it
+// with the current one. No app code imports it; never edit it to follow the
+// live book.
 
 /*
  * OPS NE MODIFIE JAMAIS LE REGISTRE. Aucun humain ne « corrige » l'argent.
@@ -59,7 +60,7 @@ import {
   isForwardStep,
   isFundAdmissibleFaultClass,
   type ClaimState,
-} from '../../../src/fund-core.js';
+} from './fund-core.js';
 
 export const FONDS_BOOK_NAME = 'fonds-de-protection';
 export const FONDS_ACTOR = 'ops:protection:fondateur';

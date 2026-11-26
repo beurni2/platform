@@ -52,7 +52,8 @@ export function openBook(scriptPath: string, persistDir: string): Book {
   const mf = new Miniflare({
     modules: true,
     scriptPath,
-    durableObjects: { FONDS: 'FondsDO' },
+    // SQLite-backed, as production declares it (wrangler.toml new_sqlite_classes).
+    durableObjects: { FONDS: { className: 'FondsDO', useSQLite: true } },
     durableObjectsPersist: persistDir,
     bindings: { PROTECTION_OPS_SECRET: OPS_SECRET },
   });
