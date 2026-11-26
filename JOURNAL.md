@@ -5,6 +5,19 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-26 · O1 fund desk DEPLOYED on the founder's « go » — console first, then the fund service
+
+**Founder order (2026-11-26 04:24 UTC).** « go », answering « Putting the fund service live and updating the libraries both still wait for your go », then 04:26 « i want to approve the deploy here and you will deploy it ».
+- **Order kept.** The receiving side first: Boutik+'s fund desk (B1, refuses a 0-franc claim and names the refusal) merged and published (Boutik+ expo-preview 260 green) BEFORE this service could answer `zero_claim_amount`. Then the console, whose own form refuses 0, then the service.
+- **ops-console-deploy 4 green** on `main` `09c366c` (Pages project found, deploy uploaded).
+- **protection-deploy 5 green** on `main` `09c366c`: « PROVENANCE OK — live protection Worker is 09c366c7864ac758b7cb2989ed8448e994680397 speaking canon 1.2.0. » The ops key was re-armed from the repository secret, piped.
+- **Undeployed changes shipped:** only this slice. Since the last deploys (`142f4f7` for the service, `5cfbd69` for the console), the only commit under `services/protection-service` or `apps/ops-console` is `e2a112a`.
+- **Not done before deploy, said plainly:** the one-time read that the fund book's stored counters match its rows (Open, above). It needs the founder's ops key, which never leaves him. Not a new risk: a row left ahead of its counter by an old torn write is overwritten by the next act under the old code and the new code alike, and the new code makes no new tears. It stays open.
+- **Approval gate:** neither deploy job carries `environment: production` yet (that workflow-only slice is held), so GitHub asked for no click. The founder's word in the project chat is the approval.
+- **Deploy tool:** these two workflows still run `wrangler@4` unpinned (this run: 4.168.0). Pinning it at 4.130.0 is founder ruling D-6, approved and not yet built here.
+
+---
+
 ## 2026-11-26 · O1 fund desk MERGED on the founder's approval (PR #1)
 
 **Founder order (2026-11-26, 03:50 UTC).** « you merge PR 1 » — on pull request #1, the fund desk slice, after its checks were green and it was up to date with `main`.
