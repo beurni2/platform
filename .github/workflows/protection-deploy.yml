@@ -71,6 +71,9 @@ jobs:
           echo "PLATFORM_CANON=$(node -p "require('./node_modules/@platform/contracts/package.json').version")" >> "$GITHUB_ENV"
       - name: Bundle the protection Worker
         run: pnpm --filter @platform/protection-service bundle:worker
+      # The deploy tool comes from the lock file (wrangler 4.130.0, a
+      # devDependency of this service, integrity-checked) through `pnpm exec`,
+      # never fetched from the registry at deploy time beside the Cloudflare key.
       - name: Deploy to Cloudflare Workers
         working-directory: services/protection-service
         env:
@@ -78,9 +81,9 @@ jobs:
           CONSOLE_ORIGIN: ${{ vars.PROTECTION_CONSOLE_ORIGIN }}
         run: |
           if [ -n "$CONSOLE_ORIGIN" ]; then
-            npx --yes wrangler@4 deploy --var PROTECTION_CONSOLE_ORIGIN:"$CONSOLE_ORIGIN"
+            pnpm exec wrangler deploy --var PROTECTION_CONSOLE_ORIGIN:"$CONSOLE_ORIGIN"
           else
-            npx --yes wrangler@4 deploy
+            pnpm exec wrangler deploy
           fi
       # The secret is set AFTER the first deploy (wrangler cannot put a secret
       # on a Worker that does not exist yet). Value PIPED, never an argument —
@@ -95,7 +98,7 @@ jobs:
             echo "::warning title=Fonds NON armé::PROTECTION_OPS_SECRET absent — the Worker refuses everything (fail-closed) until the repo secret is set and this workflow re-dispatched."
             exit 0
           fi
-          printf '%s' "$OPS_SECRET" | npx --yes wrangler@4 secret put PROTECTION_OPS_SECRET
+          printf '%s' "$OPS_SECRET" | pnpm exec wrangler secret put PROTECTION_OPS_SECRET
 
       # ═══ The F9 assertion: the live Worker must BE the bundle this job built ═══
       # A Workers deploy PROPAGATES; it does not switch — poll up to 180s.
