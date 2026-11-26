@@ -64,12 +64,18 @@ function toRow(stored: WireStoredClaim): FondsClaimRow | null {
 /** Closed claims shown per page; open claims are always shown whole. */
 const CLOSED_PAGE = 20;
 
-type WireClosedPage = { claims: WireStoredClaim[]; nextBefore: number | null };
+/** A previous release of the service ignores the page and answers { claims }
+ * alone — the whole list, open and closed — with no `nextBefore`. */
+type WireClosedPage = { claims: WireStoredClaim[]; nextBefore?: number | null };
 
 function toPage(body: WireClosedPage): FondsClosedPage {
   const rows = body.claims.map(toRow);
   const claims = rows.filter((r): r is FondsClaimRow => r !== null);
-  return { claims, unrecognizedCount: rows.length - claims.length, closedBefore: body.nextBefore };
+  return {
+    claims,
+    unrecognizedCount: rows.length - claims.length,
+    closedBefore: typeof body.nextBefore === 'number' ? body.nextBefore : null,
+  };
 }
 
 export class HttpFondsPort implements FondsPort {
@@ -94,8 +100,11 @@ export class HttpFondsPort implements FondsPort {
     if (all.some((r) => !r.ok)) {
       throw new Error(all.some((r) => r.status === 401) ? 'unauthorized' : 'unreachable');
     }
-    const openBody = (await openRes.json()) as { claims: WireStoredClaim[] };
-    const closed = toPage((await closedRes.json()) as WireClosedPage);
+    const closedBody = (await closedRes.json()) as WireClosedPage;
+    const closed = toPage(closedBody);
+    // No cursor key at all: a service that ignored the page sent the whole
+    // list to both reads. Use it once, alone.
+    const openBody = 'nextBefore' in closedBody ? ((await openRes.json()) as { claims: WireStoredClaim[] }) : { claims: [] };
     const fundBody = (await fundRes.json()) as {
       declaration: {
         balanceFcfa: number;
@@ -107,7 +116,10 @@ export class HttpFondsPort implements FondsPort {
       solvency: { state: FundSolvencyState | null; availableAfterCommitmentsFcfa: number | null };
     };
     const rows = openBody.claims.map(toRow);
-    const open = rows.filter((r): r is FondsClaimRow => r !== null);
+    const recognized = rows.filter((r): r is FondsClaimRow => r !== null);
+    // A claim closed between the two reads is in both: its closed copy is the later one.
+    const closedIds = new Set(closed.claims.map((c) => c.orderId));
+    const open = recognized.filter((r) => !closedIds.has(r.orderId));
     return {
       fund: {
         balanceFcfa: fundBody.declaration?.balanceFcfa ?? null,
@@ -121,7 +133,7 @@ export class HttpFondsPort implements FondsPort {
       claims: [...open, ...closed.claims],
       // A money record this adapter cannot read is COUNTED and shown, never
       // silently dropped (verifier round 1, note 4).
-      unrecognizedCount: rows.length - open.length + closed.unrecognizedCount,
+      unrecognizedCount: rows.length - recognized.length + closed.unrecognizedCount,
       closedBefore: closed.closedBefore,
     };
   }

@@ -67,7 +67,7 @@ describe('claims: every open claim at once, closed claims in pages', () => {
     expect(page.claims).toHaveLength(20);
     const tally = await book.tally();
     expect(tally.lists.filter((l) => l.prefix === 'claim:')).toEqual([]);
-    expect(tally.valuesRead).toBeLessThanOrEqual(20 * 2 + 1); // its index rows, its claims, the indexed mark
+    expect(tally.valuesRead).toBeLessThanOrEqual(20 * 2 + 2); // its index rows, its claims, the total and the journal counter it is checked against
   }, 60_000);
 
   it('a claim reaching a terminal state leaves the open set and heads the closed pages', async () => {

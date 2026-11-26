@@ -36,14 +36,19 @@
  *    same policy function (computeCommittedClaimsAmount) applied to the one
  *    claim a write changes, inside the SAME atomic write as that change — so
  *    it can never drift from the claims it sums. It records the policy basis
- *    it was kept under; a total kept under any other basis is rebuilt, never
- *    trusted.
+ *    it was kept under, and the journal sequence its last write left: every
+ *    write to the book appends a journal row, so a sequence that moved past
+ *    it means a write the total never saw (the previous release's, after a
+ *    rollback). Under any other basis, or behind the journal, it is rebuilt,
+ *    never trusted.
  *  · `open:<orderId>` holds every non-terminal claim; `closed:<n>` numbers
  *    terminal claims in closing order, assigned in the closing write. The
  *    desk reads the open set whole and the closed ones a page at a time.
  *  · A book written before these existed is built ONCE, by its first reading
  *    that needs them, in one transaction that also writes a `build:<n>`
- *    record of what it did. History rows are never edited or deleted.
+ *    record of what it did — and built again, the same way, the first time a
+ *    reading finds the total untrustworthy (above). History rows are never
+ *    edited or deleted.
  *
  * ═══ NAMED DEBTS (journalled) ═══
  *  · MAKER-CHECKER (§9.1 « maker-checker on anything touching money or
@@ -105,9 +110,11 @@ interface CommittedTotal {
   readonly policyVersion: string;
   readonly countsTowardCommitted: Record<string, boolean>;
   readonly terminalStates: readonly string[];
+  /** `seq:journal` as the write that stored this total left it. */
+  readonly journalSeq: number;
 }
 
-type BuildReason = 'no_total' | 'policy_changed';
+type BuildReason = 'no_total' | 'policy_changed' | 'unseen_writes';
 
 /** B+I-13 trigger record — mirrors the reference's RefundRequiredRecord: the
  * `buyerPriority: true` marker E3's refund executor must honor. INPUT-COPIED
@@ -190,14 +197,26 @@ function contribution(claim: ProtectionClaim): number {
   return computeCommittedClaimsAmount([{ amount: claim.amount, state: claim.state, faultClass: claim.faultClass }]);
 }
 
-function totalOf(amountFcfa: number): CommittedTotal {
-  return { amountFcfa, ...COMMITMENT_BASIS };
+function totalOf(amountFcfa: number, journalSeq: number): CommittedTotal {
+  return { amountFcfa, ...COMMITMENT_BASIS, journalSeq };
 }
 
-function keptUnderThisBasis(t: CommittedTotal | undefined): t is CommittedTotal {
-  if (t === undefined) return false;
+/** The total a write stores, stamped with the journal sequence that write leaves. */
+function stampedTotal(amountFcfa: number, journal: Record<string, unknown>): CommittedTotal {
+  return totalOf(amountFcfa, journal[SEQ_JOURNAL] as number);
+}
+
+function keptUnderThisBasis(t: CommittedTotal): boolean {
   const basis = { policyVersion: t.policyVersion, countsTowardCommitted: t.countsTowardCommitted, terminalStates: t.terminalStates };
   return JSON.stringify(basis) === JSON.stringify(COMMITMENT_BASIS);
+}
+
+/** Why a stored total cannot be trusted, or null when it can. */
+function staleness(t: CommittedTotal | undefined, journalSeq: number): BuildReason | null {
+  if (t === undefined) return 'no_total';
+  if (!keptUnderThisBasis(t)) return 'policy_changed';
+  if (t.journalSeq !== journalSeq) return 'unseen_writes';
+  return null;
 }
 
 const DIGITS = /^\d{1,15}$/;
@@ -309,6 +328,13 @@ export class FondsDO {
     };
     // Read first: a first build may raise the journal counter read below.
     const committed = await this.committedTotal();
+    const journal = await this.journalEntries([
+      {
+        action: 'protection.claim_opened.v1',
+        entity: id,
+        detail: { faultClass, amountFcfa, evidenceBundleId, refundRequired: refundRequired !== undefined },
+      },
+    ]);
     // ONE atomic write: the claim, its refund record, its journal row, its
     // place in the open set and the total it moves land together or not at
     // all — a claim without its history would be refused as a duplicate on
@@ -316,14 +342,8 @@ export class FondsDO {
     await this.state.storage.put({
       [key]: stored,
       [`${OPEN_PREFIX}${id}`]: true,
-      [TOTAL]: totalOf(committed + contribution(claim)),
-      ...(await this.journalEntries([
-        {
-          action: 'protection.claim_opened.v1',
-          entity: id,
-          detail: { faultClass, amountFcfa, evidenceBundleId, refundRequired: refundRequired !== undefined },
-        },
-      ])),
+      [TOTAL]: stampedTotal(committed + contribution(claim), journal),
+      ...journal,
     });
     return json({ ok: true, claim, refundRequired: refundRequired ?? null }, 201);
   }
@@ -374,7 +394,6 @@ export class FondsDO {
     };
     // Read first: a first build may raise the counters read below.
     const committed = await this.committedTotal();
-    const total = totalOf(committed - contribution(stored.claim) + contribution(nextClaim));
     const journal = await this.journalEntries([
       {
         action: 'claim:advance',
@@ -387,6 +406,7 @@ export class FondsDO {
         },
       },
     ]);
+    const total = stampedTotal(committed - contribution(stored.claim) + contribution(nextClaim), journal);
     if (isTerminal(to)) {
       // Leaving the open set is a delete, which a batch put cannot carry: one
       // transaction holds the step, its journal row, its total, its closing
@@ -513,24 +533,28 @@ export class FondsDO {
     ]);
     // Append-only: a new declaration NEVER overwrites history — the figure's
     // full trail is the maker-checker debt's standing mitigation. ONE atomic
-    // write: the declaration, its sequence, its replay receipt and its journal
-    // rows land together or not at all, so a retry can neither double nor
-    // overwrite it.
+    // write: the declaration, its sequence, its replay receipt, its journal
+    // rows and the restamped total land together or not at all, so a retry
+    // can neither double nor overwrite it.
     await this.state.storage.put({
       [`${DECL_PREFIX}${String(seq).padStart(8, '0')}`]: declaration,
       [SEQ_DECL]: seq,
       [consumedKey]: true,
       ...(solvencyChanged ? { [LAST_SOLVENCY]: solvency.state } : {}),
+      // Unchanged amount, restamped: this write moves the journal too.
+      [TOTAL]: stampedTotal(committed, journal),
       ...journal,
     });
     return json({ ok: true, declaration, solvency }, 201);
   }
 
   private async fundView(): Promise<Response> {
-    let head = await this.state.storage.get<unknown>([SEQ_DECL, TOTAL]);
-    if (!keptUnderThisBasis(head.get(TOTAL) as CommittedTotal | undefined)) {
-      await this.committedTotalFrom(head.get(TOTAL) as CommittedTotal | undefined);
-      head = await this.state.storage.get<unknown>([SEQ_DECL, TOTAL]); // the build may raise the counter
+    const read = () => this.state.storage.get<unknown>([SEQ_DECL, TOTAL, SEQ_JOURNAL]);
+    let head = await read();
+    const stale = staleness(head.get(TOTAL) as CommittedTotal | undefined, (head.get(SEQ_JOURNAL) as number | undefined) ?? 0);
+    if (stale !== null) {
+      await this.buildIndexes(stale);
+      head = await read(); // the build may raise the counter
     }
     const committed = (head.get(TOTAL) as CommittedTotal).amountFcfa;
     // Declarations are numbered 1..seq with no gap (see buildIndexes), so the
@@ -573,22 +597,20 @@ export class FondsDO {
   // ── internals ─────────────────────────────────────────────────────────────
 
   /** The running total under this release's basis, built from the rows once
-   * when absent or kept under another basis. */
+   * when absent, kept under another basis, or behind the journal. */
   private async committedTotal(): Promise<number> {
-    return this.committedTotalFrom(await this.state.storage.get<CommittedTotal>(TOTAL));
-  }
-
-  private async committedTotalFrom(stored: CommittedTotal | undefined): Promise<number> {
-    if (stored === undefined) return this.buildIndexes('no_total');
-    if (!keptUnderThisBasis(stored)) return this.buildIndexes('policy_changed');
-    return stored.amountFcfa;
+    const head = await this.state.storage.get<unknown>([TOTAL, SEQ_JOURNAL]);
+    const stored = head.get(TOTAL) as CommittedTotal | undefined;
+    const stale = staleness(stored, (head.get(SEQ_JOURNAL) as number | undefined) ?? 0);
+    return stale === null ? (stored as CommittedTotal).amountFcfa : this.buildIndexes(stale);
   }
 
   /**
-   * The one-time build: the total, the open set and the closing numbers, from
-   * the claims as stored, in ONE transaction with a `build:<n>` record of
-   * what it did. Closed claims are numbered in the order of their terminal
-   * step (ties by orderId).
+   * The build: the total, the open set and the closing numbers, from the
+   * claims as stored, in ONE transaction with a `build:<n>` record of what it
+   * did. Once for a book older than these keys, and again whenever the total
+   * cannot be trusted (`reason`). Closed claims are numbered in the order of
+   * their terminal step (ties by orderId), so a rebuild may renumber them.
    *
    * Counters: writes before every fund write was atomic stored a row first
    * and its counter after, so an interrupted one can leave a declaration or
@@ -627,7 +649,7 @@ export class FondsDO {
 
     const buildSeq = ((await storage.get<number>(SEQ_BUILD)) ?? 0) + 1;
     const entries: Record<string, unknown> = {
-      [TOTAL]: totalOf(amountFcfa),
+      [TOTAL]: totalOf(amountFcfa, (counters[SEQ_JOURNAL] as { after: number }).after),
       [SEQ_CLOSED]: closed.length,
       [`${BUILD_PREFIX}${pad(buildSeq)}`]: {
         at: new Date().toISOString(),
