@@ -528,10 +528,16 @@
     "screenClass": "status"
   },
   {
-    "key": "fonds.refund_required",
-    "fr": "Cliente à rembourser en premier",
+    "key": "fonds.refund_not_by_claim",
+    "fr": "Cette réclamation ne rembourse pas la cliente — vérifier son remboursement dans Commandes, sur la console Boutik+.",
     "register": "money",
     "screenClass": "status"
+  },
+  {
+    "key": "fonds.closed_older",
+    "fr": "Voir les réclamations plus anciennes",
+    "register": "neutral",
+    "screenClass": "label"
   },
   {
     "key": "fonds.no_claims",

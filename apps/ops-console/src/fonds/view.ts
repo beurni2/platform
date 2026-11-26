@@ -109,7 +109,7 @@ function claimRow(row: FondsClaimRow): HTMLElement {
   if (row.refundRequired) {
     const refund = document.createElement('p');
     refund.className = 'fd-claim-refund';
-    refund.textContent = t('fonds.refund_required');
+    refund.textContent = t('fonds.refund_not_by_claim');
     li.append(refund);
   }
   return li;

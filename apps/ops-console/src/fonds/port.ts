@@ -48,6 +48,19 @@ export interface FondsData {
    * as a visible warning — a dropped money record must never be silent.
    */
   readonly unrecognizedCount: number;
+  /**
+   * Where the next older page of closed claims starts, or null when every
+   * closed claim is shown. Open claims are never paged: all of them are in
+   * `claims` from the first view.
+   */
+  readonly closedBefore: number | null;
+}
+
+/** One older page of closed claims, most recently closed first. */
+export interface FondsClosedPage {
+  readonly claims: readonly FondsClaimRow[];
+  readonly unrecognizedCount: number;
+  readonly closedBefore: number | null;
 }
 
 export interface OpenClaimInput {
@@ -70,6 +83,7 @@ export interface DeclareInput {
 /** The desk's seam: sandbox preview in CI, HTTP against the live book when configured. */
 export interface FondsPort {
   load(): Promise<FondsData>;
+  loadOlderClosed(before: number): Promise<FondsClosedPage>;
   openClaim(input: OpenClaimInput): Promise<FondsActionResult>;
   /** `detail` is the settlementRef when to='resolved', the closedReason when to='closed_no_payout'. */
   advance(orderId: string, to: ClaimState, detail?: string): Promise<FondsActionResult>;

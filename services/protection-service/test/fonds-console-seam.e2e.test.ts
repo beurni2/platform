@@ -98,6 +98,36 @@ describe('the console fund port against the real protection service', () => {
     expect(journal.at(-1)?.detail).toMatchObject({ from: 'under_review', to: 'resolved', settlementRef: 'momo-tx-seam-001' });
   });
 
+  it('load shows every open claim and the latest 20 closed; « see older » brings the rest; the book agrees', async () => {
+    const port = new HttpFondsPort(base, OPS_SECRET);
+    for (let i = 0; i < 23; i += 1) {
+      const orderId = `order-seam-page-${String(i).padStart(2, '0')}`;
+      expect(
+        await port.openClaim({ orderId, reason: 'colis jamais pret', faultClass: 'buyer', amountFcfa: 2_000, evidenceBundleId: `evb-${orderId}` }),
+      ).toEqual({ ok: true });
+      if (i < 21) expect(await port.advance(orderId, 'closed_no_payout', 'la cliente a renonce')).toEqual({ ok: true });
+    }
+
+    const data = await port.load();
+    const { claims } = await ledger<{ claims: Array<{ claim: { orderId: string; state: string } }> }>('/claims');
+    const terminal = (s: string) => s === 'resolved' || s === 'closed_no_payout';
+    const openInBook = claims.filter((c) => !terminal(c.claim.state)).map((c) => c.claim.orderId);
+    expect(openInBook).toEqual(['order-seam-page-21', 'order-seam-page-22']);
+    // Every open claim on the first view; then the 20 most recently closed.
+    expect(data.claims.filter((c) => !terminal(c.state)).map((c) => c.orderId)).toEqual(openInBook);
+    const firstClosed = data.claims.filter((c) => terminal(c.state)).map((c) => c.orderId);
+    expect(firstClosed).toHaveLength(20);
+    expect(firstClosed[0]).toBe('order-seam-page-20');
+    expect(data.closedBefore).not.toBeNull();
+
+    const older = await port.loadOlderClosed(data.closedBefore as number);
+    expect(older.closedBefore).toBeNull();
+    expect(older.unrecognizedCount).toBe(0);
+    const shown = [...data.claims, ...older.claims].map((c) => c.orderId);
+    expect(new Set(shown).size).toBe(shown.length);
+    expect([...shown].sort()).toEqual(claims.map((c) => c.claim.orderId).sort());
+  }, 60_000);
+
   it('a wrong key through the port is refused by the service, and load says unauthorized', async () => {
     const port = new HttpFondsPort(base, 'not-the-secret');
     await expect(port.load()).rejects.toThrow('unauthorized');

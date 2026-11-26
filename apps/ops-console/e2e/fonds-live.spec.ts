@@ -124,3 +124,76 @@ test('the founder opens the book, money fields take digits only, a claim opens, 
   await expect(page.locator('.desk-title')).toHaveText('Fonds de protection');
   expect(pageErrors).toEqual([]);
 });
+
+test('a seller-fault claim says it does not refund the buyer, and where her refund is checked', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (e) => pageErrors.push(e.message));
+  await page.goto('/#/fonds-de-protection');
+  await page.locator('input[name="cle"]').fill(WALK_KEY);
+  await page.getByRole('button', { name: 'Ouvrir le registre' }).click();
+  // order-walk-001 is the seller-fault claim the first walk opened.
+  const row = page.locator('li.fd-claim[data-order="order-walk-001"]');
+  await expect(row).toBeVisible();
+  await expect(row.locator('.fd-claim-refund')).toHaveText(
+    'Cette réclamation ne rembourse pas la cliente — vérifier son remboursement dans Commandes, sur la console Boutik+.',
+  );
+  await expect(page.getByText('Cliente à rembourser en premier')).toHaveCount(0);
+  expect(pageErrors).toEqual([]);
+});
+
+test('the desk shows every open claim, the latest closed ones and « see older »', async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(60_000);
+  const pageErrors: string[] = [];
+  page.on('pageerror', (e) => pageErrors.push(e.message));
+
+  // Seed the book through the service itself: 25 closed claims, then 2 open.
+  const service = (method: 'POST' | 'PUT', path: string, data: unknown) =>
+    request.fetch(`${SERVICE}${path}`, { method, headers: { Authorization: `Bearer ${WALK_KEY}` }, data });
+  for (let i = 0; i < 25; i += 1) {
+    const orderId = `order-page-${String(i).padStart(2, '0')}`;
+    expect(
+      (await service('POST', '/claims', { orderId, reason: 'colis jamais pret', faultClass: 'buyer', amountFcfa: 2_000, evidenceBundleId: `evb-${orderId}` })).status(),
+    ).toBe(201);
+    expect(
+      (await service('POST', `/claims/${orderId}/advance`, { to: 'closed_no_payout', closedReason: 'la cliente a renonce' })).status(),
+    ).toBe(200);
+  }
+  for (const orderId of ['order-page-open-1', 'order-page-open-2']) {
+    expect(
+      (await service('POST', '/claims', { orderId, reason: 'mauvaise taille', faultClass: 'seller', amountFcfa: 9_000, evidenceBundleId: `evb-${orderId}` })).status(),
+    ).toBe(201);
+  }
+  const ledgerAll = (await ledger<LedgerClaims>(request, '/claims')).claims;
+  const openInBook = ledgerAll.filter((c) => c.claim.state === 'opened' || c.claim.state === 'under_review');
+
+  await page.goto('/#/fonds-de-protection');
+  await page.locator('input[name="cle"]').fill(WALK_KEY);
+  await page.getByRole('button', { name: 'Ouvrir le registre' }).click();
+
+  // Every open claim is on the first view — never behind a page.
+  for (const c of openInBook) {
+    await expect(page.locator(`li.fd-claim[data-order="${c.claim.orderId}"]`)).toBeVisible();
+  }
+  // The 20 most recently closed are shown, the 5 oldest wait behind « see older ».
+  const closedRows = page.locator('li.fd-claim[data-state="closed_no_payout"]');
+  await expect(closedRows).toHaveCount(20);
+  await expect(page.locator('li.fd-claim[data-order="order-page-24"]')).toBeVisible();
+  await expect(page.locator('li.fd-claim[data-order="order-page-04"]')).toHaveCount(0);
+
+  const older = page.getByRole('button', { name: 'Voir les réclamations plus anciennes' });
+  await older.click();
+  await expect(closedRows).toHaveCount(25);
+  await expect(page.locator('li.fd-claim[data-order="order-page-00"]')).toBeVisible();
+  await expect(older).toHaveCount(0);
+  // Open claims are still there, and still movable.
+  await expect(
+    page.locator('li.fd-claim[data-order="order-page-open-1"]').getByRole('button', { name: 'Passer en examen' }),
+  ).toBeVisible();
+
+
+  await expect(page.locator('.desk-title')).toHaveText('Fonds de protection');
+  expect(pageErrors).toEqual([]);
+});

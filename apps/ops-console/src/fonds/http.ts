@@ -18,6 +18,7 @@ import type {
   DeclareInput,
   FondsActionResult,
   FondsClaimRow,
+  FondsClosedPage,
   FondsData,
   FondsPort,
   OpenClaimInput,
@@ -60,6 +61,17 @@ function toRow(stored: WireStoredClaim): FondsClaimRow | null {
   };
 }
 
+/** Closed claims shown per page; open claims are always shown whole. */
+const CLOSED_PAGE = 20;
+
+type WireClosedPage = { claims: WireStoredClaim[]; nextBefore: number | null };
+
+function toPage(body: WireClosedPage): FondsClosedPage {
+  const rows = body.claims.map(toRow);
+  const claims = rows.filter((r): r is FondsClaimRow => r !== null);
+  return { claims, unrecognizedCount: rows.length - claims.length, closedBefore: body.nextBefore };
+}
+
 export class HttpFondsPort implements FondsPort {
   constructor(
     private readonly base: string,
@@ -71,14 +83,19 @@ export class HttpFondsPort implements FondsPort {
   }
 
   async load(): Promise<FondsData> {
-    const [claimsRes, fundRes] = await Promise.all([
-      fetch(`${this.base}/claims`, { headers: this.headers() }),
+    // The summary, every open claim, and the latest closed page — never the
+    // whole history.
+    const [fundRes, openRes, closedRes] = await Promise.all([
       fetch(`${this.base}/fund`, { headers: this.headers() }),
+      fetch(`${this.base}/claims?part=open`, { headers: this.headers() }),
+      fetch(`${this.base}/claims?part=closed&limit=${CLOSED_PAGE}`, { headers: this.headers() }),
     ]);
-    if (!claimsRes.ok || !fundRes.ok) {
-      throw new Error(claimsRes.status === 401 || fundRes.status === 401 ? 'unauthorized' : 'unreachable');
+    const all = [fundRes, openRes, closedRes];
+    if (all.some((r) => !r.ok)) {
+      throw new Error(all.some((r) => r.status === 401) ? 'unauthorized' : 'unreachable');
     }
-    const claimsBody = (await claimsRes.json()) as { claims: WireStoredClaim[] };
+    const openBody = (await openRes.json()) as { claims: WireStoredClaim[] };
+    const closed = toPage((await closedRes.json()) as WireClosedPage);
     const fundBody = (await fundRes.json()) as {
       declaration: {
         balanceFcfa: number;
@@ -89,8 +106,8 @@ export class HttpFondsPort implements FondsPort {
       committedClaimsAmountFcfa: number;
       solvency: { state: FundSolvencyState | null; availableAfterCommitmentsFcfa: number | null };
     };
-    const rows = claimsBody.claims.map(toRow);
-    const claims = rows.filter((r): r is FondsClaimRow => r !== null);
+    const rows = openBody.claims.map(toRow);
+    const open = rows.filter((r): r is FondsClaimRow => r !== null);
     return {
       fund: {
         balanceFcfa: fundBody.declaration?.balanceFcfa ?? null,
@@ -101,11 +118,20 @@ export class HttpFondsPort implements FondsPort {
         solvencyState: fundBody.solvency.state,
         availableAfterCommitmentsFcfa: fundBody.solvency.availableAfterCommitmentsFcfa,
       },
-      claims,
+      claims: [...open, ...closed.claims],
       // A money record this adapter cannot read is COUNTED and shown, never
       // silently dropped (verifier round 1, note 4).
-      unrecognizedCount: rows.length - claims.length,
+      unrecognizedCount: rows.length - open.length + closed.unrecognizedCount,
+      closedBefore: closed.closedBefore,
     };
+  }
+
+  async loadOlderClosed(before: number): Promise<FondsClosedPage> {
+    const res = await fetch(`${this.base}/claims?part=closed&limit=${CLOSED_PAGE}&before=${before}`, {
+      headers: this.headers(),
+    });
+    if (!res.ok) throw new Error(res.status === 401 ? 'unauthorized' : 'unreachable');
+    return toPage((await res.json()) as WireClosedPage);
   }
 
   private async action(path: string, method: string, body: Record<string, unknown>): Promise<FondsActionResult> {
