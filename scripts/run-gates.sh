@@ -69,6 +69,15 @@ capture copy-lint-negative fail pnpm exec copy-lint scripts/gates/fixtures/negat
 log "gate: French Voice copy-lint — NEGATIVE FIXTURE (administrative register, F12 — must fail)"
 capture copy-lint-administrative fail pnpm exec copy-lint scripts/gates/fixtures/negative/catalog.administrative-register.json
 
+# ACCENTS-INVISIBLES-1 (2026-11-27) — the banned words without their accent or
+# with a hidden character. The canon lint now compares both sides folded
+# (accents and invisible format characters removed; platform-contracts
+# 34c1569). This fixture's ONLY violations are spellings the earlier pin lets
+# through (measured against 199bc2a: 0 violations) — so a pin regression turns
+# the board red, the way the F12 fixture above guards F12.
+log "gate: French Voice copy-lint — NEGATIVE FIXTURE (no accent, hidden characters — must fail)"
+capture copy-lint-accents fail pnpm exec copy-lint scripts/gates/fixtures/negative/catalog.accents.json
+
 
 log "gate: lockfile URL-form — zero SSH-form git URLs in the committed lockfile (defense in depth; canon v0.9.4 standing law) (must pass)"
 capture lockfile-url-form-positive pass node scripts/gates/no-ssh-git-url.mjs
