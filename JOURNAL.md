@@ -5,6 +5,22 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-27 · FONDS-3 — DEPLOYED and MERGED
+
+**Founder.** « Release all four » (2026-11-27 00:42 UTC, in the project chat, on the batch report), which named for the platform: merge, then put the fund service live, then the console.
+
+**Merge.** main re-checked unchanged at `ae0b76e`; PR #3 merged as `d509c76` (merge commit, the branch shas kept). PR gates green on `871ebc4`.
+
+**Deploys, from main at `d509c76`, in the noted order.**
+- protection-deploy 6 (id 45918511048): « PROVENANCE OK — live protection Worker is `d509c76…` speaking canon 1.2.0 ».
+- ops-console-deploy 5 (id 45918586168): wrangler 4.130.0 from the lock file; Pages deployment of `d509c76` complete.
+
+**Deploy note, as reported.** The first desk view runs the one-time build of the running total and indexes inside its request; its answer is the same as before. The founder's check: that first view shows the same balance, committed amount and solvency as before the deploy.
+
+**Still open.** As named in the slice entry below. Other open items are held in the private batch record until their fixes deploy.
+
+---
+
 ## 2026-11-26 · FONDS-3 — the fund desk reads only what it shows; the seller-fault line says what is true · on the branch, NOT merged, NOT deployed
 
 **Founder.** « Start batch 1 » (2026-11-26 22:03 UTC, decision card on the batch plan). Lane O, integrated on `claude/project-thread-jqj97g` (lane commits `2e19c82`, `c8c502d`; merges `0a66fc8`, `53e23f6`).
