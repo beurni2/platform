@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { TERMINAL_CLAIM_STATES, computeCommittedClaimsAmount } from '../src/fund-core.js';
 import { FondsDO } from '../worker/fund-do.js';
+// The previous release's book, frozen verbatim: it writes a book with no running total or indexes.
+import { FondsDO as FondsDOMain } from './fixtures/main-ae0b76e/fund-do.js';
 
 /**
  * EVERY FUND WRITE LANDS WHOLE WITH ITS HISTORY (§9.1 « every ops action is a
@@ -18,11 +21,16 @@ import { FondsDO } from '../worker/fund-do.js';
  *    object keeps in memory survives a reload, and no reference is shared.
  *  · `list({ prefix })` returns keys in sorted order, as real storage does.
  *  · A multi-key `put({...})` is all-or-nothing (real storage's documented
- *    atomic batch, at most 128 keys) — the ONLY atomicity it grants.
+ *    atomic batch, at most 128 keys), and so is a `transaction()`: its writes
+ *    are staged and land only when the closure returns; a throw inside it
+ *    lands nothing. These are the ONLY atomicity it grants.
+ *  · `list` honours exactly prefix, start, end (exclusive), reverse and limit,
+ *    as real storage does, and refuses any option it does not implement.
  *  · Each single-key `put` is committed the moment it is called. Real storage
  *    may coalesce consecutive writes; this stand-in never does, so it is
  *    HARSHER: a failure can land between any two awaited puts.
- *  · An injected failure throws BEFORE the failing put applies anything.
+ *  · Every put and delete (inside a transaction too) is a write boundary; an
+ *    injected failure throws BEFORE the failing write applies anything.
  */
 class StrictStorage {
   readonly data = new Map<string, unknown>();
@@ -39,25 +47,81 @@ class StrictStorage {
     return v === undefined ? undefined : structuredClone(v);
   }
 
-  async put(keyOrEntries: string | Record<string, unknown>, value?: unknown): Promise<void> {
+  private boundary(): void {
     this.putCalls += 1;
     if (this.failAtPut !== null && this.putCalls === this.failAtPut) {
       throw new Error('injected storage write failure');
     }
-    if (typeof keyOrEntries === 'string') {
-      this.data.set(keyOrEntries, structuredClone(value));
-      return;
-    }
-    const entries = Object.entries(keyOrEntries);
-    if (entries.length > 128) throw new Error('a batch put takes at most 128 keys');
-    const cloned = entries.map(([k, v]) => [k, structuredClone(v)] as const);
-    for (const [k, v] of cloned) this.data.set(k, v);
   }
 
-  async list(options: { prefix?: string } = {}): Promise<Map<string, unknown>> {
+  private staged(keyOrEntries: string | Record<string, unknown>, value?: unknown): Array<readonly [string, unknown]> {
+    if (typeof keyOrEntries === 'string') return [[keyOrEntries, structuredClone(value)]];
+    const entries = Object.entries(keyOrEntries);
+    if (entries.length > 128) throw new Error('a batch put takes at most 128 keys');
+    return entries.map(([k, v]) => [k, structuredClone(v)] as const);
+  }
+
+  async put(keyOrEntries: string | Record<string, unknown>, value?: unknown): Promise<void> {
+    this.boundary();
+    for (const [k, v] of this.staged(keyOrEntries, value)) this.data.set(k, v);
+  }
+
+  async delete(key: string): Promise<boolean> {
+    this.boundary();
+    return this.data.delete(key);
+  }
+
+  async list(
+    options: { prefix?: string; start?: string; end?: string; reverse?: boolean; limit?: number } = {},
+  ): Promise<Map<string, unknown>> {
+    for (const k of Object.keys(options)) {
+      if (!['prefix', 'start', 'end', 'reverse', 'limit'].includes(k)) throw new Error(`list option ${k} not implemented`);
+    }
     const prefix = options.prefix ?? '';
-    const keys = [...this.data.keys()].filter((k) => k.startsWith(prefix)).sort();
+    let keys = [...this.data.keys()]
+      .filter((k) => k.startsWith(prefix))
+      .filter((k) => options.start === undefined || k >= options.start)
+      .filter((k) => options.end === undefined || k < options.end)
+      .sort();
+    if (options.reverse === true) keys.reverse();
+    if (options.limit !== undefined) keys = keys.slice(0, options.limit);
     return new Map(keys.map((k) => [k, structuredClone(this.data.get(k))]));
+  }
+
+  async transaction<T>(closure: (txn: unknown) => Promise<T>): Promise<T> {
+    const writes = new Map<string, { value: unknown } | null>();
+    const txn = {
+      get: async (key: string | string[]) => {
+        if (Array.isArray(key)) {
+          const out = new Map<string, unknown>();
+          for (const k of key) {
+            const w = writes.get(k);
+            const v = w === undefined ? this.data.get(k) : w?.value;
+            if (v !== undefined) out.set(k, structuredClone(v));
+          }
+          return out;
+        }
+        const w = writes.get(key);
+        const v = w === undefined ? this.data.get(key) : w?.value;
+        return v === undefined ? undefined : structuredClone(v);
+      },
+      put: async (keyOrEntries: string | Record<string, unknown>, value?: unknown) => {
+        this.boundary();
+        for (const [k, v] of this.staged(keyOrEntries, value)) writes.set(k, { value: v });
+      },
+      delete: async (key: string) => {
+        this.boundary();
+        const had = (writes.get(key) ?? (this.data.has(key) ? { value: true } : null)) !== null;
+        writes.set(key, null);
+        return had;
+      },
+    };
+    const result = await closure(txn);
+    for (const [k, w] of writes) {
+      if (w === null) this.data.delete(k);
+      else this.data.set(k, w.value);
+    }
+    return result;
   }
 }
 
@@ -111,6 +175,26 @@ function expectWhole(s: Snapshot, storage: StrictStorage): void {
   }
   const consumed = [...storage.data.keys()].filter((k) => k.startsWith('consumed:'));
   expect(consumed).toHaveLength(s.declSeqs.length);
+
+  // The derived reads move WITH the change: the running total is the policy
+  // function over the claims, and the two indexes are exactly the claim states.
+  const claims = s.claims.map((c) => c.claim as { orderId: string; state: string; amount: number; faultClass: string });
+  if (claims.length > 0) {
+    expect((storage.data.get('total:committed') as { amountFcfa: number } | undefined)?.amountFcfa).toBe(
+      computeCommittedClaimsAmount(claims),
+    );
+  }
+  // Every write of this release stamps the journal sequence it leaves into the
+  // total, so a write the total never saw (an older release's) is detectable.
+  const total = storage.data.get('total:committed') as { journalSeq?: number } | undefined;
+  if (total !== undefined) expect(total.journalSeq).toBe(storage.data.get('seq:journal') ?? 0);
+  const terminal = (c: { state: string }) => (TERMINAL_CLAIM_STATES as readonly string[]).includes(c.state);
+  const openIndex = [...storage.data.keys()].filter((k) => k.startsWith('open:')).map((k) => k.slice('open:'.length));
+  expect(openIndex.sort()).toEqual(claims.filter((c) => !terminal(c)).map((c) => c.orderId).sort());
+  const closedIndex = [...storage.data.entries()].filter(([k]) => k.startsWith('closed:'));
+  expect(closedIndex.map(([, id]) => id as string).sort()).toEqual(claims.filter(terminal).map((c) => c.orderId).sort());
+  expect(closedIndex.map(([k]) => Number(k.slice('closed:'.length)))).toEqual(closedIndex.map((_, i) => i + 1));
+  expect(storage.data.get('seq:closed') ?? 0).toBe(closedIndex.length);
 }
 
 const SEED_DECLARATION = { commandId: 'seed-decl-1', balanceFcfa: 40_000 };
@@ -156,6 +240,21 @@ const ACTIONS: readonly Action[] = [
     landedOnce: (s) => {
       expect(s.claims[0]?.claim.state).toBe('under_review');
       expect(s.claims[0]?.advanced).toHaveLength(1);
+    },
+  },
+  {
+    name: 'closing a claim',
+    seed: async (book) => {
+      expect((await call(book, 'PUT', '/fund', SEED_DECLARATION)).status).toBe(201);
+      expect((await call(book, 'POST', '/claims', CLAIM)).status).toBe(201);
+      expect((await call(book, 'POST', `/claims/${CLAIM.orderId}/advance`, { to: 'under_review' })).status).toBe(200);
+    },
+    run: (book) =>
+      call(book, 'POST', `/claims/${CLAIM.orderId}/advance`, { to: 'resolved', settlementRef: 'momo-whole-001' }),
+    okStatus: 200,
+    landedOnce: (s) => {
+      expect(s.claims[0]?.claim.state).toBe('resolved');
+      expect(s.claims[0]?.advanced).toHaveLength(2);
     },
   },
   {
@@ -213,6 +312,41 @@ describe('every fund write lands whole with its history — a failure at any wri
       }
     });
   }
+
+  it('the one-time build of an older book, failing at any of its writes, lands nothing; the next reading builds it whole', async () => {
+    // An older book big enough that the build writes in more than one batch.
+    const old = new StrictStorage();
+    const main = new FondsDOMain({ storage: old } as unknown as DurableObjectState);
+    for (let i = 0; i < 150; i += 1) {
+      const orderId = `order-build-${String(i).padStart(3, '0')}`;
+      expect((await call(main, 'POST', '/claims', { ...CLAIM, orderId, evidenceBundleId: `evb-${orderId}` })).status).toBe(201);
+      if (i % 3 === 0) {
+        const res = await call(main, 'POST', `/claims/${orderId}/advance`, { to: 'closed_no_payout', closedReason: 'la cliente a renonce' });
+        expect(res.status).toBe(200);
+      }
+    }
+    expect((await call(main, 'PUT', '/fund', SEED_DECLARATION)).status).toBe(201);
+    const mainFund = await (await call(main, 'GET', '/fund')).text();
+    const over = (): StrictStorage => {
+      const s = new StrictStorage();
+      for (const [k, v] of old.data) s.data.set(k, structuredClone(v));
+      return s;
+    };
+
+    const clean = over();
+    expect(await (await call(bookOver(clean), 'GET', '/fund')).text()).toBe(mainFund);
+    const boundaries = clean.putCalls;
+    expect(boundaries).toBeGreaterThan(1);
+    for (let k = 1; k <= boundaries; k += 1) {
+      const storage = over();
+      storage.failAtPut = k;
+      await expect(call(bookOver(storage), 'GET', '/fund'), `boundary ${k}`).rejects.toThrow('injected');
+      storage.failAtPut = null;
+      expect([...storage.data.keys()], `boundary ${k}: nothing landed`).toEqual([...old.data.keys()]);
+      expect(await (await call(bookOver(storage), 'GET', '/fund')).text()).toBe(mainFund);
+      expectWhole(await snapshot(storage), storage);
+    }
+  });
 
   it('the solvency a declaration answers is the solvency the book then reads back', async () => {
     const storage = new StrictStorage();
