@@ -5,6 +5,40 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-27 · SORTIES-SURES-1 — a service goes live only from main's newest green commit, with the founder's approval; a rollback page and its drill; the board and a live check every day · lane O5 · on the branch, NOT merged, NOT deployed
+
+**Founder.** « Go on for batch 6 » (2026-11-27 19:38 UTC), batch 6 of the plan he approved: « A service goes live only after its checks passed on that exact version, with your approval in front of it. One page per app says how to roll back, and we practise it once. The boards run every day, not only when someone pushes. A daily watch checks that the live services run `main`. » His card on the GitHub approval is still open; this is built on its recommended answer (service releases wait for his approval).
+
+**Lane.** Lane O5 (all five repositories), platform commits `77c3db8` (red first), `499ca88` and the review's fixes `9f4eec1` on `89e2939`. Integrated on `claude/project-thread-jqj97g` as `0125a02` on `81a64e6`. Files byte-identical to the lane's.
+
+**Spec.** Execution Contract §7.1 (« promotion rules … Required approvals on money/custody/attribution releases ») and §11 (« secrets management · key rotation »).
+
+**What changed.**
+- *Service releases* (`protection-deploy`, `ops-console-deploy`): the first step is a new `scripts/deploy-only-main.sh` (the Boutik+ rule): main's newest commit only, a push ci run on it green, and its most recently created finished ci run green; read with the job's own token, no secret, no input. Both jobs name `environment: production`, so each run waits for the founder's approval in GitHub.
+- *Rollback.* A `rollback` workflow (dispatch on main only, `production`) lists the protection service's newest versions and points it back at the previous or a named version, rebuilding nothing; it names each key that went back with the version and how to write it again (`protection-deploy` writes it). `docs/runbooks/ROLLBACK.md` in plain words, with the ops console's Pages rollback and the drill: practised once on the protection service at release.
+- *Every day.* ci at 05:00 UTC. A new `live-watch` at 05:30 UTC asks the live protection Worker which commit it was built from and goes red unless main has changed nothing it is built from (its folder, the lock file, the workspace files, `tsconfig.base.json`, `turbo.json`); a missing input, an unknown release or « dev » is red.
+- *The gate.* `scripts/gates/deploy-chain-locked.mjs` (new here: pinned actions, `permissions:` on every workflow, no secret in a `run:` text, no `npx wrangler`, the guard first in every deploying job, the release rules) with its legal and negative fixtures, and the proofs `deploy-only-main-proof` and `live-watch-proof`, each driving the real script.
+
+**Evidence.** Lane: each new gate and proof red on main for the right reason, then green; mutations each red, restored byte-identical. Coordinator: every workflow and script change read; the gate and proofs re-run at the lane heads. Full board on `0125a02`, turbo forced: ALL GATES GREEN (ops console 87, protection 83).
+
+**Verifier.** One fresh-context pass across the five repositories, handled once: the gate checks every deploying job starts with its guard; the watch refuses an input missing from main and lists the shared TypeScript base and the build plan; the rollback page says keys go back with the version.
+
+**Release.** The merge, then protection-deploy and ops-console-deploy from main, each through the guard and his approval; then the rollback drill on the protection service.
+
+**Still open.** Held in the private batch record until their fixes deploy. The daily watch reads red for the protection service until it is deployed from main.
+
+---
+
+## 2026-11-27 · ACCENTS-INVISIBLES-1 (pin) — MERGED
+
+**Founder.** « Release all five » (2026-11-27 17:59 UTC, decision card, on the batch 5 report), which named the platform: merge only, after the platform-contracts pull request.
+
+**Merge.** platform-contracts PR #4 merged first (`dcf9740`). main re-checked unchanged at `eaad8b9`; PR #5 merged as `89e2939` (merge commit, the branch shas kept). On main: ci 38 green.
+
+**No deploy.** No product code, sentence or screen changed; the next console deploy carries the pin.
+
+---
+
 ## 2026-11-27 · ACCENTS-INVISIBLES-1 (pin) — the copy-lint here now compares words without their accents and without invisible characters · coordinator · on the branch, NOT merged
 
 **Founder.** Batch 5 of the plan he approved (« Now you start working on the next batch », 2026-11-27 15:13 UTC): « The French wording check catches « sequestre » without its accent. » The rule lives in the shared record (`platform-contracts` `34c1569`, see its journal); this repository only moves its pin.

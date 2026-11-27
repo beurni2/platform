@@ -322,6 +322,45 @@ capture drift-check-version-mismatch-negative fail pnpm exec drift-check docs --
 log "ops console — Playwright harness (eight routes render honest empty states)"
 capture playwright-e2e pass pnpm --filter @platform/ops-console test:e2e
 
+# ═══ RELEASES STAY SAFE — the release chain, its guard, the publish rule, the daily watch ═══
+# Ported from Boutik+: actions pinned, no npx beyond the named exact one,
+# permissions declared, no secret pasted into a script, every service release
+# starts with its guard. Each negative fixture breaks ONE rule and is scanned
+# alone, so every rule is shown failing by itself.
+log "gate: deploy-chain-locked — the repo's workflows (must pass)"
+capture deploy-chain-locked-positive pass node scripts/gates/deploy-chain-locked.mjs
+
+log "gate: deploy-chain-locked — POSITIVE FIXTURE (a legal deploy workflow, must pass)"
+capture deploy-chain-locked-legal pass node scripts/gates/deploy-chain-locked.mjs scripts/gates/fixtures/deploy-chain-legal.yml
+
+for fx in scripts/gates/fixtures/negative/deploy-chain/*.yml; do
+  n="$(basename "$fx" .yml)"
+  log "gate: deploy-chain-locked — NEGATIVE FIXTURE ALONE ($n, must fail)"
+  capture "deploy-chain-locked-negative-$n" fail node scripts/gates/deploy-chain-locked.mjs "$fx"
+done
+
+# The release rules: a service release starts with its guard and waits in
+# `production`; an app publish follows a green ci on main and never cancels;
+# the rollback only rolls back; the board runs daily. One legal folder, and
+# one negative folder per rule, each breaking that rule alone.
+log "gate: deploy-chain-locked — POSITIVE FIXTURE (a legal set of release workflows, must pass)"
+capture release-chain-legal pass node scripts/gates/deploy-chain-locked.mjs scripts/gates/fixtures/release-chain-legal
+
+for fx in scripts/gates/fixtures/negative/release-chain/*/; do
+  n="$(basename "$fx")"
+  log "gate: deploy-chain-locked — NEGATIVE RELEASE FIXTURE ALONE ($n, must fail)"
+  capture "release-chain-negative-$n" fail node scripts/gates/deploy-chain-locked.mjs "$fx"
+done
+
+# The guard, the publish decision and the watch run only on GitHub; each proof
+# drives the REAL script against a local repository and local stand-ins.
+log "gate: deploy-only-main — proof of the first step of every deploy (must pass)"
+capture deploy-only-main-proof pass node scripts/gates/deploy-only-main-proof.mjs
+
+
+log "gate: live-watch — proof of the daily « live runs main » watch (must pass)"
+capture live-watch-proof pass node scripts/gates/live-watch-proof.mjs
+
 if [ $FAILED -ne 0 ]; then
   echo ""
   echo "ONE OR MORE GATES FAILED"
