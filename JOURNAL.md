@@ -5,6 +5,71 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-27 · LOIS-PARTOUT-1 — the standing laws are checked here too, and every tracked file refuses the retired names · on the branch, NOT merged
+
+**Founder.** « after everything is released, you can start the next batch 3 » (2026-11-27 04:21 UTC, project chat). The plan he approved says, for this batch: « the standing rules are checked in the platform repository too, and every repository checks for the retired names. »
+
+**Lane.** Lane O, slice O4. The lane commits `28ef86f`, `1e4fe2a` and `2e96527` were integrated on `claude/project-thread-jqj97g` as one commit, `cde5eb8`.
+
+**Spec.**
+- CLAUDE.md §4: « every invariant gate + the copy-lint + the contracts drift-check live from the first PR in every repo … A gate added later is a gate that already let something through. »
+- CLAUDE.md §3: Laws 2, 4, 5, 9 and 10.
+- ECOSYSTEM-MASTER-REFERENCE §9.2 Desk 1, and the canon `ProtectionFundSchema`. The fund keeps its own book; no earner has a balance.
+
+**What changed (gate files only).**
+- **New law gates**, copied with their patterns byte-equal from the app repositories: single-level, no-ML, no-wallet-no-funds, no-seller-deposit, no-seller-debit, and the pattern-coverage gate. Each has English and French negative fixtures, and single-level has its legal positive. Every pattern is in `gates/pattern-roster.json`.
+- **No-ML also reads the root manifest.** A board step plants a banned dependency in a root manifest only and requires a refusal.
+- **The fund's own book passes on nine ruled entries.** Each entry is pinned to its file, its pattern and its exact trimmed line, and is printed on every run.
+  - Five ops-console lines show or declare the fund's own balance.
+  - The fund-book test lines assert that no seller-balance or seller-debit key exists. One of them is excused for two wallet patterns.
+  - An edited line loses its excuse. Board steps copy an excused file to a temp folder, plant an earner's balance beside the ruled line, and require a refusal.
+- **An earner's balance is refused** (seller, reseller, supplier, rider and the other earners), as a whole word or with its currency. `fund` is left out on purpose.
+- **The retired-names gate** is the same file in all five repositories. The board pins its sha256 (`cdfd9208…02dd`).
+  - It reads every tracked file except a printed list: the 12 canon files by name, `design-reference/`, CLAUDE.md, AGENTS.md, JOURNAL.md, `_review/`, the gate itself, the roster, and its own negative fixtures.
+  - A throwaway-repository probe pins both edges of that list.
+  - It refuses the two names whatever separates the words: white space, an escaped space or an HTML entity. It still refuses them right after an escape that ends in a letter, and it refuses « Mon shop » in lowercase.
+  - « ma boutique », « mon Shop+ » and « mon shopping » stay legal, proven by a legal fixture.
+
+**Coordinator change at integration.** The left-out reason for the canon said the canon « states Law 10 itself ». It does not: no canon file names the old brand. It now reads « product truth, changed only by a canon slice ». The hash was re-pinned on all five boards.
+
+**Evidence.**
+- `pnpm build` exit 0. `TURBO_CONCURRENCY=1 bash scripts/run-gates.sh` on `cde5eb8`: « ALL GATES GREEN », exit 0, no failed step.
+- Red first, by the lane: on main `d509c76`, a planted ML dependency, a seller balance and the retired names pass; the branch refuses each one.
+- Mutations re-run by the coordinator on `cde5eb8`. Each anchor matched, and each file was restored with an empty `git status`. Each mutation turns its step green, so the board goes red:
+  - the gap between the words back to a plain space: the escaped-space and HTML-entity fixtures each pass alone;
+  - the leading edge reverted: the escaped-lead fixture passes alone;
+  - the lowercase form reverted: its fixture passes alone;
+  - the earner tail reverted: its fixture passes alone, and coverage exits 1;
+  - `apps/` left out: the `apps/` probe exits 0;
+  - `docs/` put back: the runbook probe exits 0;
+  - the root-manifest read removed: the root probe exits 0;
+  - the line pin dropped: the `vendeurBalance` and `supplierBalance` plants exit 0.
+- The lane ran 15 mutations, with the same discipline.
+
+**Independent review.** One fresh-context pass, handled once: 0 blocker, 2 major, 6 minor, 6 notes. Every major and minor was fixed in this build. The notes were fixed, or kept in the private batch record.
+
+**Still open.** Follow-ons for the gates are held in the private batch record.
+
+**Where it stands.** On the branch, not merged. Gate files only: merging is the whole release, and there is no deploy.
+
+---
+
+## 2026-11-27 · FONDS-3 — DEPLOYED and MERGED
+
+**Founder.** « Release all four » (2026-11-27 00:42 UTC, in the project chat, on the batch report), which named for the platform: merge, then put the fund service live, then the console.
+
+**Merge.** main re-checked unchanged at `ae0b76e`; PR #3 merged as `d509c76` (merge commit, the branch shas kept). PR gates green on `871ebc4`.
+
+**Deploys, from main at `d509c76`, in the noted order.**
+- protection-deploy 6 (id 45918511048): « PROVENANCE OK — live protection Worker is `d509c76…` speaking canon 1.2.0 ».
+- ops-console-deploy 5 (id 45918586168): wrangler 4.130.0 from the lock file; Pages deployment of `d509c76` complete.
+
+**Deploy note, as reported.** The first desk view runs the one-time build of the running total and indexes inside its request; its answer is the same as before. The founder's check: that first view shows the same balance, committed amount and solvency as before the deploy.
+
+**Still open.** As named in the slice entry below. Other open items are held in the private batch record until their fixes deploy.
+
+---
+
 ## 2026-11-26 · FONDS-3 — the fund desk reads only what it shows; the seller-fault line says what is true · on the branch, NOT merged, NOT deployed
 
 **Founder.** « Start batch 1 » (2026-11-26 22:03 UTC, decision card on the batch plan). Lane O, integrated on `claude/project-thread-jqj97g` (lane commits `2e19c82`, `c8c502d`; merges `0a66fc8`, `53e23f6`).
