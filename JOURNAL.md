@@ -5,6 +5,18 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-27 · ACCENTS-INVISIBLES-1 (pin) — the copy-lint here now compares words without their accents and without invisible characters · coordinator · on the branch, NOT merged
+
+**Founder.** Batch 5 of the plan he approved (« Now you start working on the next batch », 2026-11-27 15:13 UTC): « The French wording check catches « sequestre » without its accent. » The rule lives in the shared record (`platform-contracts` `34c1569`, see its journal); this repository only moves its pin.
+
+**What changed.** The branch first fast-forwarded to main `eaad8b9`. `@platform/i18n` repinned from `199bc2a` to `34c1569` in the root and ops-console `package.json` and the lock file. A new negative fixture, `scripts/gates/fixtures/negative/catalog.accents.json`, holds four sentences whose ONLY faults are a missing accent, a soft hyphen or a zero-width space inside a banned word, and the §10.5 bad example; `scripts/run-gates.sh` runs it as a must-fail step (0 violations on the old pin, 4 on the new). No product code, no sentence and no screen changed: the ops console's 125 strings lint clean on the new pin.
+
+**Evidence (524336a).** Board: turbo build, typecheck and test green; `run-gates.sh` ALL GATES GREEN, the accent fixture failing with 4 as required.
+
+**Release.** Merge only.
+
+---
+
 ## 2026-11-27 · LOIS-PARTOUT-1 — the standing laws are checked here too, and every tracked file refuses the retired names · on the branch, NOT merged
 
 **Founder.** « after everything is released, you can start the next batch 3 » (2026-11-27 04:21 UTC, project chat). The plan he approved says, for this batch: « the standing rules are checked in the platform repository too, and every repository checks for the retired names. »
