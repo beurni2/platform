@@ -50,9 +50,8 @@ if (countScannedFiles(roots) === 0) {
 }
 const problems = [];
 
-/* The ROOT manifest sits under no product root, so a banned devDependency
-   added at the top of the workspace was never read. A run that covers the
-   whole product reads it too (the same test scan.mjs uses for its layout
+/* The ROOT manifest sits under no product root, so a run that covers the
+   whole product reads it as well (the same test scan.mjs uses for its layout
    check); a fixture run reads exactly what it names. */
 const wholeProduct = args.length === 0 || DEFAULT_ROOTS.every((r) => roots.includes(r));
 const manifestRoots = wholeProduct ? ['package.json', ...roots] : roots;
