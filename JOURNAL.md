@@ -5,6 +5,25 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-27 · SORTIES-SURES-1 — MERGED; protection service DEPLOYED; the rollback drill done
+
+**Founder.** « Release all five » (2026-11-27 22:43 UTC, decision card, on the batch 6 report), which named for platform: the merge, then the protection service, then the drill (back one version and forward again, timed). The ops console did not change in this batch and was not deployed.
+
+**Merge.** platform-contracts PR #5 merged first (`b36e360`). PR #6 merged as `513b1a8` (merge commit, the branch shas kept). On main: ci 40 green on its first attempt.
+
+**Deployed from main at `513b1a8`.** protection-deploy 7 (id 46078838990) green: the guard passed; versions `167c1c71` (upload) and `1231fdba` (the keys written). The job names the `production` environment, but GitHub started it without waiting for an approval; the founder approved in chat, and the environment's reviewer setting is being checked.
+
+**The drill.**
+- rollback 1 (id 46078994033), no version named: wrangler went back to the previous Worker *version*, which is the same release's upload (`167c1c71`); every health read after still said `513b1a8`. A release makes two versions (the upload, then the keys), so « the previous version » is not « the previous release ». Follow-on: the rollback page and workflow must name the previous release's last version, or pick it.
+- rollback 2 (id 46079252439), version `3dc59033` (the previous release's last version, 2026-11-27 00:45 UTC): the switch took about 1 s, and the first health read 5 s later said `d509c76`, the previous release. No key warning was printed.
+- rollback 3 (id 46079492119), version `1231fdba`: back on `513b1a8` at the first health read, 5 s after the switch. Each run reads health 12 times over a minute, so each prints « rollback done in 63–64 s »; the service itself changed in under 6 s.
+
+**Not checked.** The first scheduled live watch (05:30 UTC on 2026-11-28) is the check that the protection service runs `main`.
+
+**Still open.** As named in the slice entry below, plus the rollback follow-on above. Other open items are held in the private batch record until their fixes deploy.
+
+---
+
 ## 2026-11-27 · SORTIES-SURES-1 — a service goes live only from main's newest green commit, with the founder's approval; a rollback page and its drill; the board and a live check every day · lane O5 · on the branch, NOT merged, NOT deployed
 
 **Founder.** « Go on for batch 6 » (2026-11-27 19:38 UTC), batch 6 of the plan he approved: « A service goes live only after its checks passed on that exact version, with your approval in front of it. One page per app says how to roll back, and we practise it once. The boards run every day, not only when someone pushes. A daily watch checks that the live services run `main`. » His card on the GitHub approval is still open; this is built on its recommended answer (service releases wait for his approval).
