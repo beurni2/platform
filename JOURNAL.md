@@ -5,6 +5,16 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-27 · ACCENTS-INVISIBLES-1 (pin) — MERGED
+
+**Founder.** « Release all five » (2026-11-27 17:59 UTC, decision card, on the batch 5 report), which named the platform: merge only, after the platform-contracts pull request.
+
+**Merge.** platform-contracts PR #4 merged first (`dcf9740`). main re-checked unchanged at `eaad8b9`; PR #5 merged as `89e2939` (merge commit, the branch shas kept). On main: ci 38 green.
+
+**No deploy.** No product code, sentence or screen changed; the next console deploy carries the pin.
+
+---
+
 ## 2026-11-27 · ACCENTS-INVISIBLES-1 (pin) — the copy-lint here now compares words without their accents and without invisible characters · coordinator · on the branch, NOT merged
 
 **Founder.** Batch 5 of the plan he approved (« Now you start working on the next batch », 2026-11-27 15:13 UTC): « The French wording check catches « sequestre » without its accent. » The rule lives in the shared record (`platform-contracts` `34c1569`, see its journal); this repository only moves its pin.
