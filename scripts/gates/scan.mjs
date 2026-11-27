@@ -62,9 +62,9 @@ export const NON_PRODUCT_DIRS = new Map([
 // Build outputs and local evidence dirs, never source. `.artifacts` joins the
 // list for the same reason `.turbo` and `.expo` are on it: it is gitignored,
 // nothing shippable can live there, and a MINIFIED VENDOR BUNDLE dropped in one
-// makes every pattern gate fire on a word inside Zod (measured — SP3.2b: a
-// throwaway real-path build under `apps/buyer-pwa/.artifacts/` failed
-// `no-wallet-no-funds` on the string « balance » in bundled library code).
+// makes every pattern gate fire on a word inside Zod (measured: a throwaway
+// build under `.artifacts/` failed `no-wallet-no-funds` on the string
+// « balance » in bundled library code).
 /* Tooling dot-directories that are legitimately outside the classification.
    Any OTHER dot-directory is treated like any unclassified directory and fails
    the gate — skipping every name starting with '.' was a hole a verifier walked
@@ -84,7 +84,7 @@ const EXCLUDED_DIRS = new Set(['node_modules', 'dist', 'dist-publie', 'dist-fond
 const SCANNED_EXTENSIONS = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs|json|sql|ya?ml)$/;
 
 export function* walkFiles(root, extensions = SCANNED_EXTENSIONS, seen = new Set()) {
-  // WO-4.0: a root may be a single FILE (e.g. the lockfile) — scan it
+  // A root may be a single FILE (e.g. the lockfile) — scan it
   // directly; extension-gating still applies below for directory walks,
   // while an explicit file root is always scanned.
   try {
@@ -168,7 +168,7 @@ export function countScannedFiles(roots, extensions = SCANNED_EXTENSIONS) {
 /**
  * Standard gate entrypoint: scan, report, exit 1 on any hit. Exit 2 when
  * zero files were scanned — a deleted/renamed target must read as "gate
- * could not run", never as a pass (verifier finding, 2026-07-09).
+ * could not run", never as a pass.
  */
 export function unclassifiedTopLevelDirs(roots = DEFAULT_ROOTS, cwd = process.cwd()) {
   let entries;

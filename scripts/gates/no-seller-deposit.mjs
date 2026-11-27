@@ -20,7 +20,9 @@ import { runScanGate } from './scan.mjs';
  * wallet exists. Nothing automated does. That claim rests on review of the
  * persistence layer — a wallet must be PERSISTED to be a wallet, so the
  * question to put to every diff is which stored key accumulates a per-actor
- * amount. Checked by hand across all three repos on 2026-08-06: none does.
+ * amount. Checked by hand across the three app repos on 2026-08-06: none
+ * does. This repository keeps the Protection Fund's own book, whose balance
+ * is canon (ProtectionFundSchema.balance) and belongs to no earner.
  *
  * The priority when tuning is fixed: NEVER break honest work. A gate that cries
  * wolf on « engagement vendeur » or « la balance du marché » teaches everyone
@@ -35,8 +37,9 @@ import { runScanGate } from './scan.mjs';
  *
  * WHY THIS FILE IS NOT A COPY OF THE BOUTIK+ ONE (founder ruling 2026-08-06,
  * measured before writing). Boutik+ bans the bare words `deposit` and `dépôt`,
- * which is safe THERE because the supplier surface never says them. Run the
- * same list here and it fails on 32 lines of correct, shipped code:
+ * which is safe THERE because the supplier surface never says them. Measured
+ * in Shop+ and Séra, where this file comes from, the same list fails on 32
+ * lines of correct, shipped code:
  *   · `requiredDeposit` — the CANONICAL `PayAtDoorEligibility` field. That is a
  *     BUYER's pay-at-door risk rung, not a seller's deposit; it is canon, it is
  *     currently 0 everywhere, and banning it would ban the contract.

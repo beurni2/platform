@@ -20,7 +20,9 @@ import { runScanGate } from './scan.mjs';
  * wallet exists. Nothing automated does. That claim rests on review of the
  * persistence layer — a wallet must be PERSISTED to be a wallet, so the
  * question to put to every diff is which stored key accumulates a per-actor
- * amount. Checked by hand across all three repos on 2026-08-06: none does.
+ * amount. Checked by hand across the three app repos on 2026-08-06: none
+ * does. This repository keeps the Protection Fund's own book, whose balance
+ * is canon (ProtectionFundSchema.balance) and belongs to no earner.
  *
  * The priority when tuning is fixed: NEVER break honest work. A gate that cries
  * wolf on « engagement vendeur » or « la balance du marché » teaches everyone
@@ -33,8 +35,8 @@ import { runScanGate } from './scan.mjs';
 const isMainModule = import.meta.url === pathToFileURL(process.argv[1] ?? '').href;
 
 /**
- * CI gate: no-wallet / no-payment-funds VOCABULARY TRIPWIRE (Ten Laws #2,
- * Séra spec SE-I09: "Séra never computes proceeds, never holds product funds, never marks paid").
+ * CI gate: no-wallet / no-payment-funds VOCABULARY TRIPWIRE (Ten Laws #2:
+ * no app ever holds funds; provider webhooks are the only payment truth).
  * The law says no wallet/balance module exists anywhere; this file only
  * payment truth. Settlement views read SettlementObligation — never a
  * locally computed balance.
@@ -43,10 +45,11 @@ export const PATTERNS = [
     /* UNAMBIGUOUS — no innocent reading in this product. */
     { name: 'wallet', regex: /wallet/i },
     { name: 'balance (english money sense)', regex: /(?<!insufficient_)(?<![a-zA-ZÀ-ÿ])balances?\s*[:=][^=]|\.\s*balances?\b|(seller|user|account|client|vendeur|compte|wallet|cash|credit|fund|payout|ledger|running)Balances?\b|\b(seller|user|account|client|vendeur|compte)_balances?\b/i },
-    /* An earner's balance named with its currency (sellerBalanceFcfa,
-       seller_balance_xof). `fund` is left out on purpose: the Protection
+    /* An earner's balance, as a whole word or named with its currency
+       (supplierBalance, rider_balance, sellerBalanceFcfa,
+       sellerBalanceInFcfa). `fund` is left out on purpose: the Protection
        Fund's own book is canon (ProtectionFundSchema.balance). */
-    { name: 'balance of an earner, with its unit', regex: /(seller|reseller|supplier|rider|courier|vendor|merchant|user|account|client)[_-]?balances?[_-]?(fcfa|xof|amount|cfa)/i },
+    { name: 'balance of an earner', regex: /(seller|reseller|supplier|rider|courier|vendor|merchant|user|account|client)[_-]?balances?(?:[_-]?(?:in[_-]?)?(fcfa|xof|amount|cfa)|\b)/i },
     { name: 'holdFunds/captureFunds/releaseFunds', regex: /(hold|capture|release)[_-]?funds/i },
     { name: 'escrowAccount', regex: /escrow[_-]?account/i },
     { name: 'topUp', regex: /top[_-]?up\b/i },
@@ -84,6 +87,7 @@ const ALLOW = [
   { file: 'apps/ops-console/src/fonds/sandbox.ts', pattern: 'balance (english money sense)', line: 'const SANDBOX_BALANCE = 100_000;', ruling: FUND_BOOK },
   { file: 'apps/ops-console/src/fonds/view.ts', pattern: 'balance (english money sense)', line: "'fonds.balance',", ruling: FUND_BOOK },
   { file: 'services/protection-service/test/fund-book.e2e.test.ts', pattern: 'balance (english money sense)', line: "for (const forbidden of ['sellerbalance', 'debit', 'reserve', 'deposit', 'caution']) {", ruling: NO_SELLER_BALANCE_TEST },
+  { file: 'services/protection-service/test/fund-book.e2e.test.ts', pattern: 'balance of an earner', line: "for (const forbidden of ['sellerbalance', 'debit', 'reserve', 'deposit', 'caution']) {", ruling: NO_SELLER_BALANCE_TEST },
 ];
 
 if (isMainModule) {

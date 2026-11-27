@@ -101,6 +101,22 @@ capture no-ml-libs-positive pass node scripts/gates/no-ml-libs.mjs
 log "gate: no-ML — NEGATIVE FIXTURE (ML dep + inference import, must fail)"
 capture no-ml-libs-negative fail node scripts/gates/no-ml-libs.mjs gates/fixtures/negative/no-ml-libs
 
+# A run over the whole product reads the ROOT manifest too, and no fixture run
+# does. This builds a throwaway layout with stub product roots and a root
+# manifest carrying one banned dev dependency, and requires a refusal.
+log "gate: no-ML — a banned dependency in the ROOT manifest only (must fail)"
+NOML_TMP="$(mktemp -d)"
+cleanup_noml() { rm -rf "$NOML_TMP"; }
+trap cleanup_noml EXIT
+for dir in apps services packages; do
+  mkdir -p "$NOML_TMP/$dir"
+  printf 'export const stub = 0;\n' > "$NOML_TMP/$dir/stub.ts"
+done
+printf '{\n  "name": "root-manifest-probe",\n  "private": true,\n  "devDependencies": { "@tensorflow/tfjs": "4.22.0" }\n}\n' > "$NOML_TMP/package.json"
+capture no-ml-libs-negative-root-manifest fail bash -c 'cd "$1" && node "$2/scripts/gates/no-ml-libs.mjs"' _ "$NOML_TMP" "$ROOT"
+cleanup_noml
+trap - EXIT
+
 log "gate: no-funds — repo source (the fund's own book passes only on its ruled lines) (must pass)"
 capture no-funds-positive pass node scripts/gates/no-wallet-no-funds.mjs
 
@@ -116,13 +132,17 @@ capture no-funds-negative-claim-seller-balance fail node scripts/gates/no-wallet
 log "gate: no-funds — a seller's balance on a claim record, in French, ALONE (must fail)"
 capture no-funds-negative-claim-seller-balance-fr fail node scripts/gates/no-wallet-no-funds.mjs gates/fixtures/negative/no-wallet-no-funds/reclamation-solde-vendeur.fr.ts
 
+log "gate: no-funds — an earner's balance as a whole word, or with « In » before its unit, ALONE (must fail)"
+capture no-funds-negative-earner-balance-forms fail node scripts/gates/no-wallet-no-funds.mjs gates/fixtures/negative/no-wallet-no-funds/earner-balance-forms.ts
+
 # The fund's ruled lines are excused one exact line at a time, never a file.
 # This copies one excused file into a temp folder, adds a seller's balance
 # beside the fund's own, and requires the gate to refuse it. The app file in
-# the repo is never touched. `sellerBalance` trips the SAME pattern as the
-# ruled line, so it is refused only because the excuse is pinned to a line;
-# `sellerBalanceFcfa` is the same money written with its unit.
-for plant in sellerBalance sellerBalanceFcfa; do
+# the repo is never touched. `vendeurBalance` trips ONLY the pattern the ruled
+# line trips, so it is refused only because the excuse is pinned to a line;
+# `sellerBalance` and `sellerBalanceFcfa` are a seller's balance, alone and
+# with its unit.
+for plant in vendeurBalance sellerBalance sellerBalanceFcfa; do
   log "gate: no-funds — a seller's balance ($plant) planted beside the fund's own ruled line (must fail)"
   PLANT_TMP="$(mktemp -d)"
   cleanup_plant() { rm -rf "$PLANT_TMP"; }
@@ -134,6 +154,22 @@ for plant in sellerBalance sellerBalanceFcfa; do
   cleanup_plant
   trap - EXIT
 done
+
+# The fund-book test's ruled line is excused for the earner pattern as well,
+# on that one exact line. This copies the test into a temp folder, adds a
+# supplier's balance beside the line, and requires a refusal: `supplierBalance`
+# trips ONLY the earner pattern, so it is refused only because that excuse is
+# pinned to its line too.
+log "gate: no-funds — a supplier's balance planted beside the fund-book test's ruled line (must fail)"
+PLANT_TMP="$(mktemp -d)"
+cleanup_plant() { rm -rf "$PLANT_TMP"; }
+trap cleanup_plant EXIT
+mkdir -p "$PLANT_TMP/services/protection-service/test"
+cp services/protection-service/test/fund-book.e2e.test.ts "$PLANT_TMP/services/protection-service/test/fund-book.e2e.test.ts"
+printf '\nexport const supplierBalance = 0;\n' >> "$PLANT_TMP/services/protection-service/test/fund-book.e2e.test.ts"
+capture no-funds-negative-planted-beside-fund-book-test-supplierBalance fail bash -c 'cd "$1" && node "$2/scripts/gates/no-wallet-no-funds.mjs" services/protection-service/test/fund-book.e2e.test.ts' _ "$PLANT_TMP" "$ROOT"
+cleanup_plant
+trap - EXIT
 
 # Every law gate scans an ALLOWLIST of roots, so a top-level directory nobody
 # added would be scanned by nothing and reported by nothing. This plants a
@@ -192,21 +228,54 @@ log "gate: no-seller-debit — a seller charged on a decided claim, in French, A
 capture no-seller-debit-negative-claim-seller-debit-fr fail node scripts/gates/no-seller-debit.mjs gates/fixtures/negative/no-seller-debit/reclamation-retenue-vendeur.fr.ts
 
 # ── THE RETIRED NAMES (Ten Laws #10) ────────────────────────────────────────
-# The same gate file, byte for byte, in every repository. The log lines here
-# never spell the names: this script is one of the files it reads.
+# The same gate file, byte for byte, in every repository: the first step pins
+# this copy to that file's sha256. The log lines here never spell the names:
+# this script is one of the files the gate reads.
+log "gate: retired-names — this copy is the shared file, byte for byte (sha256 pinned, must pass)"
+RETIRED_NAMES_SHA256=8ae18e208351a79bbd912575b37c9d6020a3efdad366add14f1e88149eb62ff0
+capture retired-names-sha256 pass bash -c 'printf "%s  scripts/gates/retired-names.mjs\n" "$1" | sha256sum -c -' _ "$RETIRED_NAMES_SHA256"
+
 log "gate: retired-names — every tracked file, the left-out paths printed (must pass)"
 capture retired-names-positive pass node scripts/gates/retired-names.mjs
 
 log "gate: retired-names — NEGATIVE FIXTURE (the retired names as words, a catalog line, identifiers, must fail)"
 capture retired-names-negative fail node scripts/gates/retired-names.mjs gates/fixtures/negative/retired-names
 
-for fx in retired-words.ts catalog.retired-line.json retired-identifier.ts; do
+# Each file alone. The escaped spaces, the escape before the first word, the
+# HTML entity and the lowercase form each have a file of their own, so each
+# one is refused on its own merits.
+for fx in retired-words.ts catalog.retired-line.json catalog.escaped-spaces.json catalog.escaped-lead.json retired-markup.html retired-lowercase.ts retired-identifier.ts; do
   log "gate: retired-names — NEGATIVE FIXTURE ALONE ($fx, must fail)"
   capture "retired-names-negative-$fx" fail node scripts/gates/retired-names.mjs "gates/fixtures/negative/retired-names/$fx"
 done
 
-log "gate: retired-names — POSITIVE FIXTURE (ordinary French with a small b, the canon name with a possessive, must pass)"
+log "gate: retired-names — POSITIVE FIXTURE (ordinary French, the canon name with a possessive, must pass)"
 capture retired-names-legal pass node scripts/gates/retired-names.mjs gates/fixtures/retired-names-legal
+
+# The no-argument run reads every tracked file except the left-out paths, and
+# no fixture run reads that list. This builds a throwaway git repository with
+# the gate and one clean tracked file, plants the retired name in ONE tracked
+# file at a time, and requires a refusal outside the list and a pass inside
+# it, so both edges of the list are pinned.
+SCOPE_TMP="$(mktemp -d)"
+cleanup_scope() { rm -rf "$SCOPE_TMP"; }
+trap cleanup_scope EXIT
+SCOPE_LINE="$(printf 'Ouvrir Mo%s Shop' n)"
+probe_scope() {
+  # probe_scope <pass|fail> <the one tracked path that carries the name>
+  local expected="$1" rel="$2" repo="$SCOPE_TMP/repo"
+  rm -rf "$repo"; mkdir -p "$repo/scripts/gates" "$repo/$(dirname "$rel")"
+  cp scripts/gates/retired-names.mjs "$repo/scripts/gates/retired-names.mjs"
+  printf 'clean\n' > "$repo/clean.txt"
+  printf '%s\n' "$SCOPE_LINE" > "$repo/$rel"
+  git -C "$repo" init -q && git -C "$repo" add -A
+  log "gate: retired-names — the name planted in $rel only, in a throwaway repository (must $expected)"
+  capture "retired-names-scope-$(printf '%s' "$rel" | tr '/.' '__')" "$expected" bash -c 'cd "$1" && node scripts/gates/retired-names.mjs' _ "$repo"
+}
+for rel in apps/x.ts services/x.ts packages/x.ts scripts/x.sh README.md docs/runbooks/x.md; do probe_scope fail "$rel"; done
+for rel in design-reference/x.jsx docs/Sera-Build-Spec.md; do probe_scope pass "$rel"; done
+cleanup_scope
+trap - EXIT
 
 log "gate: fr-pattern-coverage — every banned pattern is exercised by a fixture (must pass)"
 capture fr-pattern-coverage pass node scripts/gates/fr-pattern-coverage.mjs

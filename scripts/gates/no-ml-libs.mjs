@@ -91,9 +91,9 @@ for (const hit of scanForPatterns(roots, importPatterns)) {
 }
 
 if (problems.length === 0) {
-  console.log(`no-ml-libs OK — no ML/generative/inference dependency or import in ${manifestRoots.join(', ')} (SE §5.3 deterministic only — no ML, no route-optimization/ETA model)`);
+  console.log(`no-ml-libs OK — no ML/generative/inference dependency or import in ${manifestRoots.join(', ')} (Ten Laws #5 deterministic only — no ML, no route-optimization/ETA model)`);
   process.exit(0);
 }
-console.error(`no-ml-libs FAILED (SE §5.3 deterministic only — no ML, no route-optimization/ETA model) — ${problems.length} problem(s):`);
+console.error(`no-ml-libs FAILED (Ten Laws #5 deterministic only — no ML, no route-optimization/ETA model) — ${problems.length} problem(s):`);
 for (const p of problems) console.error(`  ${p}`);
 process.exit(1);
