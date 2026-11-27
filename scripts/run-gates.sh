@@ -91,6 +91,138 @@ done
 log "gate: deploy-tool-pinned — NOTHING SEEN (no wrangler command: the gate must say so with exit 2, never pass)"
 capture deploy-tool-pinned-nothing-seen 2 node scripts/gates/deploy-tool-pinned.mjs scripts/gates/fixtures/negative/deploy-tool/no-wrangler.yml
 
+# ── THE STANDING LAWS, CHECKED HERE TOO ────────────────────────────────────
+# The same law gates the three app repos run (copied, patterns byte-equal),
+# with their fixtures under gates/. A gate added later is a gate that already
+# let something through (CLAUDE.md §4).
+log "gate: no-ML — repo deps (root manifest included) + imports (must pass)"
+capture no-ml-libs-positive pass node scripts/gates/no-ml-libs.mjs
+
+log "gate: no-ML — NEGATIVE FIXTURE (ML dep + inference import, must fail)"
+capture no-ml-libs-negative fail node scripts/gates/no-ml-libs.mjs gates/fixtures/negative/no-ml-libs
+
+log "gate: no-funds — repo source (the fund's own book passes only on its ruled lines) (must pass)"
+capture no-funds-positive pass node scripts/gates/no-wallet-no-funds.mjs
+
+log "gate: no-funds — NEGATIVE FIXTURE (wallet/balance module, must fail)"
+capture no-funds-negative fail node scripts/gates/no-wallet-no-funds.mjs gates/fixtures/negative/no-wallet-no-funds
+
+log "gate: no-funds — FRENCH FIXTURE ALONE (soldeVendeur/crediter, must fail)"
+capture no-funds-negative-fr fail node scripts/gates/no-wallet-no-funds.mjs gates/fixtures/negative/no-wallet-no-funds/solde-vendeur.fr.ts
+
+log "gate: no-funds — a seller's balance with its unit, on a claim record, ALONE (must fail)"
+capture no-funds-negative-claim-seller-balance fail node scripts/gates/no-wallet-no-funds.mjs gates/fixtures/negative/no-wallet-no-funds/claim-seller-balance.ts
+
+log "gate: no-funds — a seller's balance on a claim record, in French, ALONE (must fail)"
+capture no-funds-negative-claim-seller-balance-fr fail node scripts/gates/no-wallet-no-funds.mjs gates/fixtures/negative/no-wallet-no-funds/reclamation-solde-vendeur.fr.ts
+
+# The fund's ruled lines are excused one exact line at a time, never a file.
+# This copies one excused file into a temp folder, adds a seller's balance
+# beside the fund's own, and requires the gate to refuse it. The app file in
+# the repo is never touched. `sellerBalance` trips the SAME pattern as the
+# ruled line, so it is refused only because the excuse is pinned to a line;
+# `sellerBalanceFcfa` is the same money written with its unit.
+for plant in sellerBalance sellerBalanceFcfa; do
+  log "gate: no-funds — a seller's balance ($plant) planted beside the fund's own ruled line (must fail)"
+  PLANT_TMP="$(mktemp -d)"
+  cleanup_plant() { rm -rf "$PLANT_TMP"; }
+  trap cleanup_plant EXIT
+  mkdir -p "$PLANT_TMP/apps/ops-console/src/fonds"
+  cp apps/ops-console/src/fonds/view.ts "$PLANT_TMP/apps/ops-console/src/fonds/view.ts"
+  printf '\nexport const %s = 0;\n' "$plant" >> "$PLANT_TMP/apps/ops-console/src/fonds/view.ts"
+  capture "no-funds-negative-planted-beside-fund-book-$plant" fail bash -c 'cd "$1" && node "$2/scripts/gates/no-wallet-no-funds.mjs" apps/ops-console/src/fonds/view.ts' _ "$PLANT_TMP" "$ROOT"
+  cleanup_plant
+  trap - EXIT
+done
+
+# Every law gate scans an ALLOWLIST of roots, so a top-level directory nobody
+# added would be scanned by nothing and reported by nothing. This plants a
+# directory with a live violation in it and requires exit 2 ("gate could not
+# run") — not exit 0.
+log "gate: scan coverage — an UNCLASSIFIED top-level directory must break the build (exit 2)"
+UNCLASSIFIED_DIR="$ROOT/zz-unclassified-coverage-probe"
+cleanup_probe() { rm -rf "$UNCLASSIFIED_DIR"; }
+trap cleanup_probe EXIT
+rm -rf "$UNCLASSIFIED_DIR"; mkdir -p "$UNCLASSIFIED_DIR"
+printf 'export const soldeVendeur = 0;\n' > "$UNCLASSIFIED_DIR/probe.ts"
+capture scan-coverage-unclassified-dir 2 node scripts/gates/no-wallet-no-funds.mjs
+cleanup_probe
+trap - EXIT
+
+log "gate: single-level — repo source (must pass)"
+capture single-level-positive pass node scripts/gates/single-level.mjs
+
+log "gate: single-level — NEGATIVE FIXTURE (downline/recruit, must fail)"
+capture single-level-negative fail node scripts/gates/single-level.mjs gates/fixtures/negative/single-level
+
+log "gate: single-level — FRENCH FIXTURE ALONE (second level in French, must fail)"
+capture single-level-negative-fr fail node scripts/gates/single-level.mjs gates/fixtures/negative/single-level/reseau-multi-niveau.fr.ts
+
+log "gate: single-level — POSITIVE FIXTURE (single-level parrainage is legal, must pass)"
+capture single-level-legal-parrainage pass node scripts/gates/single-level.mjs gates/fixtures/single-level-legal
+
+log "gate: no-seller-deposit — repo source (must pass)"
+capture no-seller-deposit-positive pass node scripts/gates/no-seller-deposit.mjs
+
+log "gate: no-seller-deposit — NEGATIVE FIXTURE (deposit demanded of an earner, must fail)"
+capture no-seller-deposit-negative fail node scripts/gates/no-seller-deposit.mjs gates/fixtures/negative/no-seller-deposit
+
+log "gate: no-seller-deposit — FRENCH FIXTURE ALONE (must fail)"
+capture no-seller-deposit-negative-fr fail node scripts/gates/no-seller-deposit.mjs gates/fixtures/negative/no-seller-deposit/caution-vendeur.fr.ts
+
+log "gate: no-seller-deposit — a seller's reserve or deposit on a claim record, ALONE (must fail)"
+capture no-seller-deposit-negative-claim-seller-reserve fail node scripts/gates/no-seller-deposit.mjs gates/fixtures/negative/no-seller-deposit/claim-seller-reserve.ts
+
+log "gate: no-seller-deposit — a seller's deposit on a claim record, in French, ALONE (must fail)"
+capture no-seller-deposit-negative-claim-seller-reserve-fr fail node scripts/gates/no-seller-deposit.mjs gates/fixtures/negative/no-seller-deposit/reclamation-caution-vendeur.fr.ts
+
+log "gate: no-seller-debit — repo source (the fund-book test's ruled lines only) (must pass)"
+capture no-seller-debit-positive pass node scripts/gates/no-seller-debit.mjs
+
+log "gate: no-seller-debit — NEGATIVE FIXTURE (money taken back from an earner, must fail)"
+capture no-seller-debit-negative fail node scripts/gates/no-seller-debit.mjs gates/fixtures/negative/no-seller-debit
+
+log "gate: no-seller-debit — FRENCH FIXTURE ALONE (must fail)"
+capture no-seller-debit-negative-fr fail node scripts/gates/no-seller-debit.mjs gates/fixtures/negative/no-seller-debit/retenue-vendeur.fr.ts
+
+log "gate: no-seller-debit — a seller charged on a decided claim, ALONE (must fail)"
+capture no-seller-debit-negative-claim-seller-debit fail node scripts/gates/no-seller-debit.mjs gates/fixtures/negative/no-seller-debit/claim-seller-debit.ts
+
+log "gate: no-seller-debit — a seller charged on a decided claim, in French, ALONE (must fail)"
+capture no-seller-debit-negative-claim-seller-debit-fr fail node scripts/gates/no-seller-debit.mjs gates/fixtures/negative/no-seller-debit/reclamation-retenue-vendeur.fr.ts
+
+# ── THE RETIRED NAMES (Ten Laws #10) ────────────────────────────────────────
+# The same gate file, byte for byte, in every repository. The log lines here
+# never spell the names: this script is one of the files it reads.
+log "gate: retired-names — every tracked file, the left-out paths printed (must pass)"
+capture retired-names-positive pass node scripts/gates/retired-names.mjs
+
+log "gate: retired-names — NEGATIVE FIXTURE (the retired names as words, a catalog line, identifiers, must fail)"
+capture retired-names-negative fail node scripts/gates/retired-names.mjs gates/fixtures/negative/retired-names
+
+for fx in retired-words.ts catalog.retired-line.json retired-identifier.ts; do
+  log "gate: retired-names — NEGATIVE FIXTURE ALONE ($fx, must fail)"
+  capture "retired-names-negative-$fx" fail node scripts/gates/retired-names.mjs "gates/fixtures/negative/retired-names/$fx"
+done
+
+log "gate: retired-names — POSITIVE FIXTURE (ordinary French with a small b, the canon name with a possessive, must pass)"
+capture retired-names-legal pass node scripts/gates/retired-names.mjs gates/fixtures/retired-names-legal
+
+log "gate: fr-pattern-coverage — every banned pattern is exercised by a fixture (must pass)"
+capture fr-pattern-coverage pass node scripts/gates/fr-pattern-coverage.mjs
+
+# The coverage gate must be shown failing too: this corrupts the roster in
+# place, restored from a temp copy whatever happens, and requires a refusal.
+log "gate: fr-pattern-coverage — NEGATIVE (a gutted roster must be refused)"
+ROSTER_BAK="$(mktemp)"
+cp gates/pattern-roster.json "$ROSTER_BAK"
+restore_roster() { cp "$ROSTER_BAK" gates/pattern-roster.json; rm -f "$ROSTER_BAK"; }
+trap restore_roster EXIT
+node -e 'const f="gates/pattern-roster.json";const fs=require("fs");const r=JSON.parse(fs.readFileSync(f,"utf8"));const k=Object.keys(r)[0];r[k][0].regex="/zzgutted/";fs.writeFileSync(f,JSON.stringify(r,null,2));'
+capture fr-pattern-coverage-negative fail node scripts/gates/fr-pattern-coverage.mjs
+restore_roster
+trap - EXIT
+
 # DEBT ③ CLOSED: the drift-check's version anchor is DERIVED from the installed
 # @platform/contracts (which the sha pin determines) — no hand-kept string. The
 # CLI already refuses when --pinned-version != the manifest's packageVersion, so
