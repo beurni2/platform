@@ -11,18 +11,25 @@
  *
  * THE RUN PAGE IS PUBLIC (the repository is). So it never prints a value, an
  * id, a log line or a response body: only counts, key paths whose every
- * segment is a plain name, and Cloudflare's own error codes and short clean
- * messages. It changes nothing anywhere: one read query per service.
+ * segment is a name on a fixed list (any other key shows as « [clé non
+ * affichée] »), and Cloudflare's own error codes and short clean messages.
+ * It changes nothing anywhere: one read query per service.
  *
  * THE RESPONSE SHAPE IS NOT KNOWN from here (the sandbox that built this
  * cannot reach Cloudflare). So the scan is blind to shape — every key and
- * every value anywhere in `result` is read, and a line kept as JSON text is
- * read as a tree — and a wrong guess can only show as « NON LU », never as a
- * pass: a service is OK only when at least one of ITS lines was read and
- * nothing was found. The founder's first real run is what proves the shape.
+ * every value anywhere in `result` is read, and JSON kept as text (whole,
+ * after a few words, or encoded twice) is read as a tree — and a wrong guess
+ * can only show as « NON LU », never as a pass: a service is OK only when at
+ * least one of ITS lines was read and nothing was found. One of its lines is
+ * an event whose `$metadata.service` names it AND that holds the frame every
+ * house logger writes (one object with both a `correlation_id` and a `msg`
+ * key): an event holding nothing the service wrote is no line read. The
+ * founder's first real run is what proves the shape.
  *
- * Inputs (environment): CLOUDFLARE_LOGS_TOKEN (a read-only key of its own,
- * never the deploy key) · CLOUDFLARE_ACCOUNT_ID · LOG_CHECK_HOURS (1–168,
+ * Inputs (environment): CLOUDFLARE_LOGS_TOKEN (a key of its own, never the
+ * deploy key, holding on the one account the one permission Cloudflare's
+ * query accepts, « Workers Observability Write »: there is no read-only one;
+ * the script itself only reads) · CLOUDFLARE_ACCOUNT_ID · LOG_CHECK_HOURS (1–168,
  * default 72) · LOG_CHECK_SERVICES (comma-separated Worker names, default the
  * six live services). Exit 0 only when every service is OK; 1 otherwise; 2
  * when an input is missing or malformed. Node 22, no dependency, no install.
@@ -54,9 +61,15 @@ export const GENRES = [
 // number holds no letter a–f, so masking these hides none.
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const HEX_LONG = /(?<![0-9A-Za-z])(?=[0-9A-Fa-f]*[A-Fa-f])[0-9A-Fa-f]{16,}(?![0-9A-Za-z])/g;
-// Burkina: eight digits, spaces allowed between pairs, +226 / 00226 / 226 in
-// front. Digit-bounded, so a longer run (a timestamp) is never one.
-const TELEPHONE = /(?<![0-9])(?:(?:\+|00)?[  ]?226[  ]?)?[0-9]{2}(?:[  ]?[0-9]{2}){3}(?![0-9])/;
+// ISO dates and times are masked too: with « - » and « . » between a phone's
+// pairs, « 2026-11-28 » and the « 00.123456 » of « 08:00:00.123456 » would
+// read as one. A phone holds no « : », and is never written 4-2-2.
+const DATE_ISO = /(?<![0-9])(?:19|20)[0-9]{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])(?![0-9])/g;
+const HEURE_ISO = /(?<![0-9])(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9](?:[.,][0-9]+)?)?(?![0-9])/g;
+// Burkina: eight digits, a space, a non-breaking space, « . » or « - »
+// allowed between pairs and after 226, +226 / 00226 / 226 in front.
+// Digit-bounded, so a longer run (a timestamp) is never one.
+const TELEPHONE = /(?<![0-9])(?:(?:\+|00)?[  ]?226[  .-]?)?[0-9]{2}(?:[  .-]?[0-9]{2}){3}(?![0-9])/;
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/;
 const POINT = /(?<![0-9.])[-+]?[0-9]{1,3}\.[0-9]{2,}(?:[  ]*[,;][  ]*|[  ]+)[-+]?[0-9]{1,3}\.[0-9]{2,}(?![0-9])/;
 const MONTANT = /(?<![0-9A-Za-z])[0-9]+(?:[   .][0-9]{3})*[   ]?(?:F[  ]?CFA|FCFA|XOF|CFA|F)(?![A-Za-z0-9])/;
@@ -101,6 +114,13 @@ const NOM_TECHNIQUE = new Set([
   'script', 'service', 'class', 'host', 'event', 'file', 'route', 'worker', 'function', 'dataset', 'span', 'trace', 'metric',
   'field', 'type', 'binding', 'queue', 'outbox', 'error', 'method', 'domain', 'bucket',
 ]);
+// The protection service's lines carry no reason, reference or key at all: a
+// claim's reason is free text, its evidence bundle and its settlement are
+// references. Elsewhere `reason` is a fixed technical code (`no_supplier`).
+const PROTECTION = 'protection-service';
+const MOTS_PROTECTION = new Set(['reason', 'reference', 'ref']);
+const COMPOSE_PROTECTION = 'evidencebundleid';
+const SEULE_PROTECTION = 'key';
 
 function mots(cle) {
   return cle
@@ -117,7 +137,7 @@ function mots(cle) {
 
 function genresDuTexte(texte) {
   const genres = new Set();
-  const masque = texte.replace(UUID, '#').replace(HEX_LONG, '#');
+  const masque = texte.replace(UUID, '#').replace(HEX_LONG, '#').replace(DATE_ISO, '#').replace(HEURE_ISO, '#');
   if (TELEPHONE.test(masque)) genres.add('telephone');
   // On the text as it came: a masked id inside an address must not hide it.
   if (EMAIL.test(texte)) genres.add('email');
@@ -126,7 +146,7 @@ function genresDuTexte(texte) {
   return genres;
 }
 
-function genresDeLaCle(cle) {
+function genresDeLaCle(cle, service) {
   // A key can itself be a value (an object keyed by phone numbers).
   const genres = genresDuTexte(cle);
   const m = mots(cle);
@@ -134,6 +154,7 @@ function genresDeLaCle(cle) {
   for (const [genre, ensemble] of Object.entries(MOTS_PAR_GENRE)) {
     if (m.some((w) => ensemble.has(w)) || COMPOSES[genre].some((c) => joint.includes(c))) genres.add(genre);
   }
+  if (service === PROTECTION && (m.some((w) => MOTS_PROTECTION.has(w)) || joint.includes(COMPOSE_PROTECTION) || joint === SEULE_PROTECTION)) genres.add('cle');
   m.forEach((w, i) => {
     const avant = i > 0 ? m[i - 1] : '';
     if (w === 'code' && !CODE_TECHNIQUE.has(avant)) genres.add('cle');
@@ -152,23 +173,60 @@ const estUnPoint = (liste) =>
 const CLE_CACHEE = '[clé non affichée]';
 const RACINE = '(racine)';
 const SEGMENT_SUR = /^[$A-Za-z_][A-Za-z0-9_]{0,40}$/;
+// The only key names a path may show. A value can be used as a key (a
+// person's name, an id) and still look like a plain name, so anything not
+// written here shows as « [clé non affichée] ».
+const CLES_AFFICHABLES = new Set([
+  // The frame every house logger writes, and the fields their callers write.
+  'ts', 'level', 'correlation_id', 'service', 'msg',
+  'route', 'method', 'status', 'durationMs', 'orderId', 'groupId', 'quoteId', 'error', 'outbox', 'stage', 'phase', 'attempts',
+  'reason', 'remaining', 'parked',
+  // The answer's own structure (`champs`: where the proof stands our line in
+  // for the place Cloudflare really puts it, which is not known from here).
+  'events', '$metadata', '$workers', 'source', 'message', 'champs',
+  // Every key word the scan itself knows.
+  ...Object.values(MOTS).flat(), ...Object.values(COMPOSES).flat(), 'code', 'name', 'nom', ...CODE_TECHNIQUE, ...NOM_TECHNIQUE,
+  ...MOTS_PROTECTION, 'evidenceBundleId', SEULE_PROTECTION,
+]);
 
-/** A key segment is printed only when it is a plain name, never when it could be an id or a value. */
+/** A key segment is printed only when it is on the fixed list (and a plain name), never when it could be an id or a value. */
 function segment(cle) {
   const chiffres = (cle.match(/[0-9]/g) ?? []).length;
-  return SEGMENT_SUR.test(cle) && chiffres <= 3 && !/[0-9a-f]{12,}/i.test(cle) ? cle : CLE_CACHEE;
+  return CLES_AFFICHABLES.has(cle) && SEGMENT_SUR.test(cle) && chiffres <= 3 && !/[0-9a-f]{12,}/i.test(cle) ? cle : CLE_CACHEE;
+}
+
+// A line encoded twice is read through; past this many decodings the text is
+// read as text, so no answer can keep the scan decoding.
+const RELECTURES = 4;
+
+/** The JSON a text holds, read from its start or from its first « { » or « [ » (« request {…} »); undefined when none. */
+function jsonDuTexte(texte) {
+  const departs = texte.startsWith('"') ? [0] : [];
+  const accolade = texte.search(/[{[]/);
+  if (accolade >= 0) departs.push(accolade);
+  for (const depart of departs) {
+    let lu;
+    try {
+      lu = JSON.parse(texte.slice(depart));
+    } catch {
+      continue;
+    }
+    if (typeof lu === 'string' || (lu !== null && typeof lu === 'object')) return { lu, depart };
+  }
+  return undefined;
 }
 
 /**
- * Scans everything in `result`. A line is an object carrying a `$metadata`
+ * Scans everything in `result`. An event is an object carrying a `$metadata`
  * object; it counts as one of `service`'s lines only when `$metadata.service`
- * names it, so lines of another service can never make this one look read.
- * Every hit is counted once per kind at its printable key path.
+ * names it AND the house frame (one object with both a `correlation_id` and a
+ * `msg` key) sits within it, so neither lines of another service nor an event
+ * holding nothing the service wrote can make this one look read. Every hit is
+ * counted once per kind at its printable key path.
  */
 export function scanne(result, service) {
   const trouvailles = Object.fromEntries(GENRES.map(([g]) => [g, new Map()]));
-  let lignes = 0;
-  let autres = 0;
+  const evenements = [];
   const noter = (genres, chemin) => {
     for (const g of genres) {
       const chez = chemin === '' ? RACINE : chemin;
@@ -176,24 +234,18 @@ export function scanne(result, service) {
     }
   };
   // An explicit stack: no depth of nesting can escape the scan or overflow it.
-  const pile = [{ valeur: result, chemin: '', genres: new Set() }];
+  // Each value knows the nearest event around it, so the frame is credited to that event only.
+  const pile = [{ valeur: result, chemin: '', genres: new Set(), evenement: null, relu: 0 }];
   while (pile.length > 0) {
-    const { valeur, chemin, genres } = pile.pop();
+    const { valeur, chemin, genres, evenement, relu } = pile.pop();
     if (typeof valeur === 'string') {
       const texte = valeur.trim();
-      if (texte.startsWith('{') || texte.startsWith('[')) {
-        let lu;
-        try {
-          lu = JSON.parse(texte);
-        } catch {
-          lu = undefined;
-        }
-        if (lu !== null && typeof lu === 'object') {
-          // A line kept as text is read as the tree it is, under the same path.
-          noter(genres, chemin);
-          pile.push({ valeur: lu, chemin, genres: new Set() });
-          continue;
-        }
+      const trouve = jsonDuTexte(texte);
+      if (trouve !== undefined && (typeof trouve.lu !== 'string' || relu < RELECTURES)) {
+        // Read as the tree (or the text) it holds, under the same path; the words before it are read as text.
+        noter(trouve.depart > 0 ? new Set([...genres, ...genresDuTexte(texte.slice(0, trouve.depart))]) : genres, chemin);
+        pile.push({ valeur: trouve.lu, chemin, genres: new Set(), evenement, relu: typeof trouve.lu === 'string' ? relu + 1 : 0 });
+        continue;
       }
       noter(new Set([...genres, ...genresDuTexte(valeur)]), chemin);
       continue;
@@ -204,23 +256,32 @@ export function scanne(result, service) {
     }
     if (Array.isArray(valeur)) {
       noter(estUnPoint(valeur) ? new Set([...genres, 'carte']) : genres, chemin);
-      for (const element of valeur) pile.push({ valeur: element, chemin: `${chemin}[]`, genres: new Set() });
+      for (const element of valeur) pile.push({ valeur: element, chemin: `${chemin}[]`, genres: new Set(), evenement, relu: 0 });
       continue;
     }
     if (valeur !== null && typeof valeur === 'object') {
       noter(genres, chemin);
+      let ici = evenement;
       const meta = Object.hasOwn(valeur, '$metadata') ? valeur.$metadata : undefined;
       if (meta !== null && typeof meta === 'object' && !Array.isArray(meta)) {
-        if (meta.service === service) lignes += 1;
-        else autres += 1;
+        ici = { sienne: meta.service === service, cadre: false };
+        evenements.push(ici);
       }
+      if (ici !== null && Object.hasOwn(valeur, 'correlation_id') && Object.hasOwn(valeur, 'msg')) ici.cadre = true;
       for (const [cle, enfant] of Object.entries(valeur)) {
         const seg = segment(cle);
-        pile.push({ valeur: enfant, chemin: chemin === '' ? seg : `${chemin}.${seg}`, genres: genresDeLaCle(cle) });
+        pile.push({ valeur: enfant, chemin: chemin === '' ? seg : `${chemin}.${seg}`, genres: genresDeLaCle(cle, service), evenement: ici, relu: 0 });
       }
       continue;
     }
     noter(genres, chemin);
+  }
+  let lignes = 0;
+  let autres = 0;
+  for (const { sienne, cadre } of evenements) {
+    if (!cadre) continue;
+    if (sienne) lignes += 1;
+    else autres += 1;
   }
   return { lignes, autres, trouvailles };
 }

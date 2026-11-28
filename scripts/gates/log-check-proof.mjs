@@ -13,8 +13,11 @@ import { pathToFileURL } from 'node:url';
  *   · the scanner, imported and fed trees: a clean line in each service's REAL
  *     field shape (read off each repository's log writer) finds nothing; every
  *     planted kind is counted under the right key path, however deep, inside
- *     arrays and inside a line kept as text; ids, timestamps and technical key
- *     names are not hits; a key that is not safe to print is never printed;
+ *     arrays and inside JSON kept as text (whole, after a few words, or
+ *     encoded twice); ids, ISO dates and times, timestamps and technical key
+ *     names are not hits; only a key name on the script's fixed list is ever
+ *     printed; an event is a line only when the house frame (`correlation_id`
+ *     and `msg`) sits within it; the protection service's stricter words;
  *   · the real script, run as a child process with `fetch` stood in. Its whole
  *     stdout and stderr are kept: the verdicts and the exit code are checked,
  *     and no planted value, id, key or answer body may appear in either.
@@ -63,6 +66,9 @@ const ORDER = 'ord-quote-87654321-4321-4321-8321-cba987654321';
 const QUOTE = `quote-${UUID_ZERO}`;
 const GROUP = 'grp-7012345678901234567890123456789012345abc';
 const frame = (service, level, cid, msg) => ({ ts: TS, level, correlation_id: cid, service, msg });
+// A line the service wrote: the house frame, then the fields a case plants in it.
+const ligneAvec = (service, champs) => ({ ...frame(service, 'info', 'test-chaine-0002', 'request'), ...champs });
+const H = '[clé non affichée]';
 
 const REAL = {
   'custody-service': [
@@ -115,9 +121,13 @@ const PLANTE = {
   x5: '+22670123456',
   x6: 70123456,
   x7: 'appel au 76 54 32 10 demain',
+  x14: '70-12-34-56',
+  x15: '70.12.34.56',
+  x16: '+226-70-12-34-56',
   buyerPhone: 'test-ref-0001',
   telephone: 'test-ref-0002',
   x8: 'test.cliente@example.com',
+  x17: `${UUID_DIGITS}@example.com`,
   courriel: 'test-ref-0003',
   x9: '12.3714, -1.5197',
   x10: [-1.5197, 12.3714],
@@ -142,18 +152,26 @@ const PLANTE = {
   x12: '12 500 FCFA',
   x13: 'payé en XOF',
 };
-const under = (prefix, keys) => Object.fromEntries(keys.map((k) => [`${prefix}.${k}`, 1]));
 const P = 'events[].champs';
-const PLANTE_ATTENDU = {
-  telephone: under(P, ['x1', 'x2', 'x3', 'x4', 'x5', 'x6', 'x7', 'buyerPhone', 'telephone']),
-  email: under(P, ['x8', 'courriel']),
-  carte: under(P, ['x9', 'x10', 'latitude', 'pin']),
-  cle: under(P, [
+// The kind each planted key is found as.
+const PLANTE_GENRE = {
+  telephone: ['x1', 'x2', 'x3', 'x4', 'x5', 'x6', 'x7', 'x14', 'x15', 'x16', 'buyerPhone', 'telephone'],
+  email: ['x8', 'x17', 'courriel'],
+  carte: ['x9', 'x10', 'latitude', 'pin'],
+  cle: [
     'buyerDropCode', 'presentedPickupCode', 'password', 'landmark', 'voiceNote', 'buyerName', 'adresse',
     'ip', 'clientIp', 'ipAddress', 'remoteAddr', 'forwardedFor', 'xForwardedFor', 'cfConnectingIp',
-  ]),
-  montant: under(P, ['amountFcfa', 'x11', 'x12', 'x13']),
+  ],
+  montant: ['amountFcfa', 'x11', 'x12', 'x13'],
 };
+// The planted keys on the script's fixed list (key words the scan knows); every other one shows hidden.
+const MONTREES = new Set(['telephone', 'courriel', 'latitude', 'pin', 'password', 'landmark', 'adresse', 'ip']);
+const sous = (cle) => `${P}.${MONTREES.has(cle) ? cle : H}`;
+const PLANTE_ATTENDU = Object.fromEntries(Object.entries(PLANTE_GENRE).map(([genre, cles]) => {
+  const chemins = {};
+  for (const cle of cles) chemins[sous(cle)] = (chemins[sous(cle)] ?? 0) + 1;
+  return [genre, chemins];
+}));
 const KINDS = ['telephone', 'email', 'carte', 'cle', 'montant'];
 const RIEN = Object.fromEntries(KINDS.map((k) => [k, {}]));
 
@@ -209,44 +227,149 @@ expectScan('our lines with no $metadata object around them are no lines at all',
   events: [...REAL['protection-service'], { $metadata: 'request', ...REAL['protection-service'][0] }, { $metadata: [REAL['protection-service'][0]] }],
 }, 'protection-service', { lignes: 0, ...RIEN });
 
+expectScan('an event holding only its $metadata, naming the service, is no line: nothing the service wrote is in it', {
+  events: [{ $metadata: { service: 'media-service', message: 'request' } }],
+}, 'media-service', { lignes: 0, ...RIEN });
+expectScan('nor is an event holding half the frame, the frame split over two objects, or the frame beside it rather than within it', {
+  events: [
+    { $metadata: { service: 'media-service' }, champs: { correlation_id: UUID_ZERO, route: '/health' } },
+    { $metadata: { service: 'media-service' }, champs: { msg: 'request', route: '/health' } },
+    { $metadata: { service: 'media-service', msg: 'request' }, champs: { correlation_id: UUID_ZERO } },
+    { $metadata: { service: 'media-service', message: 'request' } },
+    REAL['media-service'][0],
+  ],
+}, 'media-service', { lignes: 0, ...RIEN });
+
+{
+  const name = 'every planted key is in PLANTE_GENRE once, and nothing else is';
+  const listees = Object.values(PLANTE_GENRE).flat();
+  if (same([...listees].sort(), Object.keys(PLANTE).sort()) && new Set(listees).size === listees.length) ok(name);
+  else fail(name, 'the planted keys and their kinds have drifted apart');
+}
 expectScan('every planted kind is counted under its key path', {
-  events: [...REAL['protection-service'].map(enTexte), { $metadata: { service: 'protection-service', message: 'request' }, champs: PLANTE }],
+  events: [...REAL['protection-service'].map(enTexte), { $metadata: { service: 'protection-service', message: 'request' }, champs: ligneAvec('protection-service', PLANTE) }],
 }, 'protection-service', { lignes: 3, ...PLANTE_ATTENDU });
+{
+  // Each alone, so a key the path hides is still proven found as its own kind.
+  const name = 'each planted value alone, in a real line, is found as its kind and nothing else, at its path';
+  const manques = [];
+  for (const [genre, cles] of Object.entries(PLANTE_GENRE)) {
+    for (const cle of cles) {
+      const want = { lignes: 1, autres: 0 };
+      for (const k of KINDS) want[k] = k === genre ? { [sous(cle)]: 1 } : {};
+      let got;
+      try {
+        got = vue(scanne({ events: [{ $metadata: { service: 'protection-service', message: 'request' }, champs: ligneAvec('protection-service', { [cle]: PLANTE[cle] }) }] }, 'protection-service'));
+      } catch (e) {
+        got = `threw ${e instanceof Error ? e.name : 'a non-error'}`;
+      }
+      if (!same(got, want)) manques.push(`${cle}: got ${JSON.stringify(got)}`);
+    }
+  }
+  if (manques.length === 0) ok(name);
+  else fail(name, manques.join(' · '));
+}
 
 expectScan('a hit six levels down, in a list, inside a line kept as text, is counted', {
-  events: [{ $metadata: { service: 'custody-service', message: JSON.stringify({ a: { b: [{ c: { d: { e: { f: '70 11 22 33' } } } }] } }) } }],
-}, 'custody-service', { lignes: 1, telephone: { 'events[].$metadata.message.a.b[].c.d.e.f': 1 } });
+  events: [{ $metadata: { service: 'custody-service', message: JSON.stringify(ligneAvec('custody-service', { a: { b: [{ c: { d: { e: { f: '70 11 22 33' } } } }] } })) } }],
+}, 'custody-service', { lignes: 1, telephone: { [`events[].$metadata.message.${H}.${H}[].${H}.${H}.${H}.${H}`]: 1 } });
 expectScan('a hit six levels down in plain objects is counted', {
-  events: [{ $metadata: { service: 'custody-service' }, champs: { n1: { n2: { n3: { n4: { n5: { n6: 'test.livreur@example.com' } } } } } } }],
-}, 'custody-service', { lignes: 1, email: { 'events[].champs.n1.n2.n3.n4.n5.n6': 1 } });
+  events: [{ $metadata: { service: 'custody-service' }, champs: ligneAvec('custody-service', { n1: { n2: { n3: { n4: { n5: { n6: 'test.livreur@example.com' } } } } } }) }],
+}, 'custody-service', { lignes: 1, email: { [`events[].champs.${H}.${H}.${H}.${H}.${H}.${H}`]: 1 } });
 expectScan('a hit inside a list of lists is counted under the list’s path', {
-  events: [{ $metadata: { service: 'custody-service' }, champs: { lots: [['test-a', ['+226 70 12 34 56']]] } }],
-}, 'custody-service', { lignes: 1, telephone: { 'events[].champs.lots[][][]': 1 } });
+  events: [{ $metadata: { service: 'custody-service' }, champs: ligneAvec('custody-service', { lots: [['test-a', ['+226 70 12 34 56']]] }) }],
+}, 'custody-service', { lignes: 1, telephone: { [`events[].champs.${H}[][][]`]: 1 } });
+
+for (const forme of ['70-12-34-56', '70.12.34.56', '+226-70-12-34-56']) {
+  expectScan(`a phone number written with dashes or dots (${forme}) is found`, {
+    events: [{ $metadata: { service: 'storefront-service' }, champs: ligneAvec('storefront-service', { message: forme }) }],
+  }, 'storefront-service', { lignes: 1, telephone: { [`${P}.message`]: 1 } });
+}
+expectScan('an ISO date, a time and a timestamp alone are no phone number', {
+  events: [{
+    $metadata: { service: 'custody-service' },
+    champs: ligneAvec('custody-service', {
+      jour: '2026-11-28',
+      heure: '08:00:00',
+      instant: '2026-11-28T08:00:00Z',
+      fin: '2026-11-28T08:00:00.123456Z',
+      phrase: 'le 2026-11-28 à 08:00:00.123456',
+    }),
+  }],
+}, 'custody-service', { lignes: 1, ...RIEN });
+expectScan('an e-mail whose local part is an id is found as an e-mail: the masked id hides nothing', {
+  events: [{ $metadata: { service: 'storefront-service' }, champs: ligneAvec('storefront-service', { message: `${UUID_DIGITS}@example.com` }) }],
+}, 'storefront-service', { lignes: 1, email: { [`${P}.message`]: 1 } });
+
+expectScan('JSON after a few words is read as a tree: the drop code in « request {"buyerDropCode":"482913"} » is found', {
+  events: [{ $metadata: { service: 'custody-service', message: 'request {"buyerDropCode":"482913"}' }, champs: ligneAvec('custody-service', {}) }],
+}, 'custody-service', { lignes: 1, cle: { [`events[].$metadata.message.${H}`]: 1 } });
+expectScan('the words before that JSON are still read as text, and the frame inside it makes the line', {
+  events: [{ $metadata: { service: 'custody-service', message: `appel au 70 11 22 33 ${JSON.stringify(ligneAvec('custody-service', {}))}` } }],
+}, 'custody-service', { lignes: 1, telephone: { 'events[].$metadata.message': 1 } });
+expectScan('a line encoded twice is read through, frame and all: what it hides is found', {
+  events: [{ $metadata: { service: 'custody-service', message: JSON.stringify(JSON.stringify(ligneAvec('custody-service', { buyerDropCode: 'test-0002' }))) } }],
+}, 'custody-service', { lignes: 1, cle: { [`events[].$metadata.message.${H}`]: 1 } });
+{
+  let dix = '70 11 22 33';
+  for (let i = 0; i < 10; i += 1) dix = JSON.stringify(dix);
+  expectScan('text encoded ten times ends the scan, and past the bound the phone in it is still read as text', {
+    events: [{ $metadata: { service: 'custody-service', message: dix }, champs: ligneAvec('custody-service', {}) }],
+  }, 'custody-service', { lignes: 1, telephone: { 'events[].$metadata.message': 1 } });
+}
 
 expectScan('a key that is itself a phone number is counted, and never printed', {
-  events: [{ $metadata: { service: 'offer-service' }, champs: { 70123456: 'test-x' } }],
+  events: [{ $metadata: { service: 'offer-service' }, champs: ligneAvec('offer-service', { 70123456: 'test-x' }) }],
 }, 'offer-service', { lignes: 1, telephone: { 'events[].champs.[clé non affichée]': 1 } });
-expectScan('a key shaped like an id, too long, or not a plain name is never printed; a plain name is', {
+expectScan('a key shaped like an id, too long, not a plain name, with more than three digits, or off the fixed list is never printed', {
   events: [{
     $metadata: { service: 'offer-service' },
-    champs: {
+    champs: ligneAvec('offer-service', {
       af1a2b3c4d5e6f70: { buyerName: 'test-x' },
       deadbeefcafe: { buyerName: 'test-x' },
       [`k${'e'.repeat(41)}`]: { buyerName: 'test-x' },
       'clé-avec-tiret': { buyerName: 'test-x' },
       sha256: { buyerName: 'test-x' },
-    },
+      tel70123456: { buyerName: 'test-x' },
+    }),
   }],
 }, 'offer-service', {
   lignes: 1,
-  cle: { 'events[].champs.[clé non affichée].buyerName': 4, 'events[].champs.sha256.buyerName': 1 },
+  // tel70123456 is itself a phone number in a key: counted, never printed.
+  telephone: { [`events[].champs.${H}`]: 1 },
+  cle: { [`events[].champs.${H}.${H}`]: 6 },
 });
+expectScan('a person’s name used as a key is never printed; a key on the fixed list still is', {
+  events: [{ $metadata: { service: 'offer-service' }, ...ligneAvec('offer-service', {}), source: { Aminata: { tel: 'test-x' } } }],
+}, 'offer-service', { lignes: 1, telephone: { [`events[].source.${H}.tel`]: 1 } });
 
+// Under protection only: its lines carry no reason, reference or key at all.
+const PROTECTION_PRIVE = {
+  reason: 'test-motif-1',
+  reasonCode: 'test-motif-2',
+  reference: 'test-ref-a',
+  ref: 'test-ref-b',
+  settlementRef: 'test-ref-c',
+  evidenceBundleId: 'test-ev-1',
+  key: 'test-k-1',
+};
+expectScan('protection: a reason, a reference, an evidence bundle or a bare key is private there; a key is private only alone', {
+  events: [{ $metadata: { service: 'protection-service', message: 'request' }, champs: ligneAvec('protection-service', { ...PROTECTION_PRIVE, idempotencyKey: 'test-k-2' }) }],
+}, 'protection-service', {
+  lignes: 1,
+  cle: { [`${P}.reason`]: 1, [`${P}.reference`]: 1, [`${P}.ref`]: 1, [`${P}.evidenceBundleId`]: 1, [`${P}.key`]: 1, [`${P}.${H}`]: 2 },
+});
+expectScan('the same reason, reference and key under another service are its fixed technical codes: clean', {
+  events: [{ $metadata: { service: 'storefront-service', message: 'request' }, champs: ligneAvec('storefront-service', PROTECTION_PRIVE) }],
+}, 'storefront-service', { lignes: 1, ...RIEN });
+
+// Under custody, where `reason` is a fixed code: under protection a reason code is private (above).
 expectScan('timestamps, ids, versions and technical key names are not hits', {
   events: [{
-    $metadata: { service: 'protection-service', message: 'request', error: 'TypeError' },
+    $metadata: { service: 'custody-service', message: 'request', error: 'TypeError' },
     champs: {
       ts: TS,
+      msg: 'request',
       startTime: 1764310353123,
       now: 1764310353,
       at: '1764310353123',
@@ -268,7 +391,7 @@ expectScan('timestamps, ids, versions and technical key names are not hits', {
       routes: ['/rider/repere-audio', '/ops/rider-code/reveal', '/fulfillment/supplier-contact', '/checkout/webhook/payment'],
     },
   }],
-}, 'protection-service', { lignes: 1, ...RIEN });
+}, 'custody-service', { lignes: 1, ...RIEN });
 
 // ─── The script, run whole, with fetch stood in ───────────────────────────
 const work = mkdtempSync(join(tmpdir(), 'log-check-'));
@@ -307,7 +430,7 @@ const propre = (service) => lu({ events: melange(REAL[service]) });
 const NEVER = [
   TOKEN, ACCOUNT, TS, UUID_DIGITS, UUID_ZERO, ORDER, QUOTE, GROUP, 'test-chaine-0001',
   ...Object.values(PLANTE).flatMap((v) => (Array.isArray(v) ? v.map(String) : [String(v)])),
-  '70 99 88 77', 'test-pas-du-json', 'test-marqueur-messages-77', 'test: fourth', 'test-deploy-token',
+  '70 99 88 77', 'test-pas-du-json', 'test-marqueur-messages-77', 'test: fourth', 'test-deploy-token', 'test-chaine-0002',
 ];
 
 let runs = 0;
@@ -475,6 +598,30 @@ const DEFAUT = ['custody-service', 'logistics-service', 'storefront-service', 'o
   });
 }
 {
+  const name = 'an answer whose only event holds nothing but a $metadata naming the service → NON LU « aucune ligne lue », exit 1';
+  const r = await run(name, {
+    env: { LOG_CHECK_SERVICES: 'media-service' },
+    scenario: { 'media-service': lu({ events: [{ $metadata: { service: 'media-service', message: 'request' } }] }) },
+  });
+  expectRun(name, r, {
+    exit: 1,
+    stdout: [
+      HEAD(1),
+      `media-service — ${lignes(0)} (72 h)`,
+      '  téléphone : 0',
+      '  e-mail : 0',
+      '  point sur la carte : 0',
+      '  code, secret, nom ou adresse : 0',
+      '  montant : 0',
+      AUCUNE(),
+      bilan(1, 0, 0, 1),
+      FIN,
+      '',
+    ].join('\n'),
+    requests: 1,
+  });
+}
+{
   const name = 'only other services’ lines in the answer → NON LU, and their number said';
   const r = await run(name, {
     env: { LOG_CHECK_SERVICES: 'custody-service' },
@@ -493,7 +640,7 @@ const DEFAUT = ['custody-service', 'logistics-service', 'storefront-service', 'o
       'custody-service': propre('custody-service'),
       'logistics-service': refus(403, [{ code: 10000, message: 'Authentication error' }]),
       'storefront-service': lu({
-        events: [...melange(REAL['storefront-service']), { $metadata: { service: 'storefront-service', message: 'request' }, champs: PLANTE }],
+        events: [...melange(REAL['storefront-service']), { $metadata: { service: 'storefront-service', message: 'request' }, champs: ligneAvec('storefront-service', PLANTE) }],
       }),
       'offer-service': refus(200, [{ code: 7003, message: 'test: value 70 99 88 77' }]),
       'media-service': { texte: 'test-pas-du-json {' },
@@ -507,11 +654,11 @@ const DEFAUT = ['custody-service', 'logistics-service', 'storefront-service', 'o
       ...blocPropre('custody-service', 3),
       'logistics-service — NON LU : Cloudflare refuse la clé, ou elle n\'a pas le droit de lire les journaux. (HTTP 403 · code 10000 « Authentication error »)',
       `storefront-service — ${lignes(5)} (72 h)`,
-      `  téléphone : 9  [${P}.buyerPhone ×1 · ${P}.telephone ×1 · ${P}.x1 ×1 · ${P}.x2 ×1 · ${P}.x3 ×1 · ${P}.x4 ×1 · ${P}.x5 ×1 · ${P}.x6 ×1 · … et 1 autre chemin]`,
-      `  e-mail : 2  [${P}.courriel ×1 · ${P}.x8 ×1]`,
-      `  point sur la carte : 4  [${P}.latitude ×1 · ${P}.pin ×1 · ${P}.x10 ×1 · ${P}.x9 ×1]`,
-      `  code, secret, nom ou adresse : 14  [${P}.adresse ×1 · ${P}.buyerDropCode ×1 · ${P}.buyerName ×1 · ${P}.cfConnectingIp ×1 · ${P}.clientIp ×1 · ${P}.forwardedFor ×1 · ${P}.ip ×1 · ${P}.ipAddress ×1 · … et 6 autres chemins]`,
-      `  montant : 4  [${P}.amountFcfa ×1 · ${P}.x11 ×1 · ${P}.x12 ×1 · ${P}.x13 ×1]`,
+      `  téléphone : 12  [${P}.${H} ×11 · ${P}.telephone ×1]`,
+      `  e-mail : 3  [${P}.${H} ×2 · ${P}.courriel ×1]`,
+      `  point sur la carte : 4  [${P}.${H} ×2 · ${P}.latitude ×1 · ${P}.pin ×1]`,
+      `  code, secret, nom ou adresse : 14  [${P}.${H} ×10 · ${P}.adresse ×1 · ${P}.ip ×1 · ${P}.landmark ×1 · ${P}.password ×1]`,
+      `  montant : 4  [${P}.${H} ×4]`,
       '  → À REGARDER',
       'offer-service — NON LU : Cloudflare dit que la demande n\'a pas abouti. (HTTP 200 · code 7003 « [message non affiché] »)',
       'media-service — NON LU : La réponse de Cloudflare ne se lit pas. (HTTP 200)',
