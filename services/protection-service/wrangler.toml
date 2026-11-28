@@ -23,3 +23,15 @@ class_name = "FondsDO"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["FondsDO"]
+
+# Workers Logs keeps the one line each request writes (worker/log.ts), every
+# request sampled. The query string is redacted by the platform as well, and
+# the platform's own per-call record is off: it would carry the raw request,
+# which the request line is built never to hold.
+[observability]
+enabled = true
+head_sampling_rate = 1
+redact_query_string = true
+
+[observability.logs]
+invocation_logs = false

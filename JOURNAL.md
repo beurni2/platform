@@ -5,6 +5,52 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-28 · JOURNAL-SERVICE-1 — the protection service keeps a log with no amount, reason or personal data · lane O · on the branch, NOT merged, NOT deployed
+
+**Founder.** « done, now you can start the next batch » (2026-11-28 00:38 UTC), batch 7 of the plan he approved: « Every service, one lane per app. Each one keeps a log of what it did and what went wrong, with no personal data in it. » This slice is the claims book's Worker (`services/protection-service/`); the ops console is out of scope.
+
+**Lane.** Lane O, local commits `d0de732` and `19bf949` on `513b1a8`. Integrated on `claude/project-thread-jqj97g` as `cbcfde8` on `f109c31`; files byte-identical to the lane's `19bf949`.
+
+**Spec.** Execution Contract §6 « **Standards:** structured logs »; §8 item 8 « A support agent can reconstruct any transaction from the correlation chain. »; CLAUDE.md Laws 2 and 4: this book records money decisions made outside and moves none, so a line may carry no amount, reason, reference or key.
+
+**What changed.**
+- One JSON line per request, written by one wrapper in `worker/index.ts` after the answer (the preflight, `/health`, the 401 and the book's answers included): route template (`/health`, `/claims`, `/claims/:orderId/advance`, `/fund`, `/journal`, else `unmatched`), method from a closed set, status, duration, correlation id (the inbound header cut to 64; missing or empty, a minted one), and the order id only on the advance route and only in Shop+'s minted shape, tested on the raw segment. Levels: error for a 5xx, warn for 401, 403, 413 and 429, info otherwise. A throw writes an error line with the error's class only and is re-thrown; the answer never carries the id back. A small local module (`worker/log.ts`) writes the line in the app repos' shape; no shared package, no dependency.
+- `wrangler.toml`: `[observability]` on at full sampling, queries redacted, the per-invocation log off. No secret, binding or route changed.
+- The book itself (`worker/fund-do.ts`) is unchanged: it has no outbox, no alarm and no swallowed fault.
+
+**Evidence.** Lane: every new test red first, then green, on the real bundle under Miniflare at the deploy's own compatibility date, with the runtime's output captured; mutations each red with the anchor matched once, restored byte-identical (the wrapper's call, the raw path, the query, an amount on a claim's line; then the re-throw, both anchors of the minted shape, an id echoed on the answer, an empty id kept). Service 112/112, typecheck green. Coordinator: the diff read line by line; the log test re-run 29/29 at the lane head. Full board on `cbcfde8` (`CI=true`, the local browser named): ALL GATES GREEN. Its first run named no browser and the console's browser tests could not start; nothing else differed.
+
+**Verifier.** One fresh-context pass, handled once: pass with notes. The re-throw, both ends of the minted shape, the answer never carrying the id, and the empty id are now asserted. The rest is journalled below.
+
+**Release.** The merge, then protection-deploy from main.
+
+**Still open.**
+- Only the 401 and 5xx levels can be raised on the real Worker; 403, 413 and 429 are read in code only. Whether the logging service keeps and redacts lines as configured, and what it adds of its own, is checked on one real line after the release.
+- The test capture does not tell the two output streams apart, and the duration is checked only as a number.
+- The ops console sends no correlation id, so the chain stops at this book.
+- Other open items are held in the private batch record until their fixes deploy.
+
+---
+
+## 2026-11-27 · SORTIES-SURES-1 — MERGED; protection service DEPLOYED; the rollback drill done
+
+**Founder.** « Release all five » (2026-11-27 22:43 UTC, decision card, on the batch 6 report), which named for platform: the merge, then the protection service, then the drill (back one version and forward again, timed). The ops console did not change in this batch and was not deployed.
+
+**Merge.** platform-contracts PR #5 merged first (`b36e360`). PR #6 merged as `513b1a8` (merge commit, the branch shas kept). On main: ci 40 green on its first attempt.
+
+**Deployed from main at `513b1a8`.** protection-deploy 7 (id 46078838990) green: the guard passed; versions `167c1c71` (upload) and `1231fdba` (the keys written). The job names the `production` environment, but GitHub started it without waiting for an approval; the founder approved in chat, and the environment's reviewer setting is being checked.
+
+**The drill.**
+- rollback 1 (id 46078994033), no version named: wrangler went back to the previous Worker *version*, which is the same release's upload (`167c1c71`); every health read after still said `513b1a8`. A release makes two versions (the upload, then the keys), so « the previous version » is not « the previous release ». Follow-on: the rollback page and workflow must name the previous release's last version, or pick it.
+- rollback 2 (id 46079252439), version `3dc59033` (the previous release's last version, 2026-11-27 00:45 UTC): the switch took about 1 s, and the first health read 5 s later said `d509c76`, the previous release. No key warning was printed.
+- rollback 3 (id 46079492119), version `1231fdba`: back on `513b1a8` at the first health read, 5 s after the switch. Each run reads health 12 times over a minute, so each prints « rollback done in 63–64 s »; the service itself changed in under 6 s.
+
+**Not checked.** The first scheduled live watch (05:30 UTC on 2026-11-28) is the check that the protection service runs `main`.
+
+**Still open.** As named in the slice entry below, plus the rollback follow-on above. Other open items are held in the private batch record until their fixes deploy.
+
+---
+
 ## 2026-11-27 · SORTIES-SURES-1 — a service goes live only from main's newest green commit, with the founder's approval; a rollback page and its drill; the board and a live check every day · lane O5 · on the branch, NOT merged, NOT deployed
 
 **Founder.** « Go on for batch 6 » (2026-11-27 19:38 UTC), batch 6 of the plan he approved: « A service goes live only after its checks passed on that exact version, with your approval in front of it. One page per app says how to roll back, and we practise it once. The boards run every day, not only when someone pushes. A daily watch checks that the live services run `main`. » His card on the GitHub approval is still open; this is built on its recommended answer (service releases wait for his approval).

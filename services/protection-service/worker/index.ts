@@ -24,9 +24,16 @@
  * the shop-plus storefront-service ruling: no wildcard, ever — the response
  * echoes the ONE requesting origin iff it is on the list. Unset → no CORS
  * headers (curl still works; browsers are refused).
+ *
+ * LOG: every request writes ONE line once its answer is ready (or once it
+ * throws): the route's template, the method, the status, the time taken, a
+ * correlation id. Never an amount, a reason, a reference, a key, the raw path
+ * or the query — this book records money the founder moved outside, and a log
+ * that repeated it would be a second, unguarded copy (Laws 2 and 4).
  */
 
 import { FondsDO, FONDS_BOOK_NAME } from './fund-do.js';
+import { writeLine, type Level } from './log.js';
 
 export { FondsDO };
 
@@ -102,31 +109,88 @@ function withCors(response: Response, request: Request, env: Env): Response {
   return out;
 }
 
+const CORRELATION_ID_MAX = 64;
+const METHODS: ReadonlySet<string> = new Set(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']);
+const ROUTES: ReadonlySet<string> = new Set(['/health', '/claims', '/fund', '/journal']);
+const ADVANCE = /^\/claims\/([^/]+)\/advance$/;
+// Shop+ mints every order id as `ord-` + its quote id. Any other segment is
+// not an order id this book can name, so the line never repeats it.
+const ORDER_ID_MINTED = /^ord-quote-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+function routeOf(pathname: string): { route: string; orderId?: string } {
+  if (ROUTES.has(pathname)) return { route: pathname };
+  const advance = ADVANCE.exec(pathname);
+  if (advance === null) return { route: 'unmatched' };
+  // The raw segment, never a decoded one: a decoded id is not what was minted.
+  const segment = advance[1] as string;
+  return ORDER_ID_MINTED.test(segment)
+    ? { route: '/claims/:orderId/advance', orderId: segment }
+    : { route: '/claims/:orderId/advance' };
+}
+
+function levelOf(status: number): Level {
+  if (status >= 500) return 'error';
+  if (status === 401 || status === 403 || status === 413 || status === 429) return 'warn';
+  return 'info';
+}
+
+function correlationIdOf(request: Request): string {
+  const inbound = request.headers.get('x-correlation-id');
+  return inbound === null || inbound === '' ? crypto.randomUUID() : inbound.slice(0, CORRELATION_ID_MAX);
+}
+
+function logRequest(request: Request, started: number, outcome: { status: number } | { error: unknown }): void {
+  const { route, orderId } = routeOf(new URL(request.url).pathname);
+  // A throw reaches the caller as the runtime's own 500.
+  const status = 'status' in outcome ? outcome.status : 500;
+  writeLine(levelOf(status), correlationIdOf(request), 'request', {
+    route,
+    method: METHODS.has(request.method) ? request.method : 'OTHER',
+    status,
+    durationMs: Date.now() - started,
+    ...(orderId !== undefined ? { orderId } : {}),
+    // The class only: a message can carry the very data this line must not.
+    ...('error' in outcome ? { error: outcome.error instanceof Error ? outcome.error.constructor.name : 'unknown' } : {}),
+  });
+}
+
+async function handle(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders(request, env) });
+  }
+  if (request.method === 'GET' && url.pathname === '/health') {
+    // Unauthenticated liveness for the post-deploy provenance probe — no
+    // fund data, no claim data, nothing enumerable.
+    return withCors(
+      Response.json({
+        ok: true,
+        service: 'protection-service',
+        release: __PLATFORM_RELEASE__,
+        canon: __PLATFORM_CANON__,
+      }),
+      request,
+      env,
+    );
+  }
+  if (!(await authorized(request, env.PROTECTION_OPS_SECRET))) {
+    return withCors(unauthorized(), request, env);
+  }
+  const stub = env.FONDS.get(env.FONDS.idFromName(FONDS_BOOK_NAME));
+  return withCors(await stub.fetch(request), request, env);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders(request, env) });
+    const started = Date.now();
+    try {
+      const response = await handle(request, env);
+      logRequest(request, started, { status: response.status });
+      return response;
+    } catch (error) {
+      logRequest(request, started, { error });
+      throw error;
     }
-    if (request.method === 'GET' && url.pathname === '/health') {
-      // Unauthenticated liveness for the post-deploy provenance probe — no
-      // fund data, no claim data, nothing enumerable.
-      return withCors(
-        Response.json({
-          ok: true,
-          service: 'protection-service',
-          release: __PLATFORM_RELEASE__,
-          canon: __PLATFORM_CANON__,
-        }),
-        request,
-        env,
-      );
-    }
-    if (!(await authorized(request, env.PROTECTION_OPS_SECRET))) {
-      return withCors(unauthorized(), request, env);
-    }
-    const stub = env.FONDS.get(env.FONDS.idFromName(FONDS_BOOK_NAME));
-    return withCors(await stub.fetch(request), request, env);
   },
 };
