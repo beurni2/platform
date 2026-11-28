@@ -20,10 +20,15 @@ name: log-check
 # deploy tool. The script and its proof are scripts/log-check.mjs and
 # scripts/gates/log-check-proof.mjs.
 #
-# NEEDS (repository secrets — both masked in the log):
-#   · CLOUDFLARE_LOGS_TOKEN — a token that can only READ Workers logs, made for
-#     this check alone. Never the deploy token.
+# NEEDS (secrets of the `log-check` ENVIRONMENT, not of the repository — both
+# masked in the log):
+#   · CLOUDFLARE_LOGS_TOKEN — a token of its own with ONE Cloudflare permission,
+#     « Workers Observability Write », on this one account. It is the only
+#     permission Cloudflare's log query accepts (there is no read-only one for
+#     it); this run only reads. Never the deploy token.
 #   · CLOUDFLARE_ACCOUNT_ID — the account the six Workers live in.
+# The environment's deployment branches are main only, so a workflow on any
+# other branch is never handed the token. It needs no reviewer: the run reads.
 # A missing one stops the run with its name, before any request.
 
 on:
@@ -47,6 +52,9 @@ jobs:
     # Only main's script reads the live logs: a branch cannot change what is
     # looked for or what is printed before review.
     if: github.ref == 'refs/heads/main'
+    # The token lives in this environment, whose branch rule is main only:
+    # the line above stops this file elsewhere, the environment stops any other.
+    environment: log-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
