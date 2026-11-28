@@ -1,0 +1,70 @@
+name: log-check
+
+# WHAT DID THE LIVE SERVICES REALLY WRITE IN THEIR LOGS? — a read-only look,
+# started by hand.
+#
+# Since batch 7 every live service keeps a log meant to hold no personal data
+# and no money; nobody had read a real line of it. This run asks Cloudflare
+# for a few recent log lines of each of the six live services and looks, in
+# every key and value, for phone numbers, e-mail addresses, map points, drop
+# codes and other private names, and amounts.
+#
+# THE LOG OF THIS RUN IS PUBLIC, so it prints only, per service: how many
+# lines were read, a count per kind, the KEY PATHS where a hit sat (a path
+# segment that could itself be private is hidden), and a verdict — OK,
+# À REGARDER or NON LU. Never a value, a line, an id or Cloudflare's answer.
+# NON LU (nothing read, the token refused, a shape not understood) is never a
+# pass: the run is green only when every service was read and none flagged.
+#
+# IT CHANGES NOTHING ANYWHERE: one read per service, no install, no build, no
+# deploy tool. The script and its proof are scripts/log-check.mjs and
+# scripts/gates/log-check-proof.mjs.
+#
+# NEEDS (secrets of the `log-check` ENVIRONMENT, not of the repository — both
+# masked in the log):
+#   · CLOUDFLARE_LOGS_TOKEN — a token of its own with ONE Cloudflare permission,
+#     « Workers Observability Write », on this one account. It is the only
+#     permission Cloudflare's log query accepts (there is no read-only one for
+#     it); this run only reads. Never the deploy token.
+#   · CLOUDFLARE_ACCOUNT_ID — the account the six Workers live in.
+# The environment's deployment branches are main only, so a workflow on any
+# other branch is never handed the token. It needs no reviewer: the run reads.
+# A missing one stops the run with its name, before any request.
+
+on:
+  workflow_dispatch:
+    inputs:
+      heures:
+        description: "Combien d'heures en arrière lire (1 à 168)"
+        required: false
+        default: "72"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: log-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    # Only main's script reads the live logs: a branch cannot change what is
+    # looked for or what is printed before review.
+    if: github.ref == 'refs/heads/main'
+    # The token lives in this environment, whose branch rule is main only:
+    # the line above stops this file elsewhere, the environment stops any other.
+    environment: log-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      # Dependency-free by design: Node's own fetch, nothing installed.
+      - name: Read a few recent log lines of every live service (counts only)
+        env:
+          CLOUDFLARE_LOGS_TOKEN: ${{ secrets.CLOUDFLARE_LOGS_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          LOG_CHECK_HOURS: ${{ inputs.heures }}
+        run: node scripts/log-check.mjs

@@ -19,6 +19,9 @@ name: protection-deploy
 #     set on the Worker with `wrangler secret put` (value PIPED, never an
 #     argument, never [vars] — this repo is public). THE FOUNDER'S ALONE:
 #     never bundled into any app, never shared with a supplier or reseller.
+#   · PROTECTION_OPS_SECRET_NEXT (optional secret — only during a key
+#     change): the new value, accepted beside the old one until the change is
+#     finished. Delete it from the repo and re-dispatch to close the window.
 #   · PROTECTION_BASE (variable, not secret — a public URL) — the deployed
 #     Worker's base URL (e.g. https://protection-service.<account>.workers.dev),
 #     used by the provenance assertion below and by ops-console-deploy.yml.
@@ -126,6 +129,33 @@ jobs:
             exit 0
           fi
           printf '%s' "$OPS_SECRET" | pnpm exec wrangler secret put PROTECTION_OPS_SECRET
+
+      # KEY CHANGE WINDOW (batch 8) — every key this Worker CHECKS also opens
+      # to its `_NEXT` value while one is set, so a sender can move to a new
+      # value before the old one stops working. A repo secret X_NEXT is put on
+      # the Worker here; once it is gone from the repo, this run deletes it
+      # from the Worker too, so a finished change never leaves an old value
+      # open. Runs AFTER every key above, so a promotion (X = the new value,
+      # X_NEXT deleted) never has a moment where only the old value opens.
+      # Names only are printed — never a value or a length.
+      - name: Arm or clear the next keys (X_NEXT — the window of a key change)
+        working-directory: services/protection-service
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PROTECTION_OPS_SECRET_NEXT: ${{ secrets.PROTECTION_OPS_SECRET_NEXT }}
+        run: |
+          set -euo pipefail
+          LISTED=$(pnpm exec wrangler secret list)
+          for NAME in PROTECTION_OPS_SECRET_NEXT; do
+            VALUE="${!NAME:-}"
+            if [ -n "$VALUE" ]; then
+              printf '%s' "$VALUE" | pnpm exec wrangler secret put "$NAME"
+              echo "::warning title=Changement de clé en cours::$NAME is set — the old and the new value of ${NAME%_NEXT} both open its doors. To finish: once every sender presents the new value, put it in ${NAME%_NEXT}, delete $NAME from this repository's secrets, and run this workflow again."
+            elif grep -q "\"name\": *\"$NAME\"" <<<"$LISTED"; then
+              printf 'y\n' | pnpm exec wrangler secret delete "$NAME"
+              echo "$NAME: deleted from the Worker — only ${NAME%_NEXT} opens its doors now"
+            fi
+          done
 
       # ═══ The F9 assertion: the live Worker must BE the bundle this job built ═══
       # A Workers deploy PROPAGATES; it does not switch — poll up to 180s.

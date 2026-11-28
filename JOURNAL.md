@@ -5,6 +5,51 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-28 · VERIFICATION-JOURNAUX-1 + CLE-SUIVANTE-1 — a hand-started, read-only check of what the six live services write in their logs; the fund key can change with no gap · lane O · on the branch, NOT merged, NOT deployed
+
+**Founder.** « yes add a small read-only check in the next batch » (2026-11-28 06:12 UTC), on what he was told: a check he starts by hand, that reads a few recent log lines of each live service, looks for phone numbers, addresses, amounts and drop codes, and shows only a count and pass or fail, never the lines, because the run page is public. « you can start the next batch » (06:17 UTC), batch 8 of the plan he approved: « During a change, the old and new keys both work for a short window, so nothing stops. »
+
+**Lane.** Lane O, slice O7, one local commit `459bef9` on `04e7768`, integrated unchanged as `0383b4a`; the review's fixes as one local commit `a6b81fc`, integrated unchanged as `f3dae90`. The coordinator's own commits: `8799a02` (the protection deploy writes or removes the next fund key), `ce068e6` (the log check's workflow) and `348700f` (its token lives in a main-only environment).
+
+**Spec.**
+- Execution Contract §3 (l.90): « Token/contract versions support **overlapping validation windows** + explicit **deprecation/retirement**. »; §11 (l.190): « secrets management · **key rotation incl. attribution-token signing key (custody, rotation, overlapping windows, compromise response, version retirement)** ».
+- The batch 7 log rule of this repository (« no amount, reason or personal data ») and of each app repository (« no personal data »); Ten Laws #3 (`buyerDropCode` never leaves its path).
+- The batch 8 key rule: a Worker that checks a key `X` also accepts `X_NEXT` while it is set; it passes iff (`X` non-empty and equal) or (`X_NEXT` non-empty and equal); both constant-time compares always run; `X_NEXT` opens exactly what `X` opens; the one 401 is unchanged; nothing says which value matched.
+
+**What changed.**
+- *The fund key.* `authorized(request, secret, nextSecret)` runs both house compares together and only then combines them; each value is fail-closed on its own. `PROTECTION_OPS_SECRET_NEXT` opens the one fund door and nothing else. The deploy writes it while the repository holds it, after the key itself, deletes it from the Worker once the repository no longer does, and warns « Changement de clé en cours » while one is set. Names only.
+- *The log check.* `scripts/log-check.mjs`, dependency-free, one read query per service over the last 72 hours (1 to 168), the six live Workers by default. It reads every key and value of Cloudflare's answer, JSON kept as text included (whole, after a few words, or encoded twice), and counts phone numbers (spaces, dots or dashes between pairs; ISO dates and times are not phones), e-mail addresses, map points, codes and other private key names, and amounts; under the protection service also a reason, a reference, an evidence bundle or a bare key. It prints, per service, the lines read, a count per kind, the key paths where hits sat (only names on a fixed list; any other key shows as « [clé non affichée] »), and OK, À REGARDER or NON LU. An event counts as one of a service's lines only when it names that service and holds the frame every house logger writes (`correlation_id` and `msg` on one object), so a wrong guess about the answer's shape can only read NON LU, never OK. It never prints a value, a line, an id or the answer. Exit 0 only when every service was read and none flagged; 2 when an input is missing.
+- *The workflow (coordinator).* `log-check.yml`, started by hand only, runs only from main, `contents: read`, actions pinned by commit. Its two secrets belong to the `log-check` environment, whose deployment branches are main only, so no other branch is ever handed the token. The token holds one Cloudflare permission, « Workers Observability Write », the only one the log query accepts; the run only reads, and it is never the deploy token.
+
+**Evidence.**
+- Lane: every new test red first for the right reason, then green; mutations, each anchor matched once, red, restored byte-identical.
+- Coordinator: diffs read line by line. The fund door's next key through the real Worker: 6 of 6. The proof `scripts/gates/log-check-proof.mjs` on the fixed head: « log-check-proof OK », including the real lines of all six services found clean, every planted kind found at its path, an answer holding nothing a service wrote read as NON LU, and nothing read ever printed. Re-run by the coordinator: three of the lane's mutations (the frame rule removed, the fixed list removed, protection's words removed), each anchor matched once, each red, the file restored byte-identical. With no environment the script exits 2 with a plain sentence. Full board on `0383b4a` in a fresh clone: « ALL GATES GREEN ».
+
+**Verifier.** One fresh-context pass on `0383b4a`, handled once, never re-verified: 0 blocker, 1 major, 6 minor, 5 notes. It killed five mutants of the fund door itself.
+- Major, fixed here: an event that named the service but held nothing the service wrote counted as a line read, so an answer of a shape nobody expected could read OK. Now the house frame must sit within the event.
+- Minor, fixed here: a key path could print a value used as a key (a person's name); only names on a fixed list print now. The digit rule for key names is now covered by a fixture. Phone numbers written with dots or dashes were missed. JSON after a few words, or encoded twice, was read only as text. The protection service's reason, reference, evidence bundle and bare key were not flagged. The token was a repository secret; it now lives in the main-only environment.
+- Notes: an e-mail whose local part is an id is now proven found (fixed here). The first real run may flag Cloudflare's own event fields; that is the safe direction, and only that run can show it. A rollback into a key-change window brings back the next key a version had; re-running the protection deploy removes it. A change window closes only when the founder re-runs the deploy; the warning on each run is the reminder, as designed. The operator output is plain French in the script, as every operator script here is; the catalog law binds app strings.
+
+**Not checked.** Cloudflare was not called from here: the answer's real shape, the event fields and the page size are proven only by the founder's first real run.
+
+**Still open.** Key names that are not on the fixed list (for example a private field's own name) show as « [clé non affichée] »: the founder sees the kind and the parent path, not the key. A JSON line followed by more words is read as text only. A dotted address with two-digit parts, or a date written day first, can read as a phone, toward À REGARDER.
+
+---
+
+## 2026-11-28 · JOURNAL-SERVICE-1 — MERGED; protection service DEPLOYED
+
+**Founder.** « Release everything » (2026-11-28 05:13 UTC, decision card, on the batch 7 report), which named for platform: the merge, then the protection service. It ran before Boutik+'s deploys, which were held by a red check on Boutik+'s main; the protection service answers exactly as before in this batch (it only adds log lines), so that order changes nothing.
+
+**Merge.** PR #7 merged as `04e7768` (merge commit, the branch shas kept). On main: ci 42 green on its first attempt.
+
+**Deployed from main at `04e7768`.** protection-deploy 10 (id 46112098915) green: it waited for the founder's approval in the `production` environment, the guard passed, the key armed as on the previous deploy, and « PROVENANCE OK — live protection Worker is 04e776801542753853af4e73c9d9be37be6a86c6 speaking canon 1.2.0. »
+
+**Not checked.** The live service was not called from here. Whether the logging service adds anything of its own to each line is read on one real line before anyone says the log holds no address.
+
+**Still open.** As named in the slice entry below. Other open items are held in the private batch record until their fixes deploy.
+
+---
+
 ## 2026-11-28 · JOURNAL-SERVICE-1 — the protection service keeps a log with no amount, reason or personal data · lane O · on the branch, NOT merged, NOT deployed
 
 **Founder.** « done, now you can start the next batch » (2026-11-28 00:38 UTC), batch 7 of the plan he approved: « Every service, one lane per app. Each one keeps a log of what it did and what went wrong, with no personal data in it. » This slice is the claims book's Worker (`services/protection-service/`); the ops console is out of scope.

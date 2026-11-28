@@ -361,6 +361,9 @@ capture deploy-only-main-proof pass node scripts/gates/deploy-only-main-proof.mj
 log "gate: live-watch — proof of the daily « live runs main » watch (must pass)"
 capture live-watch-proof pass node scripts/gates/live-watch-proof.mjs
 
+log "gate: log-check — proof of the read-only log check: nothing read is never OK, nothing read is ever printed (must pass)"
+capture log-check-proof pass node scripts/gates/log-check-proof.mjs
+
 if [ $FAILED -ne 0 ]; then
   echo ""
   echo "ONE OR MORE GATES FAILED"

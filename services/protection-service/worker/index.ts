@@ -17,6 +17,11 @@
  * unconditional compare (timing never reveals whether a secret exists), the
  * same single identical 401 for every rejection.
  *
+ * A KEY CHANGE WITH NO GAP: while `PROTECTION_OPS_SECRET_NEXT` (a secret too)
+ * is set, the key it holds opens exactly this same door, so the new key can be
+ * put in place before the old one is retired. Both compares always run;
+ * nothing answers or logs which of the two matched; unset or empty opens nothing.
+ *
  * CORS: the consoles are browser apps on their own origins. EXACT-ORIGIN
  * ALLOWLIST (`PROTECTION_CONSOLE_ORIGIN`, a var — origins are public;
  * comma-separated since FONDS-CONSOLE-B+, when the founder ordered the fund
@@ -46,6 +51,7 @@ declare const __PLATFORM_CANON__: string;
 export interface Env {
   readonly FONDS: DurableObjectNamespace;
   readonly PROTECTION_OPS_SECRET?: string;
+  readonly PROTECTION_OPS_SECRET_NEXT?: string;
   readonly PROTECTION_CONSOLE_ORIGIN?: string;
 }
 
@@ -73,14 +79,15 @@ function unauthorized(): Response {
   return Response.json({ error: 'unauthorized' }, { status: 401 });
 }
 
-async function authorized(request: Request, secret: string | undefined): Promise<boolean> {
+async function authorized(request: Request, secret: string | undefined, nextSecret: string | undefined): Promise<boolean> {
   const configured = secret ?? '';
+  const next = nextSecret ?? '';
   const header = request.headers.get('Authorization') ?? '';
   const provided = header.startsWith(BEARER_PREFIX) ? header.slice(BEARER_PREFIX.length) : '';
-  // The compare runs unconditionally so timing does not reveal whether a
-  // secret exists; the length guard keeps it fail-closed.
-  const match = await timingSafeEqual(provided, configured);
-  return configured.length > 0 && match;
+  // Both compares run unconditionally so timing reveals neither whether a
+  // secret exists nor which one matched; the length guards keep it fail-closed.
+  const [match, matchNext] = await Promise.all([timingSafeEqual(provided, configured), timingSafeEqual(provided, next)]);
+  return (configured.length > 0 && match) || (next.length > 0 && matchNext);
 }
 
 function corsHeaders(request: Request, env: Env): Record<string, string> {
@@ -174,7 +181,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
       env,
     );
   }
-  if (!(await authorized(request, env.PROTECTION_OPS_SECRET))) {
+  if (!(await authorized(request, env.PROTECTION_OPS_SECRET, env.PROTECTION_OPS_SECRET_NEXT))) {
     return withCors(unauthorized(), request, env);
   }
   const stub = env.FONDS.get(env.FONDS.idFromName(FONDS_BOOK_NAME));
