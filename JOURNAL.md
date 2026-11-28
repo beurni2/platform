@@ -5,6 +5,20 @@ decision, every safest-default applied on an open ⏳, every founder override.
 
 ---
 
+## 2026-11-28 · JOURNAL-SERVICE-1 — MERGED; protection service DEPLOYED
+
+**Founder.** « Release everything » (2026-11-28 05:13 UTC, decision card, on the batch 7 report), which named for platform: the merge, then the protection service. It ran before Boutik+'s deploys, which were held by a red check on Boutik+'s main; the protection service answers exactly as before in this batch (it only adds log lines), so that order changes nothing.
+
+**Merge.** PR #7 merged as `04e7768` (merge commit, the branch shas kept). On main: ci 42 green on its first attempt.
+
+**Deployed from main at `04e7768`.** protection-deploy 10 (id 46112098915) green: it waited for the founder's approval in the `production` environment, the guard passed, the key armed as on the previous deploy, and « PROVENANCE OK — live protection Worker is 04e776801542753853af4e73c9d9be37be6a86c6 speaking canon 1.2.0. »
+
+**Not checked.** The live service was not called from here. Whether the logging service adds anything of its own to each line is read on one real line before anyone says the log holds no address.
+
+**Still open.** As named in the slice entry below. Other open items are held in the private batch record until their fixes deploy.
+
+---
+
 ## 2026-11-28 · JOURNAL-SERVICE-1 — the protection service keeps a log with no amount, reason or personal data · lane O · on the branch, NOT merged, NOT deployed
 
 **Founder.** « done, now you can start the next batch » (2026-11-28 00:38 UTC), batch 7 of the plan he approved: « Every service, one lane per app. Each one keeps a log of what it did and what went wrong, with no personal data in it. » This slice is the claims book's Worker (`services/protection-service/`); the ops console is out of scope.
